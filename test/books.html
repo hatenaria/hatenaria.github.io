@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>共通部品の試験ページ（冒険の書）</title>
+<link rel="icon" href="data:,">
+<style>
+  body{font-family:"Hiragino Maru Gothic ProN","BIZ UDPGothic","Meiryo",sans-serif;background:#eef7ff;color:#3a3226;margin:0}
+  main{max-width:720px;margin:0 auto;padding:24px}
+  button,a{min-height:56px;padding:0 18px;border:none;border-radius:14px;background:#ffd66b;font-size:18px;font-family:inherit;display:inline-flex;align-items:center;text-decoration:none;color:inherit}
+</style>
+</head>
+<body>
+<main>
+  <h1>共通部品の試験ページ</h1>
+  <p id="current">…</p>
+  <p id="wallet"></p>
+  <button id="manage">冒険の書を選ぶ・作る・消す</button>
+  <a href="../index.html">ホームアイランドへ</a>
+</main>
+<script type="module">
+  import * as store from '../common/store.js';
+  import * as books from '../common/books.js';
+  import { showPicker } from '../common/book-picker.js';
+  async function refresh() {
+    const b = await books.getCurrent();
+    document.getElementById('current').textContent = b ? `📖 ${b.name}（${b.id}）` : 'まだ えらばれて いません';
+    const w = b ? await store.get(`${b.id}/wallet`, { coin: 0 }) : null;
+    document.getElementById('wallet').textContent = w ? `コイン ${w.coin}` : '';
+  }
+  document.getElementById('manage').addEventListener('click', async () => { await showPicker({ mode: 'manage' }); refresh(); });
+  (async () => { if (!(await books.getCurrent())) await showPicker({ mode: 'manage' }); refresh(); })();
+</script>
+</body>
+</html>

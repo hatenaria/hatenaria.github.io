@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ためしの アプリ（たしざん）</title>
+<link rel="icon" href="data:,">
+<style>
+  body{margin:0;min-height:100vh;font-family:"Hiragino Maru Gothic ProN","BIZ UDPGothic","Meiryo",sans-serif;background:#fff7e6;color:#3a3226}
+  main{max-width:640px;margin:0 auto;padding:28px 20px 100px;text-align:center}
+  .mode{display:inline-block;padding:6px 14px;border-radius:999px;font-size:16px;background:#e7e0d2}
+  .mode.on{background:#9be3a8}
+  .q{font-size:56px;margin:28px 0}
+  .ans{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+  .ans button{min-width:96px;min-height:80px;font-size:36px;border:none;border-radius:18px;background:#ffd66b;box-shadow:0 4px 0 #d9a93a;font-family:inherit;cursor:pointer}
+  #msg{font-size:22px;min-height:2em;margin-top:24px;line-height:1.6}
+  #again{display:none;margin:20px auto 0;min-height:60px;padding:0 24px;font-size:22px;border:none;border-radius:16px;background:#9be3a8;box-shadow:0 4px 0 #5fb06d;font-family:inherit}
+</style>
+</head>
+<body>
+<main>
+  <span class="mode" id="mode">じゅんび ちゅう…</span>
+  <p id="who"></p>
+  <div class="q" id="q"></div>
+  <div class="ans" id="ans"></div>
+  <p id="msg"></p>
+  <button id="again">もう いちど</button>
+</main>
+<script>
+// =====================================================================
+// 学習アイランド つなぎ口（island-link.js） 版 0.1.0
+// ---------------------------------------------------------------------
+// このかたまりを、各アプリの HTML の <script> の中にそのまま貼り付けて使う。
+// ・島のフォルダに置いたとき … 共通部品を読み込み「連携モード」になる
+// ・単独で開いたとき（Claudeのリンク、別のサイト、ファイルを直接開く）
+//                              … 共通部品がないので「単独モード」になり、何もしない
+//
+// 使い方（例）
+//   const island = await Island.init({ appId: 'keisan-1min', subject: 'math' });
+//   if (island.connected) { ... 島につながっているときだけの処理 ... }
+//   await Island.reward(3);                 // ひと区切りごとにコイン・素材
+//   await Island.record({ minutes: 5 });    // 学習の要約
+//
+// 単独モードでは reward / record は何もせず null を返し、isUnitOpen は常に true。
+// loadState は undefined を返すので、アプリは今までどおり自分の保存を使う。
+// =====================================================================
+const Island = (() => {
+  const I = {
+    connected: false,
+    book: null,
+    profile: null,
+    homeUrl: null,
+    reward: async () => null,
+    record: async () => null,
+    wallet: async () => null,
+    isUnitOpen: async () => true,
+    loadState: async () => undefined,
+    saveState: async () => false,
+  };
+
+  /**
+   * @param {object} opt
+   * @param {string} opt.appId     アプリの名前（半角英小文字・数字・ハイフン）
+   * @param {string} opt.subject   教科（math, rika, kokugo, shakai, eigo など）
+   * @param {string} [opt.commonPath='../common/']  このアプリから見た共通部品の場所
+   * @param {boolean} [opt.homeButton=true]        連携モードで「ホームに かえる」ボタンを出す
+   */
+  I.init = async ({ appId, subject, commonPath = '../common/', homeButton = true } = {}) => {
+    if (!/^https?:$/.test(location.protocol)) { console.info('[学習アイランド] 単独モード'); return I; }
+    try {
+      const api = await import(new URL(commonPath + 'island-api.js', location.href).href);
+      const c = await api.connect({ appId, subject });
+      if (!c) return I; // ホームへ移動中
+      Object.assign(I, c, { connected: true });
+      if (homeButton) {
+        const b = document.createElement('a');
+        b.href = c.homeUrl;
+        b.textContent = '🏝 ホームに かえる';
+        b.setAttribute('data-island', 'home');
+        b.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:9000;min-height:60px;display:flex;align-items:center;'
+          + 'padding:0 18px;border-radius:16px;background:#ffd66b;color:#3a3226;font-size:20px;font-weight:bold;'
+          + 'text-decoration:none;box-shadow:0 4px 0 #d9a93a;font-family:inherit';
+        document.body.append(b);
+      }
+      console.info(`[学習アイランド] 連携モード（冒険の書 ${c.book.id}、共通部品 ${c.version}）`);
+    } catch (e) {
+      console.info('[学習アイランド] 単独モード', e && e.message ? `（${e.message}）` : '');
+    }
+    return I;
+  };
+  return I;
+})();
+
+
+// ---- ここから下は、ふつうのアプリの中身（単独でも動く） ----
+const TOTAL = 5;
+let count = 0, selfCorrect = 0, startedAt = Date.now();
+
+function next() {
+  const a = 1 + Math.floor(Math.random() * 5), b = 1 + Math.floor(Math.random() * 4);
+  document.getElementById('q').textContent = `${a} ＋ ${b} ＝ ？`;
+  const right = a + b;
+  const choices = [...new Set([right, right + 1, right - 1, right + 2])].sort(() => Math.random() - .5);
+  const box = document.getElementById('ans');
+  box.replaceChildren(...choices.map((c) => {
+    const btn = document.createElement('button');
+    btn.textContent = c;
+    btn.dataset.answer = c;
+    btn.dataset.right = c === right ? '1' : '0';
+    btn.onclick = () => answer(c === right);
+    return btn;
+  }));
+}
+
+async function answer(ok) {
+  count++; if (ok) selfCorrect++;
+  if (count < TOTAL) { next(); return; }
+  document.getElementById('ans').replaceChildren();
+  document.getElementById('q').textContent = 'おしまい！';
+  let text = `${TOTAL}もん とりくんだね。`;
+  // ひと区切りが終わったら、島へ報告（単独モードでは何もしない）
+  const got = await Island.reward(TOTAL);
+  await Island.record({ minutes: Math.max(1, Math.round((Date.now() - startedAt) / 60000)),
+    skills: [{ id: 'math.g1.A.add', self: selfCorrect, total: TOTAL }] });
+  if (got) text += `<br>コイン +${got.coin}　さんすうの そざい +${got.material}${got.bonus ? '（きょう はじめての ボーナス！）' : ''}`;
+  document.getElementById('msg').innerHTML = text;
+  document.getElementById('again').style.display = 'block';
+}
+
+document.getElementById('again').onclick = () => {
+  count = 0; selfCorrect = 0; startedAt = Date.now();
+  document.getElementById('msg').textContent = '';
+  document.getElementById('again').style.display = 'none';
+  next();
+};
+
+(async () => {
+  await Island.init({ appId: 'sample-tashizan', subject: 'math', commonPath: '../../common/' });
+  const m = document.getElementById('mode');
+  if (Island.connected) {
+    m.textContent = 'しまに つながっています';
+    m.classList.add('on');
+    document.getElementById('who').textContent = `📖 ${Island.book.name}`;
+  } else {
+    m.textContent = 'ひとりで あそぶ モード';
+  }
+  next();
+})();
+</script>
+</body>
+</html>

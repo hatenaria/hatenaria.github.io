@@ -1,0 +1,11 @@
+{
+  "name": "ハテナリア",
+  "short_name": "ハテナリア",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#bfe6ff",
+  "theme_color": "#ffd66b",
+  "lang": "ja"
+}

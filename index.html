@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ハテナリア">
+<title>ハテナリア</title>
+<link rel="icon" href="data:,">
+<link rel="manifest" href="manifest.json">
+<style>
+  :root{--ink:#3a3226;--paper:#fffaf0;--gold:#ffd66b;--gold-d:#d9a93a;--green:#9be3a8;--green-d:#5fb06d}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;overflow:hidden;background:#5ec3e8;font-family:"Hiragino Maru Gothic ProN","BIZ UDPGothic","Meiryo",sans-serif;color:var(--ink);
+    -webkit-user-select:none;user-select:none;touch-action:none}
+  canvas{display:block;position:fixed;inset:0}
+  .hud{position:fixed;top:12px;left:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;max-width:62vw;pointer-events:none}
+  .chip{background:rgba(255,250,240,.94);border-radius:16px;padding:10px 16px;font-size:19px;font-weight:bold;box-shadow:0 3px 0 rgba(0,0,0,.12)}
+  #coins{display:flex;gap:12px;align-items:center}
+  .mat{font-size:16px;background:#eef6e8;border-radius:10px;padding:4px 10px}
+  .tr{position:fixed;top:12px;right:12px;display:flex;gap:10px}
+  .btn{min-height:64px;min-width:64px;padding:0 20px;border:none;border-radius:18px;background:var(--gold);color:var(--ink);font-size:21px;font-weight:bold;
+    font-family:inherit;box-shadow:0 5px 0 var(--gold-d);cursor:pointer}
+  .btn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--gold-d)}
+  .btn:disabled{background:#e4ddd0;box-shadow:0 5px 0 #c6bdad;color:#9a907f;cursor:default}
+  .btn:focus-visible,.btn.kfocus{outline:4px solid #3b82f6;outline-offset:3px}
+  .isle:focus-visible{outline:none}
+  .btn.sky{background:#bfe6ff;box-shadow:0 5px 0 #7fb6d9}
+  .pad{position:fixed;right:20px;bottom:20px;display:grid;grid-template-columns:repeat(3,76px);grid-template-rows:repeat(3,76px);gap:4px}
+  .pad button{border:none;border-radius:20px;background:rgba(255,250,240,.88);font-size:30px;color:var(--ink);box-shadow:0 4px 0 rgba(0,0,0,.15);touch-action:none}
+  .pad button:active{background:var(--gold)}
+  .pad [data-dir=up]{grid-area:1/2}.pad [data-dir=left]{grid-area:2/1}.pad [data-dir=right]{grid-area:2/3}.pad [data-dir=down]{grid-area:3/2}
+  #check{position:fixed;left:20px;bottom:24px;min-height:84px;padding:0 28px;font-size:24px;background:var(--green);box-shadow:0 5px 0 var(--green-d)}
+  #hint{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);opacity:0;transition:.2s;background:rgba(58,50,38,.85);color:#fff;
+    padding:10px 18px;border-radius:14px;font-size:19px;pointer-events:none;white-space:nowrap}
+  #hint.show{opacity:1;transform:translate(-50%,0)}
+  #layer{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(30,50,80,.45);z-index:50}
+  #layer.show{display:flex}
+  .modal{background:var(--paper);border-radius:26px;padding:26px 30px;width:min(640px,94vw);max-height:92vh;overflow:auto;box-shadow:0 14px 40px rgba(0,0,0,.25)}
+  .modal h2{margin:0 0 14px;font-size:28px;text-align:center}
+  /* 文章は分かち書きのすき間で折り返し、行は左そろえ（かたまりごと中央に置く） */
+  .modal .body{font-size:22px;line-height:1.8;white-space:pre-line;text-align:left;width:fit-content;max-width:100%;margin:8px auto 22px;
+    word-break:keep-all;overflow-wrap:anywhere;line-break:strict}
+  .modal h2,.notice h3,.notice p,.info .title,.info .sub,.iname{word-break:keep-all;overflow-wrap:anywhere;line-break:strict}
+  .modal .small{font-size:14px;color:#8a7e6c;text-align:center}
+  .row{display:flex;gap:14px;align-items:center}.row.end{justify-content:flex-end}.row.center{justify-content:center}.row.between{justify-content:space-between;margin-top:14px}
+  .col{display:flex;flex-direction:column;gap:14px;margin-bottom:14px}
+  .notices{display:flex;flex-direction:column;gap:12px;margin-bottom:18px}
+  .notice{background:#fff;border:3px solid #eee3cf;border-radius:16px;padding:14px 18px}
+  .notice.unread{border-color:#f2b544}
+  .notice h3{margin:6px 0;font-size:22px}.notice p{margin:0;font-size:19px;line-height:1.7;white-space:pre-line}
+  .ndate{font-size:15px;color:#8a7e6c;display:flex;gap:10px;align-items:center}
+  .new{background:#e8483b;color:#fff;border-radius:8px;padding:2px 8px;font-size:13px}
+  /* 島めぐり */
+  .modal.islands{width:min(980px,96vw);background:linear-gradient(#cdefff,#fffaf0 55%)}
+  .sea{position:relative;height:300px;border-radius:22px;overflow:hidden;background:linear-gradient(#9fdcf5 0%,#5ec3e8 45%,#3fa9d6 100%);margin-bottom:16px}
+  .sea.has-bg{background-size:cover;background-position:center 30%}
+  .sea.has-bg .cloud{display:none}
+  .track{position:absolute;left:0;top:0;height:100%;display:flex;gap:24px;align-items:center;transition:transform .55s cubic-bezier(.3,.9,.3,1)}
+  .isle{flex:0 0 180px;height:220px;border:none;background:none;position:relative;cursor:pointer;transform:scale(.72);transition:transform .45s;font-family:inherit;color:var(--ink)}
+  .isle.sel{transform:scale(1.08)}
+  .isle.sel .land{animation:bob 2.4s ease-in-out infinite}
+  .land{position:absolute;left:10px;right:10px;top:40px;height:120px;border-radius:50%;background:#f1dca5;box-shadow:0 14px 0 rgba(20,90,130,.25)}
+  .land::before{content:"";position:absolute;left:14px;right:14px;top:-10px;height:96px;border-radius:50%;background:var(--c)}
+  .icon{position:absolute;left:0;right:0;top:4px;font-size:52px;text-align:center}
+  .iname{position:absolute;left:0;right:0;bottom:8px;font-size:19px;font-weight:bold;background:rgba(255,255,255,.9);border-radius:12px;padding:4px 0}
+  .isle.fog .land,.isle.fog .icon{filter:grayscale(.7) blur(1.5px);opacity:.6}
+  .isle.fog .isle-img{filter:grayscale(.55) blur(.8px);opacity:.75}
+  .isle.fog .soon{top:auto;bottom:50px}
+  .isle-img{position:absolute;left:-6px;width:192px;bottom:46px;pointer-events:none;-webkit-user-drag:none}
+  .isle.sel .isle-img{animation:bob 2.4s ease-in-out infinite}
+  .soon{position:absolute;left:20px;right:20px;top:86px;background:rgba(255,255,255,.92);border-radius:10px;font-size:15px;padding:4px 0}
+  .info{min-width:320px;text-align:center}.info .title{font-size:26px;font-weight:bold}.info .sub{font-size:18px;color:#6b5f4f;margin-top:4px}
+  .btn.arrow{min-width:80px;font-size:28px}
+  .btn.go{background:#f26b5b;color:#fff;box-shadow:0 5px 0 #b8473a;min-width:220px;font-size:24px}
+  .cloud{position:absolute;width:140px;height:44px;background:rgba(255,255,255,.85);border-radius:30px;animation:drift 18s linear infinite}
+  .cloud::after{content:"";position:absolute;left:30px;top:-22px;width:64px;height:54px;background:inherit;border-radius:50%}
+  .c1{top:24px;left:-160px}.c2{top:70px;left:-160px;animation-delay:-9s;transform:scale(.7)}
+  .modal.lift{animation:lift .9s ease-in forwards}
+  @keyframes bob{50%{transform:translateY(-8px)}}
+  @keyframes drift{to{left:110%}}
+  @keyframes lift{to{transform:translateY(-120vh)}}
+  body:not(.ready) .pad,body:not(.ready) #check,body:not(.ready) .tr{visibility:hidden}
+  /* スマートフォンなど幅のせまい画面（たて向き） */
+  @media (max-width:700px){
+    .chip{font-size:15px;padding:8px 12px;border-radius:12px}
+    .hud{gap:6px;max-width:calc(100vw - 190px)}
+    .tr{gap:6px}
+    .btn{min-height:52px;min-width:52px;padding:0 14px;font-size:17px;border-radius:14px}
+    #check{min-height:64px;padding:0 20px;font-size:19px;left:12px;bottom:16px}
+    .pad{right:12px;bottom:12px;grid-template-columns:repeat(3,62px);grid-template-rows:repeat(3,62px)}
+    .pad button{font-size:24px;border-radius:16px}
+    .modal{padding:20px 18px;border-radius:22px}
+    .modal h2{font-size:23px}
+    .modal .body{font-size:19px}
+    .notice h3{font-size:19px}.notice p{font-size:17px}
+    .info{min-width:0;flex:1}.info .title{font-size:20px}.info .sub{font-size:15px}
+    .btn.arrow{min-width:56px}.btn.go{min-width:0;flex:1;font-size:19px}
+    .row.between{gap:10px}
+    .sea{height:240px}.isle{flex-basis:150px;height:190px}.isle-img{width:160px;left:-5px}
+  }
+  @media (max-height:620px){.pad{grid-template-columns:repeat(3,64px);grid-template-rows:repeat(3,64px)}.sea{height:220px}.isle{height:180px}}
+</style>
+</head>
+<body>
+<canvas id="world" aria-label="ホームアイランドの しま"></canvas>
+<div class="hud"><span class="chip" id="who"></span><span class="chip" id="coins"></span></div>
+<div class="tr">
+  <button class="btn sky" id="btn-balloon">🎈 しまめぐり</button>
+  <button class="btn" id="btn-settings" aria-label="せってい">⚙</button>
+</div>
+<button class="btn" id="check">しらべる</button>
+<div class="pad" aria-label="いどう">
+  <button data-dir="up" aria-label="うえ">▲</button>
+  <button data-dir="left" aria-label="ひだり">◀</button>
+  <button data-dir="right" aria-label="みぎ">▶</button>
+  <button data-dir="down" aria-label="した">▼</button>
+</div>
+<div id="hint"></div>
+<div id="layer"></div>
+<script type="module" src="home/main.js"></script>
+</body>
+</html>
