@@ -2,38 +2,66 @@
 // 島や建物を増やすときは、ここに1行足す。
 
 // 主人公の画像（仕様書2-4の並び：横4列＝下・左・右・上、縦2段＝立ち・踏み出し）
-export const HERO_SHEETS = { boy: 'assets/hero/hero_boy.webp', girl: 'assets/hero/hero_girl.webp' };
+export const HERO_SHEETS = { boy: 'assets/hero/hero_boy.webp?v=0.4.0', girl: 'assets/hero/hero_girl.webp?v=0.4.0' };
 
 export const SUBJECT_LABELS = { math: 'さんすう', rika: 'りか', kokugo: 'こくご', shakai: 'しゃかい', eigo: 'えいご' };
 
 // 建物の種類。w×h は占めるマス数。front は「この行の下に立って上を向くと調べられる」
 export const OBJECT_TYPES = {
-  school:   { name: 'がっこう',       w: 5, h: 3, roof: '#d9654b', wall: '#f5ead6', solid: true, sprite: { src: 'assets/home/bld_school.webp', w: 4.922 } },
-  board:    { name: 'けいじばん',     w: 1, h: 1, solid: true, noLabel: true, sprite: { src: 'assets/home/bld_board.webp', w: 1.312 } },
+  school:   { name: 'がっこう',       w: 5, h: 3, roof: '#d9654b', wall: '#f5ead6', solid: true, sprite: { src: 'assets/home/bld_school.webp?v=0.4.0', w: 4.922 } },
+  board:    { name: 'けいじばん',     w: 1, h: 1, solid: true, noLabel: true, sprite: { src: 'assets/home/bld_board.webp?v=0.4.0', w: 1.312 } },
   // sprite.w は画像の横幅が何マス分か（土台の幅に合わせて縮小済み）。画像の下端＝土台の下端
-  house:    { name: 'じぶんの いえ',  w: 3, h: 2, roof: '#4d8fd1', wall: '#fbf3e4', solid: true, sprite: { src: 'assets/home/bld_house.webp', w: 3.245 } },
-  balloon:  { name: 'ききゅう のりば', w: 2, h: 2, solid: true, sprite: { src: 'assets/home/balloon_pad.webp', w: 2.198 },
-              air: { src: 'assets/home/balloon.webp', w: 1.448, deck: 0.58 } }, // deck：台の上面（かごを置く高さ）が絵の上から何割の所か
-  kisekae:  { name: 'きせかえや',     w: 3, h: 2, roof: '#c77dbb', wall: '#fbeff7', solid: true, soon: true, sprite: { src: 'assets/home/bld_kisekae.webp', w: 2.589 } },
-  exchange: { name: 'こうかんじょ',   w: 3, h: 2, roof: '#e0a43a', wall: '#fdf3df', solid: true, soon: true, sprite: { src: 'assets/home/bld_exchange.webp', w: 2.693 } },
+  house:    { name: 'じぶんの いえ',  w: 3, h: 2, roof: '#4d8fd1', wall: '#fbf3e4', solid: true, sprite: { src: 'assets/home/bld_house.webp?v=0.4.0', w: 3.245 } },
+  balloon:  { name: 'ききゅう のりば', w: 2, h: 2, solid: true, sprite: { src: 'assets/home/balloon_pad.webp?v=0.4.0', w: 2.198 },
+              air: { src: 'assets/home/balloon.webp?v=0.4.0', w: 1.448, deck: 0.58 } }, // deck：台の上面（かごを置く高さ）が絵の上から何割の所か
+  kisekae:  { name: 'きせかえや',     w: 3, h: 2, roof: '#c77dbb', wall: '#fbeff7', solid: true, soon: true, sprite: { src: 'assets/home/bld_kisekae.webp?v=0.4.0', w: 2.589 } },
+  exchange: { name: 'こうかんじょ',   w: 3, h: 2, roof: '#e0a43a', wall: '#fdf3df', solid: true, sprite: { src: 'assets/home/bld_exchange.webp?v=0.4.0', w: 2.693 } },
   // 飾り（調べられない。deco:true）
-  tree:     { name: 'き',       w: 1, h: 1, solid: true, deco: true, noLabel: true, sprite: { src: 'assets/home/deco_tree.webp', w: 1.698 } },
-  palm:     { name: 'ヤシのき', w: 1, h: 1, solid: true, deco: true, noLabel: true, sprite: { src: 'assets/home/deco_palm.webp', w: 1.599 } },
-  flowers:  { name: 'はな',     w: 1, h: 1, solid: true, deco: true, noLabel: true, sprite: { src: 'assets/home/deco_flowers.webp', w: 1.099 } },
-  rock:     { name: 'いわ',     w: 1, h: 1, solid: true, deco: true, noLabel: true, sprite: { src: 'assets/home/deco_rock.webp', w: 1.0 } },
-  lot:      { name: 'あきち',         w: 2, h: 2, solid: false, sprite: { src: 'assets/home/bld_lot.webp', w: 2.151 } },
+  tree:     { name: 'き',       w: 1, h: 1, solid: true, deco: true, noLabel: true, sprite: { src: 'assets/home/deco_tree.webp?v=0.4.0', w: 1.698 } },
+  palm:     { name: 'ヤシのき', w: 1, h: 1, solid: true, deco: true, noLabel: true, sprite: { src: 'assets/home/deco_palm.webp?v=0.4.0', w: 1.599 } },
+  flowers:  { name: 'はな',     w: 1, h: 1, solid: true, deco: true, noLabel: true, sprite: { src: 'assets/home/deco_flowers.webp?v=0.4.0', w: 1.099 } },
+  rock:     { name: 'いわ',     w: 1, h: 1, solid: true, deco: true, noLabel: true, sprite: { src: 'assets/home/deco_rock.webp?v=0.4.0', w: 1.0 } },
+  b_hanabatake: { name: 'はなばたけ',       w: 2, h: 2, solid: true, built: true, sprite: { src: 'assets/home/b_hanabatake.webp?v=0.4.0', w: 2.198 } },
+  b_bench:      { name: 'ベンチと がいとう', w: 2, h: 2, solid: true, built: true, sprite: { src: 'assets/home/b_bench.webp?v=0.4.0', w: 2.198 } },
+  b_library:    { name: 'としょかん',       w: 2, h: 2, solid: true, built: true, sprite: { src: 'assets/home/b_library.webp?v=0.4.0', w: 2.198 } },
+  b_lab:        { name: 'かんさつ ラボ',     w: 2, h: 2, solid: true, built: true, sprite: { src: 'assets/home/b_lab.webp?v=0.4.0', w: 2.198 } },
+  b_cafe:       { name: 'ABC カフェ',        w: 2, h: 2, solid: true, built: true, sprite: { src: 'assets/home/b_cafe.webp?v=0.4.0', w: 2.198 } },
+  b_tenboudai:  { name: 'てんぼうだい',     w: 2, h: 2, solid: true, built: true, sprite: { src: 'assets/home/b_tenboudai.webp?v=0.4.0', w: 2.198 } },
+  b_tower:      { name: 'ハテナの とう',     w: 2, h: 2, solid: true, built: true, roof: '#f2a7a0', wall: '#fff6e8', artSoon: true }, // 絵ができるまで建てられない
+  lot:      { name: 'あきち',         w: 2, h: 2, solid: false, sprite: { src: 'assets/home/bld_lot.webp?v=0.4.0', w: 2.151 } },
 };
 
 // 冒険の書を作ったときの、最初の島のようす
+// ---------------------------------------------------------------- 建てられる建物（v0.4）
+// 教科ごとの素材（各島で学ぶと手に入る。仕様書3-5の p1/wallet.materials のキーと同じ）
+export const MATERIALS = {
+  math:   { name: 'かずの いし',     icon: '💎' },
+  rika:   { name: 'ふしぎの しずく', icon: '💧' },
+  kokugo: { name: 'ことばの はね',   icon: '🪶' },
+  shakai: { name: 'ちずの かけら',   icon: '🗺️' },
+  eigo:   { name: 'ABCの ほし',      icon: '⭐' },
+};
+// 空き地（2×2）に建てる建物。段階2からは、2つ以上の教科の素材が必要（同じ教科ばかりにならないように）
+export const BUILDABLES = [
+  { type: 'b_hanabatake', tier: 1, cost: { coin: 20 },                              desc: 'いろとりどりの はなが さいているよ。ちょうちょも あそびに きたね。' },
+  { type: 'b_bench',      tier: 1, cost: { coin: 30 },                              desc: 'ベンチで ひとやすみ。よるは がいとうが あかるく てらすよ。' },
+  { type: 'b_library',    tier: 2, cost: { coin: 50, kokugo: 5, math: 3 },          desc: 'ほんが いっぱいの としょかん。どんな おはなしが あるかな。' },
+  { type: 'b_lab',        tier: 2, cost: { coin: 50, rika: 5, math: 3 },            desc: 'しょくぶつを そだてたり、ほしを みたり できる かんさつ ラボ。' },
+  { type: 'b_cafe',       tier: 2, cost: { coin: 60, eigo: 5, kokugo: 3 },          desc: 'ABC カフェで ひとやすみ。えいごの メニューも あるよ。' },
+  { type: 'b_tenboudai',  tier: 2, cost: { coin: 80, shakai: 5, rika: 3 },          desc: 'たかい ところから しまを みわたせる てんぼうだい。ちずも あるよ。' },
+  { type: 'b_tower',      tier: 3, cost: { coin: 200, math: 5, rika: 5, kokugo: 5, shakai: 5, eigo: 5 }, desc: 'しまの シンボル、ハテナの とう。ぜんぶの しまを めぐった あかし だよ。' },
+];
+export const EXCHANGE_RATE = 3; // こうかんじょ：ほかの素材3こ → ほしい素材1こ（島がそろうまでの救済。損なので、いろいろな島で学ぶほうが得）
+
 export const LAYOUT_VERSION = 4;
 
 // 地面の模様（つなぎ目のない画像）と、何マスで1回くり返すか
 export const TEXTURES = {
-  grass: { src: 'assets/home/tex_grass.webp', tiles: 3 },
-  path:  { src: 'assets/home/tex_path.webp',  tiles: 3 },
-  sea:   { src: 'assets/home/tex_sea.webp',   tiles: 4 },
+  grass: { src: 'assets/home/tex_grass.webp?v=0.4.0', tiles: 3 },
+  path:  { src: 'assets/home/tex_path.webp?v=0.4.0',  tiles: 3 },
+  sea:   { src: 'assets/home/tex_sea.webp?v=0.4.0',   tiles: 4 },
 };
-export const ISLANDS_BG = 'assets/home/bg_islands.webp';
+export const ISLANDS_BG = 'assets/home/bg_islands.webp?v=0.4.0';
 
 // 最初から島にある飾り
 const DEFAULT_DECOS = [
@@ -124,12 +152,12 @@ export const PATH_TILES = (() => {
 
 // 島の一覧。ready:false の島は霧の中で「じゅんびちゅう」
 export const ISLANDS = [
-  { id: 'test',   name: 'ためしの しま',   subject: 'math',   url: 'test/sample/index.html', ready: true,  color: '#7cc6a4', icon: '🧪', img: 'assets/home/isle_test.webp' },
-  { id: 'math',   name: 'さんすうの しま', subject: 'math',   url: 'math/',   ready: false, color: '#f2b544', icon: '🔢', img: 'assets/home/isle_math.webp' },
-  { id: 'rika',   name: 'りかの しま',     subject: 'rika',   url: 'rika/',   ready: false, color: '#5fb4e6', icon: '🔬', img: 'assets/home/isle_rika.webp' },
-  { id: 'kokugo', name: 'こくごの しま',   subject: 'kokugo', url: 'kokugo/', ready: false, color: '#e88a8a', icon: '📖', img: 'assets/home/isle_kokugo.webp' },
-  { id: 'shakai', name: 'しゃかいの しま', subject: 'shakai', url: 'shakai/', ready: false, color: '#a58fd8', icon: '🗾', img: 'assets/home/isle_shakai.webp' },
-  { id: 'eigo',   name: 'えいごの しま',   subject: 'eigo',   url: 'eigo/',   ready: false, color: '#f29e5c', icon: '🔤', img: 'assets/home/isle_eigo.webp' },
+  { id: 'test',   name: 'ためしの しま',   subject: 'math',   url: 'test/sample/index.html', ready: true,  color: '#7cc6a4', icon: '🧪', img: 'assets/home/isle_test.webp?v=0.4.0' },
+  { id: 'math',   name: 'さんすうの しま', subject: 'math',   url: 'math/',   ready: false, color: '#f2b544', icon: '🔢', img: 'assets/home/isle_math.webp?v=0.4.0' },
+  { id: 'rika',   name: 'りかの しま',     subject: 'rika',   url: 'rika/',   ready: false, color: '#5fb4e6', icon: '🔬', img: 'assets/home/isle_rika.webp?v=0.4.0' },
+  { id: 'kokugo', name: 'こくごの しま',   subject: 'kokugo', url: 'kokugo/', ready: false, color: '#e88a8a', icon: '📖', img: 'assets/home/isle_kokugo.webp?v=0.4.0' },
+  { id: 'shakai', name: 'しゃかいの しま', subject: 'shakai', url: 'shakai/', ready: false, color: '#a58fd8', icon: '🗾', img: 'assets/home/isle_shakai.webp?v=0.4.0' },
+  { id: 'eigo',   name: 'えいごの しま',   subject: 'eigo',   url: 'eigo/',   ready: false, color: '#f29e5c', icon: '🔤', img: 'assets/home/isle_eigo.webp?v=0.4.0' },
 ];
 
 // 仮のお知らせ（作業④で先生のスプレッドシートから読み込むようにする）

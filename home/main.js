@@ -1,12 +1,12 @@
 // ホームアイランド v0.2
 // 島を歩く・建物を調べる・掲示板・気球で島めぐり・島から戻ったときの「おかえり」
 
-import * as store from '../common/store.js';
-import * as books from '../common/books.js';
-import { showPicker } from '../common/book-picker.js';
-import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, HERO_SHEETS, TEXTURES, ISLANDS_BG } from './data.js';
+import * as store from '../common/store.js?v=0.4.0';
+import * as books from '../common/books.js?v=0.4.0';
+import { showPicker } from '../common/book-picker.js?v=0.4.0';
+import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, HERO_SHEETS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE } from './data.js?v=0.4.0';
 
-export const HOME_VERSION = '0.3.3';
+export const HOME_VERSION = '0.4.0';
 const PREVIEW = !!window.GI_PREVIEW; // アーティファクトでの試作表示（島へは移動しない）
 
 // 主人公の画像（仕様書2-4の規格：1コマ 384×512、足元 x=192, y=488。縮小した画像でも同じ比率で扱う）
@@ -59,16 +59,24 @@ function refreshLand() {
 let coast = null;
 const COAST_LEVELS = { foam: .1, shallow: .2, sand: .33, grass: .5 };
 function buildCoast() {
-  const SS = 8, M = 2;                       // 1マスを8つに分けて計算。島のまわり2マスまで
-  const ox = landBox.x0 - M, oy = landBox.y0 - M;
-  const nx = (landBox.x1 - landBox.x0 + 1 + M * 2) * SS + 1, ny = (landBox.y1 - landBox.y0 + 1 + M * 2) * SS + 1;
+  const out = smoothShapes(landSet, landBox, .38, COAST_LEVELS);
+  // 道も同じ方法で、角の丸い なめらかな形にする（少し内側の線を使って、道のふちを細くする）
+  const pts = PATH_TILES.map(([x, y]) => `${x},${y}`);
+  out.path = smoothShapes(new Set(pts), landBox, .22, { path: .56 }).path;
+  return out;
+}
+// マスの集まり（set）をぼかして、指定した値の輪郭線を Path2D にする
+function smoothShapes(set, box, sigma, levels) {
+  const SS = 8, M = 2;                       // 1マスを8つに分けて計算。まわり2マスまで
+  const ox = box.x0 - M, oy = box.y0 - M;
+  const nx = (box.x1 - box.x0 + 1 + M * 2) * SS + 1, ny = (box.y1 - box.y0 + 1 + M * 2) * SS + 1;
   let f = new Float32Array(nx * ny);
   for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
     const tx = Math.floor(ox + (i + .5) / SS), ty = Math.floor(oy + (j + .5) / SS);
-    f[j * nx + i] = landSet.has(`${tx},${ty}`) ? 1 : 0;
+    f[j * nx + i] = set.has(`${tx},${ty}`) ? 1 : 0;
   }
   // ガウスぼかし（横 → 縦）
-  const sig = .38 * SS, R = Math.ceil(sig * 3), k = [];
+  const sig = sigma * SS, R = Math.ceil(sig * 3), k = [];
   let ks = 0; for (let d = -R; d <= R; d++) { const v = Math.exp(-(d * d) / (2 * sig * sig)); k.push(v); ks += v; }
   for (let d = 0; d < k.length; d++) k[d] /= ks;
   const tmp = new Float32Array(nx * ny);
@@ -79,7 +87,7 @@ function buildCoast() {
     let a = 0; for (let d = -R; d <= R; d++) { const jj = j + d; if (jj >= 0 && jj < ny) a += tmp[jj * nx + i] * k[d + R]; } f[j * nx + i] = a;
   }
   const out = {};
-  for (const [name, th] of Object.entries(COAST_LEVELS)) out[name] = contourPath(f, nx, ny, th, ox, oy, SS);
+  for (const [name, th] of Object.entries(levels)) out[name] = contourPath(f, nx, ny, th, ox, oy, SS);
   return out;
 }
 function contourPath(f, nx, ny, th, ox, oy, SS) {
@@ -262,7 +270,8 @@ function fillCoast(path, cx, cy, style) {
   ctx.setTransform(dpr * T, 0, 0, dpr * T, -cx * dpr, -cy * dpr);
   ctx.clip(path, 'evenodd');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  if (style === 'grass') { if (!texFill('grass', cx, cy)) ctx.fillStyle = '#8ccf77'; }
+  if (style === 'grass') { if (!texFill('grass', cx, cy)) ctx.fillStyle = '#a9d98f'; }
+  else if (style === 'path') { if (!texFill('path', cx, cy)) ctx.fillStyle = '#ecdcb4'; }
   else ctx.fillStyle = style;
   ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
   ctx.restore();
@@ -277,13 +286,8 @@ function drawGround(now, cx, cy) {
   fillCoast(coast.shallow, cx, cy, 'rgba(170,232,244,.9)');
   fillCoast(coast.sand, cx, cy, '#f1dca5');
   fillCoast(coast.grass, cx, cy, 'grass');
-  // 道（となりの道とつながって見えるように描く）
-  for (const [x, y] of PATH_TILES) {
-    const px = x * T - cx, py = y * T - cy, m = T * .12;
-    const L = pathSet.has(`${x - 1},${y}`), R = pathSet.has(`${x + 1},${y}`), U = pathSet.has(`${x},${y - 1}`), D = pathSet.has(`${x},${y + 1}`);
-    if (!texFill('path', cx, cy)) ctx.fillStyle = '#e8d3a0';
-    ctx.fillRect(px + (L ? 0 : m), py + (U ? 0 : m), T - (L ? 0 : m) - (R ? 0 : m) + 1, T - (U ? 0 : m) - (D ? 0 : m) + 1);
-  }
+  // 道（角の丸い なめらかな形）
+  fillCoast(coast.path, cx, cy, 'path');
 }
 
 // 名札はあとでまとめて描く（主人公に重なる名札はうすくして、主人公が見えるようにする）
@@ -456,6 +460,7 @@ function draw(now) {
     else if (o.type === 'lot') drawLot(o, t, px, py);
     else drawBuilding(o, t, px, py, now);
   }
+  drawBuildFx(now, cx, cy);
   // 名札（主人公の体に重なるものはうすく）
   const hx = (player.fx + .5) * T - cx, hy = (player.fy + .92) * T - cy;
   const q = labelQueue; labelQueue = null;
@@ -572,8 +577,140 @@ function interact(o) {
   if (o.type === 'balloon') return openIslands();
   if (o.type === 'school') return message('がっこう', 'せんせいからの おしらせは、がっこうの まえの けいじばんで よめるよ。');
   if (o.type === 'house') return message('じぶんの いえ', `${book.name}さんの いえだよ。\nいつか なかにも はいれるように なるよ。`);
-  if (o.type === 'lot') return message('あきち', 'ここには たてものを たてられるよ。\nそざいを あつめて まっていてね。（じゅんびちゅう）');
+  if (o.type === 'lot') return openBuild(o);
+  if (o.type === 'exchange') return openExchange();
+  if (t.built) return message(t.name, BUILDABLES.find((b) => b.type === o.type)?.desc || '');
   if (t.soon) return message(t.name, 'いま じゅんびちゅう だよ。もうすこし まってね。');
+}
+
+
+// ------------------------------------------------------------------ 建物を建てる（空き地）・こうかんじょ
+const costParts = (cost) => Object.entries(cost).map(([k, n]) => ({ k, n, have: k === 'coin' ? (wallet?.coin || 0) : (wallet?.materials?.[k] || 0) }));
+const costLabel = (k) => (k === 'coin' ? '🪙' : MATERIALS[k]?.icon || k);
+const affordable = (cost) => costParts(cost).every((c) => c.have >= c.n);
+
+function openBuild(lot) {
+  openModal((m) => {
+    m.className = 'modal build';
+    m.append(h('h2', {}, '🔨 なにを たてる？'),
+      h('p', { class: 'body small' }, 'コインと しまで あつめた そざいで たてられるよ。'));
+    const list = h('div', { class: 'blist', 'data-scroll': '1' });
+    for (const b of BUILDABLES) {
+      const t = OBJECT_TYPES[b.type];
+      const ok = !t.artSoon && affordable(b.cost);
+      const chips = h('div', { class: 'chips' }, ...costParts(b.cost).map((c) =>
+        h('span', { class: 'chip' + (c.have >= c.n ? '' : ' short'), title: c.k === 'coin' ? 'コイン' : MATERIALS[c.k]?.name },
+          `${costLabel(c.k)} ${c.n}`)));
+      const pic = t.sprite ? h('img', { src: t.sprite.src, alt: '' }) : h('div', { class: 'nopic' }, '？');
+      list.append(h('div', { class: 'brow' + (ok ? '' : ' no') },
+        pic,
+        h('div', { class: 'binfo' }, h('div', { class: 'bname' }, t.name), chips,
+          t.artSoon ? h('div', { class: 'bnote' }, 'じゅんびちゅう') : (!ok ? h('div', { class: 'bnote' }, 'まだ たりないよ') : null)),
+        h('button', { class: 'btn go', 'data-build': b.type, ...(ok ? {} : { disabled: '' }), onclick: () => confirmBuild(lot, b) }, 'たてる')));
+    }
+    m.append(list, h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', 'data-default': '', onclick: closeModal }, 'とじる')));
+  });
+}
+
+function confirmBuild(lot, b) {
+  const t = OBJECT_TYPES[b.type];
+  const pay = costParts(b.cost).map((c) => `${costLabel(c.k)} ${c.n}`).join('　');
+  openModal((m) => {
+    m.append(h('h2', {}, `${t.name}を たてる？`),
+      h('p', { class: 'body' }, `${pay}\nを つかうよ。`),
+      h('div', { class: 'row end' },
+        h('button', { class: 'btn', 'data-act': 'back', onclick: () => openBuild(lot) }, 'やめる'),
+        h('button', { class: 'btn go', 'data-act': 'yes', 'data-default': '', onclick: () => doBuild(lot, b) }, 'たてる！')));
+  });
+}
+
+async function doBuild(lot, b) {
+  try {
+    // コインと素材をへらす（足りなければ取り消し。ほかの画面と同時でも数がずれない）
+    wallet = await store.update(`${book.id}/wallet`, (w) => {
+      const x = structuredClone(w || { coin: 0, materials: {} });
+      x.materials = x.materials || {};
+      for (const [k, n] of Object.entries(b.cost)) {
+        const have = k === 'coin' ? (x.coin || 0) : (x.materials[k] || 0);
+        if (have < n) throw new Error('たりない');
+        if (k === 'coin') x.coin = have - n; else x.materials[k] = have - n;
+      }
+      return x;
+    }, { fallback: { coin: 0, materials: {} } });
+  } catch {
+    return message('たりないよ', 'コインか そざいが たりないみたい。しまで あつめてこよう。');
+  }
+  lot.type = b.type;
+  lot.builtAt = new Date().toISOString();
+  // 主人公が建物の中に入ってしまわないよう、空き地の手前に出す
+  if (player.x >= lot.x && player.x < lot.x + 2 && player.y >= lot.y && player.y < lot.y + 2) {
+    const spots = [[player.x, lot.y + 2], [lot.x - 1, player.y], [lot.x + 2, player.y], [player.x, lot.y - 1]];
+    const sp = spots.find(([x, y]) => walkable(x, y)) || spots[0];
+    Object.assign(player, { x: sp[0], y: sp[1], fx: sp[0], fy: sp[1], dir: 'up' });
+  }
+  await saveHome();
+  renderHud();
+  buildFx = { x: lot.x + 1, y: lot.y + 1, t0: performance.now() };
+  closeModal();
+  setTimeout(() => message(`${OBJECT_TYPES[b.type].name}が できた！`, b.desc), 900);
+}
+
+// たてた ときの きらきら
+let buildFx = null;
+function drawBuildFx(now, cx, cy) {
+  if (!buildFx) return;
+  const k = (now - buildFx.t0) / 1200;
+  if (k > 1) { buildFx = null; return; }
+  const bx = buildFx.x * T - cx, by = buildFx.y * T - cy - T * .5;
+  ctx.save();
+  for (let i = 0; i < 12; i++) {
+    const a = i / 12 * Math.PI * 2 + k * 2, r = T * (.3 + k * 1.2);
+    const x = bx + Math.cos(a) * r, y = by + Math.sin(a) * r * .7, s = T * .12 * (1 - k * .6);
+    ctx.globalAlpha = 1 - k; ctx.fillStyle = i % 2 ? '#ffe28a' : '#fff6c9';
+    ctx.beginPath();
+    for (let j = 0; j < 8; j++) { const rr = j % 2 ? s * .4 : s, aa = j / 8 * Math.PI * 2; ctx.lineTo(x + Math.cos(aa) * rr, y + Math.sin(aa) * rr); }
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// こうかんじょ：ほかの素材3こ → ほしい素材1こ
+function openExchange(give = null, get = null) {
+  const mats = Object.keys(MATERIALS);
+  const have = (k) => wallet?.materials?.[k] || 0;
+  openModal((m) => {
+    m.className = 'modal build';
+    m.append(h('h2', {}, '⚖️ こうかんじょ'),
+      h('p', { class: 'body small' }, `そざい ${EXCHANGE_RATE}こを、べつの そざい 1こと こうかんできるよ。`));
+    const row = (label, pick, sel, isGive) => h('div', { class: 'xrow' }, h('div', { class: 'xlabel' }, label),
+      h('div', { class: 'xmats' }, ...mats.map((k) => {
+        const dis = isGive ? have(k) < EXCHANGE_RATE : k === give;
+        return h('button', { class: 'btn xmat' + (sel === k ? ' on' : ''), 'data-mat': k, title: MATERIALS[k].name, ...(dis ? { disabled: '' } : {}),
+          onclick: () => pick(k) }, `${MATERIALS[k].icon} ${have(k)}`);
+      })));
+    m.append(row('わたす（3こ）', (k) => openExchange(k, get === k ? null : get), give, true),
+      row('もらう（1こ）', (k) => openExchange(give, k), get, false));
+    const ready = give && get && give !== get && have(give) >= EXCHANGE_RATE;
+    m.append(h('p', { class: 'body small xsum' }, ready ? `${MATERIALS[give].name} 3こ → ${MATERIALS[get].name} 1こ` : 'わたす そざいと もらう そざいを えらんでね。'),
+      h('div', { class: 'row end' },
+        h('button', { class: 'btn', 'data-act': 'close', onclick: closeModal }, 'とじる'),
+        h('button', { class: 'btn go', 'data-act': 'trade', ...(ready ? { 'data-default': '' } : { disabled: '' }), onclick: () => doTrade(give, get) }, 'こうかんする')));
+  });
+}
+
+async function doTrade(give, get) {
+  try {
+    wallet = await store.update(`${book.id}/wallet`, (w) => {
+      const x = structuredClone(w || { coin: 0, materials: {} });
+      x.materials = x.materials || {};
+      if ((x.materials[give] || 0) < EXCHANGE_RATE) throw new Error('たりない');
+      x.materials[give] -= EXCHANGE_RATE;
+      x.materials[get] = (x.materials[get] || 0) + 1;
+      return x;
+    }, { fallback: { coin: 0, materials: {} } });
+  } catch { return message('たりないよ', 'そざいが たりないみたい。'); }
+  renderHud();
+  openExchange(give, get);
 }
 
 // ------------------------------------------------------------------ 島めぐり（気球）
@@ -618,7 +755,7 @@ function openIslands() {
       track.style.transform = `translateX(${sea.clientWidth / 2 - cw / 2 - idx * cw}px)`;
       const mat = wallet?.materials?.[is.subject] || 0;
       info.replaceChildren(h('div', { class: 'title' }, `${is.icon} ${is.name}`),
-        h('div', { class: 'sub' }, open ? `${SUBJECT_LABELS[is.subject]}の そざい：${mat}こ` : 'まだ いけないよ（じゅんびちゅう）'));
+        h('div', { class: 'sub' }, open ? `${MATERIALS[is.subject]?.icon || ''} ${MATERIALS[is.subject]?.name || ''}：${mat}こ` : 'まだ いけないよ（じゅんびちゅう）'));
       go.disabled = !open;
       if (!open && document.activeElement === go) focusButton(back);
     }
@@ -666,7 +803,7 @@ async function welcomeBack() {
   const parts = [];
   for (const [s, v] of Object.entries(now.materials || {})) {
     const d = v - ((before.materials || {})[s] || 0);
-    if (d > 0) parts.push(`${SUBJECT_LABELS[s] || s}の そざい +${d}`);
+    if (d > 0) parts.push(`${MATERIALS[s]?.icon || ''} ${MATERIALS[s]?.name || s} +${d}`);
   }
   const is = ISLANDS.find((x) => x.id === trip.island);
   if (dc > 0 || parts.length) {
@@ -720,7 +857,7 @@ async function backup() {
 function renderHud() {
   document.getElementById('who').textContent = `📖 ${book.name}`;
   const mats = Object.entries(wallet?.materials || {}).filter(([, v]) => v > 0)
-    .map(([k, v]) => `<span class="mat">${SUBJECT_LABELS[k] || k} ${v}</span>`).join('');
+    .map(([k, v]) => `<span class="mat" title="${MATERIALS[k]?.name || k}">${MATERIALS[k]?.icon || k} ${v}</span>`).join('');
   document.getElementById('coins').innerHTML = `<span class="coin">🪙 ${wallet?.coin || 0}</span>${mats}`;
 }
 
@@ -787,7 +924,7 @@ function heroGender() { return profile?.hero?.gender === 'girl' ? 'girl' : 'boy'
 
 // ------------------------------------------------------------------ タイトル画面
 // ブラウザを開いて最初の1回だけ出す（島から戻ったときや、同じタブで開き直したときは出さない）
-const LOGO_SRC = 'assets/home/logo.webp';
+const LOGO_SRC = 'assets/home/logo.webp?v=0.4.0';
 function titleShownThisSession() { try { return sessionStorage.getItem('hatenaria-title') === '1'; } catch { return false; } }
 function markTitleShown() { try { sessionStorage.setItem('hatenaria-title', '1'); } catch { /* 使えなくても動く */ } }
 function showTitle(curBook) {
