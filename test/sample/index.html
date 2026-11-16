@@ -12,9 +12,19 @@
   .mode.on{background:#9be3a8}
   .q{font-size:56px;margin:28px 0}
   .ans{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
-  .ans button{min-width:96px;min-height:80px;font-size:36px;border:none;border-radius:18px;background:#ffd66b;box-shadow:0 4px 0 #d9a93a;font-family:inherit;cursor:pointer}
+  button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none}
+  .ans button{min-width:96px;min-height:80px;font-size:36px;border:none;border-radius:18px;background:#ffd66b;box-shadow:0 4px 0 #d9a93a;font-family:inherit;cursor:pointer;color:#3a3226;transition:transform .08s}
+  .ans button:active,.ans button.press{transform:translateY(3px);box-shadow:0 1px 0 #d9a93a}
+  .ans button:focus{outline:none}
+  .ans button.kfocus,#again.kfocus{outline:5px solid #3b82f6;outline-offset:4px}
+  .ans button.ok{background:#9be3a8;box-shadow:0 4px 0 #5fb06d}
+  .ans button.ng{background:#f3c1b8;box-shadow:0 4px 0 #c98a7e}
+  .typed{font-size:20px;min-height:1.5em;color:#3b82f6;margin-top:10px}
+  .hint{font-size:15px;color:#8a7d66;margin-top:28px;line-height:1.7}
+  .hint kbd{display:inline-block;padding:0 7px;border:1px solid #c9bda6;border-bottom-width:3px;border-radius:6px;background:#fff;font-family:inherit}
   #msg{font-size:22px;min-height:2em;margin-top:24px;line-height:1.6}
-  #again{display:none;margin:20px auto 0;min-height:60px;padding:0 24px;font-size:22px;border:none;border-radius:16px;background:#9be3a8;box-shadow:0 4px 0 #5fb06d;font-family:inherit}
+  #again:focus{outline:none}
+  #again{display:none;margin:20px auto 0;color:#3a3226;cursor:pointer;min-height:60px;padding:0 24px;font-size:22px;border:none;border-radius:16px;background:#9be3a8;box-shadow:0 4px 0 #5fb06d;font-family:inherit}
 </style>
 </head>
 <body>
@@ -23,12 +33,14 @@
   <p id="who"></p>
   <div class="q" id="q"></div>
   <div class="ans" id="ans"></div>
+  <div class="typed" id="typed" aria-live="polite"></div>
   <p id="msg"></p>
   <button id="again">もう いちど</button>
+  <p class="hint">キーボードでも できるよ：こたえの <kbd>すうじ</kbd> を うつ ／ <kbd>←</kbd><kbd>→</kbd> で えらんで <kbd>Enter</kbd></p>
 </main>
 <script>
 // =====================================================================
-// 学習アイランド つなぎ口（island-link.js） 版 0.1.0
+// ハテナリア つなぎ口（island-link.js） 版 0.1.3
 // ---------------------------------------------------------------------
 // このかたまりを、各アプリの HTML の <script> の中にそのまま貼り付けて使う。
 // ・島のフォルダに置いたとき … 共通部品を読み込み「連携モード」になる
@@ -50,6 +62,10 @@ const Island = (() => {
     book: null,
     profile: null,
     homeUrl: null,
+    mode: null,   // 連携モードでは 'school'（クラスに入っている）か 'home'（自習）。単独モードでは null
+    grade: null,  // 連携モードでは その冒険の書の学年（1〜6）。単独モードでは null（アプリが自分で決める）
+    settings: null, // 連携モードでは 冒険の書の共通設定（読み上げ・ふりがな など）
+    furigana: null, // 連携モードでは true／false（習った漢字にも ふりがなを付けるか）。単独モードでは null
     reward: async () => null,
     record: async () => null,
     wallet: async () => null,
@@ -79,7 +95,9 @@ const Island = (() => {
         b.setAttribute('data-island', 'home');
         b.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:9000;min-height:60px;display:flex;align-items:center;'
           + 'padding:0 18px;border-radius:16px;background:#ffd66b;color:#3a3226;font-size:20px;font-weight:bold;'
-          + 'text-decoration:none;box-shadow:0 4px 0 #d9a93a;font-family:inherit';
+          + 'text-decoration:none;box-shadow:0 4px 0 #d9a93a;font-family:inherit;touch-action:manipulation';
+        b.addEventListener('focus', () => { b.style.outline = '5px solid #3b82f6'; b.style.outlineOffset = '4px'; });
+        b.addEventListener('blur', () => { b.style.outline = 'none'; });
         document.body.append(b);
       }
       console.info(`[学習アイランド] 連携モード（冒険の書 ${c.book.id}、共通部品 ${c.version}）`);
@@ -95,27 +113,55 @@ const Island = (() => {
 // ---- ここから下は、ふつうのアプリの中身（単独でも動く） ----
 const TOTAL = 5;
 let count = 0, selfCorrect = 0, startedAt = Date.now();
+let busy = false;          // こたえを えらんだ直後（二重に反応しないように）
+let focusIdx = -1;         // キーボードで えらんでいる ボタン（-1 = なし）
+let typed = '', typedTimer = 0;
+
+const ansBox = document.getElementById('ans');
+const againBtn = document.getElementById('again');
+const choiceButtons = () => [...ansBox.querySelectorAll('button')];
+
+function setFocus(i) {
+  const bs = choiceButtons();
+  bs.forEach((b) => b.classList.remove('kfocus'));
+  focusIdx = bs.length ? (i + bs.length) % bs.length : -1;
+  if (focusIdx >= 0) { bs[focusIdx].classList.add('kfocus'); bs[focusIdx].focus({ preventScroll: true }); }
+}
+function clearTyped() { typed = ''; clearTimeout(typedTimer); document.getElementById('typed').textContent = ''; }
 
 function next() {
+  busy = false; clearTyped();
   const a = 1 + Math.floor(Math.random() * 5), b = 1 + Math.floor(Math.random() * 4);
   document.getElementById('q').textContent = `${a} ＋ ${b} ＝ ？`;
   const right = a + b;
   const choices = [...new Set([right, right + 1, right - 1, right + 2])].sort(() => Math.random() - .5);
-  const box = document.getElementById('ans');
-  box.replaceChildren(...choices.map((c) => {
+  const keepFocus = focusIdx >= 0;
+  ansBox.replaceChildren(...choices.map((c) => {
     const btn = document.createElement('button');
     btn.textContent = c;
     btn.dataset.answer = c;
     btn.dataset.right = c === right ? '1' : '0';
-    btn.onclick = () => answer(c === right);
+    // click は タッチ・マウス・キーボードの どれでも 反応する（touch-action で タッチの おくれも なくす）
+    btn.addEventListener('click', () => choose(btn));
     return btn;
   }));
+  focusIdx = -1;
+  if (keepFocus) setFocus(0);
+}
+
+// えらんだ ボタンを 色で しめしてから 次へ
+function choose(btn) {
+  if (busy || !btn) return;
+  busy = true; clearTyped();
+  const ok = btn.dataset.right === '1';
+  btn.classList.add(ok ? 'ok' : 'ng');
+  setTimeout(() => answer(ok), 260);
 }
 
 async function answer(ok) {
   count++; if (ok) selfCorrect++;
   if (count < TOTAL) { next(); return; }
-  document.getElementById('ans').replaceChildren();
+  ansBox.replaceChildren(); focusIdx = -1;
   document.getElementById('q').textContent = 'おしまい！';
   let text = `${TOTAL}もん とりくんだね。`;
   // ひと区切りが終わったら、島へ報告（単独モードでは何もしない）
@@ -124,15 +170,65 @@ async function answer(ok) {
     skills: [{ id: 'math.g1.A.add', self: selfCorrect, total: TOTAL }] });
   if (got) text += `<br>コイン +${got.coin}　さんすうの そざい +${got.material}${got.bonus ? '（きょう はじめての ボーナス！）' : ''}`;
   document.getElementById('msg').innerHTML = text;
-  document.getElementById('again').style.display = 'block';
+  againBtn.style.display = 'block';
+  againBtn.focus({ preventScroll: true });
+  againBtn.classList.add('kfocus');
 }
 
-document.getElementById('again').onclick = () => {
+function restart() {
   count = 0; selfCorrect = 0; startedAt = Date.now();
   document.getElementById('msg').textContent = '';
-  document.getElementById('again').style.display = 'none';
+  againBtn.style.display = 'none'; againBtn.classList.remove('kfocus');
   next();
-};
+}
+againBtn.addEventListener('click', restart);
+
+// すうじを うって こたえる（10 いじょうは 2けた。まよう ときは すこし まつ）
+function typeDigit(d) {
+  const bs = choiceButtons();
+  const startsWith = (t) => bs.some((x) => x.dataset.answer.startsWith(t));
+  let cand = typed + d;
+  if (!startsWith(cand)) cand = d;
+  clearTimeout(typedTimer);
+  if (!startsWith(cand)) { clearTyped(); return; }
+  typed = cand;
+  const exact = bs.find((x) => x.dataset.answer === typed);
+  const longer = bs.some((x) => x.dataset.answer.length > typed.length && x.dataset.answer.startsWith(typed));
+  if (exact && !longer) { choose(exact); return; }
+  document.getElementById('typed').textContent = `${typed} …`;
+  typedTimer = setTimeout(() => { if (exact) choose(exact); else clearTyped(); }, 900);
+}
+
+let lastEnter = 0;
+document.addEventListener('keydown', (e) => {
+  if (e.target && e.target.closest && e.target.closest('[data-island="home"]')) return; // ホームボタンは ふつうの リンクとして
+  const k = e.key;
+  // おしまい画面
+  if (againBtn.style.display === 'block') {
+    if ((k === 'Enter' || k === ' ') && !e.repeat && Date.now() - lastEnter > 250) { e.preventDefault(); lastEnter = Date.now(); restart(); }
+    return;
+  }
+  if (busy) { if (k === 'Enter' || k === ' ' || /^\d$/.test(k)) e.preventDefault(); return; }
+  if (/^[0-9]$/.test(k) || /^Numpad[0-9]$/.test(e.code)) {
+    e.preventDefault();
+    typeDigit(/^[0-9]$/.test(k) ? k : e.code.slice(-1));
+    return;
+  }
+  if (k === 'ArrowRight' || k === 'ArrowDown') { e.preventDefault(); setFocus(focusIdx < 0 ? 0 : focusIdx + 1); return; }
+  if (k === 'ArrowLeft' || k === 'ArrowUp') { e.preventDefault(); setFocus(focusIdx < 0 ? choiceButtons().length - 1 : focusIdx - 1); return; }
+  if (k === 'Enter' || k === ' ') {
+    if (e.repeat) { e.preventDefault(); return; }
+    e.preventDefault();
+    if (typed) { const ex = choiceButtons().find((b) => b.dataset.answer === typed); if (ex) choose(ex); else clearTyped(); return; }
+    if (focusIdx >= 0) choose(choiceButtons()[focusIdx]); else setFocus(0);
+    return;
+  }
+  if (k === 'Backspace' || k === 'Escape') { if (typed) { e.preventDefault(); clearTyped(); } }
+});
+// マウスや タッチを つかったら、キーボードの わくを けす
+document.addEventListener('pointerdown', () => {
+  choiceButtons().forEach((b) => b.classList.remove('kfocus')); focusIdx = -1; againBtn.classList.remove('kfocus');
+}, true);
 
 (async () => {
   await Island.init({ appId: 'sample-tashizan', subject: 'math', commonPath: '../../common/' });
@@ -140,7 +236,7 @@ document.getElementById('again').onclick = () => {
   if (Island.connected) {
     m.textContent = 'しまに つながっています';
     m.classList.add('on');
-    document.getElementById('who').textContent = `📖 ${Island.book.name}`;
+    document.getElementById('who').textContent = `📖 ${Island.book.name}（${Island.grade ? Island.grade + 'ねんせい・' : ''}${Island.mode === 'school' ? 'がっこう' : 'じしゅう'}）`;
   } else {
     m.textContent = 'ひとりで あそぶ モード';
   }

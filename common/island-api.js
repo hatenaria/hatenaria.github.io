@@ -4,9 +4,8 @@
 
 import * as store from './store.js';
 import * as books from './books.js';
-import { showPicker } from './book-picker.js';
 
-export const COMMON_VERSION = '0.1.2';
+export const COMMON_VERSION = '0.1.5';
 export const HOME_URL = new URL('../index.html', import.meta.url).href;
 
 const SESSIONS_MAX = 200; // 1件ごとの詳細を残す数（仕様書2-7）
@@ -19,9 +18,40 @@ function today() {
 }
 
 /**
- * アプリを島につなぐ。冒険の書が選ばれていなければ選択画面を出す。
+ * 冒険の書が選ばれていないときの案内（仕様書3-5：冒険の書はホームだけで作る・選ぶ）。
+ * 島の画面全体をおおい、ホームへ戻るボタンだけを出す。
+ */
+function guideToHome() {
+  if (document.querySelector('[data-island="need-book"]')) return;
+  const wrap = document.createElement('div');
+  wrap.setAttribute('data-island', 'need-book');
+  wrap.setAttribute('role', 'dialog');
+  wrap.style.cssText = 'position:fixed;inset:0;z-index:9500;display:flex;align-items:center;justify-content:center;'
+    + 'background:rgba(40,60,80,.55);font-family:"Hiragino Maru Gothic ProN","BIZ UDPGothic","Meiryo",sans-serif';
+  const box = document.createElement('div');
+  box.style.cssText = 'background:#fffaf0;border-radius:24px;padding:32px 36px;max-width:520px;margin:16px;text-align:left;'
+    + 'box-shadow:0 8px 0 rgba(0,0,0,.15);color:#3a3226;line-height:1.8;word-break:keep-all;overflow-wrap:anywhere';
+  const p = document.createElement('p');
+  p.style.cssText = 'font-size:22px;margin:0 0 20px';
+  p.textContent = 'ホームアイランドで ぼうけんの しょを えらんでから、この しまに きてね。';
+  const a = document.createElement('a');
+  a.href = HOME_URL;
+  a.textContent = '🏝 ホームアイランドへ';
+  a.style.cssText = 'display:inline-flex;align-items:center;min-height:64px;padding:0 24px;border-radius:16px;background:#ffd66b;'
+    + 'color:#3a3226;font-size:22px;font-weight:bold;text-decoration:none;box-shadow:0 4px 0 #d9a93a;touch-action:manipulation;'
+    + 'outline:5px solid #3b82f6;outline-offset:4px';
+  box.append(p, a); wrap.append(box); document.body.append(wrap);
+  a.focus({ preventScroll: true });
+  // Enter・スペースでも ホームへ（2-8）
+  document.addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) { e.preventDefault(); location.href = HOME_URL; }
+  }, true);
+}
+
+/**
+ * アプリを島につなぐ。冒険の書が選ばれていなければ、ホームへ案内する（島では選ばない）。
  * @param {{appId:string, subject:string}} opt  appId 例 'keisan-1min'、subject 例 'math'
- * @returns 連携用の命令のまとまり。ホームへ移る場合は null
+ * @returns 連携用の命令のまとまり。冒険の書がなくホームへ案内した場合は null
  */
 export async function connect({ appId, subject }) {
   if (!/^[a-z0-9-]+$/.test(appId || '')) throw new Error('appId は 半角英小文字・数字・ハイフンで');
@@ -29,18 +59,28 @@ export async function connect({ appId, subject }) {
 
   store.requestPersist(); // 待たなくてよい
 
-  let book = await books.getCurrent();
-  if (!book) book = await showPicker({ mode: 'select', homeUrl: HOME_URL });
-  if (!book) return null;
+  const book = await books.getCurrent();
+  if (!book) { guideToHome(); return null; }
 
   const p = book.id;
   const profile = await store.get(`${p}/profile`, {});
+  const cls = await store.get(`${p}/class`);
+  const settings = await store.get(`${p}/settings`, {});
+  // 学校モード：クラスに入っている（先生の設定で単元が開く）／家庭モード：自習（全単元が開く）
+  const mode = cls && cls.code ? 'school' : 'home';
+  // 学年：クラスに入っていれば先生のクラス設定の学年、なければ冒険の書を作るときに選んだ学年
+  const grade = (mode === 'school' && cls.settings && Number(cls.settings.grade)) || Number(profile.grade) || null;
 
   return {
     version: COMMON_VERSION,
     homeUrl: HOME_URL,
     book,
     profile,
+    mode,
+    grade,
+    settings,
+    // ふりがな（仕様書2-5）：true なら 習った漢字にも ふりがなを付ける。習っていない漢字（学年より上）は いつも付ける
+    furigana: settings.furigana !== false,
     volatile: store.isVolatile,
 
     /**

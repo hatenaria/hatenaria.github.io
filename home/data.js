@@ -25,7 +25,7 @@ export const OBJECT_TYPES = {
 };
 
 // 冒険の書を作ったときの、最初の島のようす
-export const LAYOUT_VERSION = 3;
+export const LAYOUT_VERSION = 4;
 
 // 地面の模様（つなぎ目のない画像）と、何マスで1回くり返すか
 export const TEXTURES = {
@@ -43,9 +43,28 @@ const DEFAULT_DECOS = [
   { id: 'deco7', type: 'flowers', x: 7, y: 9 },{ id: 'deco8', type: 'rock', x: 1, y: 6 },
   { id: 'deco9', type: 'flowers', x: 4, y: 10 },{ id: 'deco10', type: 'palm', x: 12, y: 2 },
 ];
+// 最初の島の形（陸のマスの一覧）。v0.3.1 から、四角ではなく でこぼこした自然な形にした。
+// 将来、土地を拡げると、ここにマスが加わっていく（座標はマイナスになってもよい）。
+export const START_LAND = (() => {
+  const L = new Set();
+  const add = (x, y) => L.add(`${x},${y}`), del = (x, y) => L.delete(`${x},${y}`);
+  for (let y = 1; y <= 10; y++) for (let x = 1; x <= 14; x++) add(x, y);
+  // かどを けずる
+  [[1, 1], [2, 1], [13, 1], [14, 1], [1, 10], [14, 10]].forEach(([x, y]) => del(x, y));
+  // 出っぱり（みさき）
+  for (let x = 6; x <= 9; x++) add(x, 0);
+  for (let y = 4; y <= 7; y++) add(0, y);
+  for (let y = 5; y <= 8; y++) add(15, y);
+  for (let x = 5; x <= 9; x++) add(x, 11);
+  add(6, 12); add(7, 12);
+  // へこみ（入り江）
+  del(11, 1); del(12, 1); del(10, 10); del(11, 10);
+  return [...L];
+})();
+
 export const DEFAULT_HOME = () => ({
   layout: LAYOUT_VERSION,
-  map: { w: 16, h: 12, chunks: [] },
+  map: { land: START_LAND.slice() },
   objects: [
     { id: 'school',   type: 'school',   x: 1,  y: 2 },
     { id: 'board',    type: 'board',    x: 6,  y: 3 },
@@ -77,6 +96,17 @@ export function migrateHome(home) {
     for (const d of DEFAULT_DECOS) {
       if (!home.objects.some((o) => o.id === d.id) && !used(d.x, d.y)) home.objects.push({ ...d });
     }
+  }
+  if (v < 4) { // v0.3.1：島の形を「陸のマスの一覧」にして、自然な形にする
+    const land = new Set(START_LAND);
+    // 子どもが置いた物や主人公の足もとは、必ず陸にしておく
+    for (const o of home.objects) {
+      const t = OBJECT_TYPES[o.type];
+      if (!t) continue;
+      for (let y = o.y; y < o.y + t.h; y++) for (let x = o.x; x < o.x + t.w; x++) land.add(`${x},${y}`);
+    }
+    if (home.player) land.add(`${home.player.x},${home.player.y}`);
+    home.map = { land: [...land] };
   }
   home.layout = LAYOUT_VERSION;
   return v < LAYOUT_VERSION;

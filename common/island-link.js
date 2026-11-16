@@ -1,5 +1,5 @@
 // =====================================================================
-// 学習アイランド つなぎ口（island-link.js） 版 0.1.0
+// ハテナリア つなぎ口（island-link.js） 版 0.1.3
 // ---------------------------------------------------------------------
 // このかたまりを、各アプリの HTML の <script> の中にそのまま貼り付けて使う。
 // ・島のフォルダに置いたとき … 共通部品を読み込み「連携モード」になる
@@ -21,6 +21,10 @@ const Island = (() => {
     book: null,
     profile: null,
     homeUrl: null,
+    mode: null,   // 連携モードでは 'school'（クラスに入っている）か 'home'（自習）。単独モードでは null
+    grade: null,  // 連携モードでは その冒険の書の学年（1〜6）。単独モードでは null（アプリが自分で決める）
+    settings: null, // 連携モードでは 冒険の書の共通設定（読み上げ・ふりがな など）
+    furigana: null, // 連携モードでは true／false（習った漢字にも ふりがなを付けるか）。単独モードでは null
     reward: async () => null,
     record: async () => null,
     wallet: async () => null,
@@ -50,7 +54,9 @@ const Island = (() => {
         b.setAttribute('data-island', 'home');
         b.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:9000;min-height:60px;display:flex;align-items:center;'
           + 'padding:0 18px;border-radius:16px;background:#ffd66b;color:#3a3226;font-size:20px;font-weight:bold;'
-          + 'text-decoration:none;box-shadow:0 4px 0 #d9a93a;font-family:inherit';
+          + 'text-decoration:none;box-shadow:0 4px 0 #d9a93a;font-family:inherit;touch-action:manipulation';
+        b.addEventListener('focus', () => { b.style.outline = '5px solid #3b82f6'; b.style.outlineOffset = '4px'; });
+        b.addEventListener('blur', () => { b.style.outline = 'none'; });
         document.body.append(b);
       }
       console.info(`[学習アイランド] 連携モード（冒険の書 ${c.book.id}、共通部品 ${c.version}）`);

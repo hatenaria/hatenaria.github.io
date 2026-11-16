@@ -26,6 +26,8 @@ const CSS = `
 .gi-err{color:#b3261e;font-size:20px;min-height:1.5em;text-align:center}
 .gi-input{width:100%;box-sizing:border-box;font-size:26px;padding:12px 16px;border-radius:14px;border:3px solid #e9dfcc;font-family:inherit}
 .gi-note{font-size:16px;color:#7a6e5d;text-align:center;margin-top:16px}
+.gi-grades{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:6px 0 18px}
+.gi-grade{min-height:76px;font-size:28px;background:#fff;box-shadow:0 4px 0 #c9bfae;border:3px solid #e9dfcc}
 `;
 
 function el(tag, attrs = {}, ...children) {
@@ -105,14 +107,11 @@ export function showPicker({ mode = 'select', homeUrl = null } = {}) {
       card.replaceChildren();
       const input = el('input', { class: 'gi-input', maxlength: String(books.NAME_MAX), 'aria-label': 'ニックネーム', placeholder: 'ニックネーム' });
       const err = el('p', { class: 'gi-err' });
-      const submit = async () => {
-        try {
-          const b = await books.createBook(input.value);
-          await books.setCurrent(b.id);
-          close(b);
-        } catch (e) { err.textContent = e.message; }
+      const submit = () => {
+        try { books.cleanName(input.value); } catch (e) { err.textContent = e.message; return; }
+        renderGrade(input.value);
       };
-      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (!e.repeat) submit(); } });
       card.append(
         el('h2', {}, 'あたらしい ぼうけんの しょ'),
         el('p', { class: 'gi-msg' }, 'ニックネームを いれてね（10もじ まで）'),
@@ -123,6 +122,30 @@ export function showPicker({ mode = 'select', homeUrl = null } = {}) {
       );
       input.focus();
       onBack = renderList;
+    }
+
+    // 学年を えらぶ（つぎの画面）
+    function renderGrade(name) {
+      card.replaceChildren();
+      const err = el('p', { class: 'gi-err' });
+      const pick = async (g) => {
+        try {
+          const b = await books.createBook(name, g);
+          await books.setCurrent(b.id);
+          close(b);
+        } catch (e) { err.textContent = e.message; }
+      };
+      const grid = el('div', { class: 'gi-grades' },
+        ...books.GRADES.map((g) => el('button', { class: 'gi-btn gi-grade', 'data-grade': String(g), onclick: () => pick(g) }, `${g}ねんせい`)));
+      card.append(
+        el('h2', {}, 'なんねんせい？'),
+        el('p', { class: 'gi-msg' }, 'いまの がくねんを えらんでね。'),
+        grid, err,
+        el('div', { class: 'gi-row' }, el('button', { class: 'gi-btn', onclick: renderCreate }, 'もどる')),
+      );
+      // 名前の Enter がそのまま学年ボタンを押さないよう、次の瞬間に選ぶ
+      setTimeout(() => grid.querySelector('button').focus(), 0);
+      onBack = renderCreate;
     }
 
     function renderDelete(b) {

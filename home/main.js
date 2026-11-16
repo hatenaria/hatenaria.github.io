@@ -6,7 +6,7 @@ import * as books from '../common/books.js';
 import { showPicker } from '../common/book-picker.js';
 import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, HERO_SHEETS, TEXTURES, ISLANDS_BG } from './data.js';
 
-export const HOME_VERSION = '0.2.11';
+export const HOME_VERSION = '0.3.3';
 const PREVIEW = !!window.GI_PREVIEW; // アーティファクトでの試作表示（島へは移動しない）
 
 // 主人公の画像（仕様書2-4の規格：1コマ 384×512、足元 x=192, y=488。縮小した画像でも同じ比率で扱う）
@@ -44,12 +44,87 @@ const canvas = document.getElementById('world');
 const ctx = canvas.getContext('2d');
 
 // ------------------------------------------------------------------ マップ
-function isWater(x, y) {
-  const { w, h } = home.map;
-  if (x <= 0 || y <= 0 || x >= w - 1 || y >= h - 1) return true;
-  if ((x === 1 || x === w - 2) && (y === 1 || y === h - 2)) return true; // 角を丸くする
-  return false;
+// 陸のマス（home.map.land）から作る。土地が増えたら refreshLand() を呼ぶ
+let landSet = new Set(), landTiles = [], landBox = { x0: 0, y0: 0, x1: 0, y1: 0 };
+function refreshLand() {
+  landSet = new Set(home.map.land);
+  landTiles = home.map.land.map((k) => k.split(',').map(Number));
+  const xs = landTiles.map((t) => t[0]), ys = landTiles.map((t) => t[1]);
+  landBox = { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) };
+  coast = buildCoast();
 }
+
+// 海岸線：陸のマスをぼかした「陸らしさ」の値から、なめらかな輪郭を作る（マーチングスクエア法）
+// 同じ値の線をいくつか取り出し、外側から 白い泡 → 浅瀬 → 砂浜 → 草地 の順に重ねる
+let coast = null;
+const COAST_LEVELS = { foam: .1, shallow: .2, sand: .33, grass: .5 };
+function buildCoast() {
+  const SS = 8, M = 2;                       // 1マスを8つに分けて計算。島のまわり2マスまで
+  const ox = landBox.x0 - M, oy = landBox.y0 - M;
+  const nx = (landBox.x1 - landBox.x0 + 1 + M * 2) * SS + 1, ny = (landBox.y1 - landBox.y0 + 1 + M * 2) * SS + 1;
+  let f = new Float32Array(nx * ny);
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const tx = Math.floor(ox + (i + .5) / SS), ty = Math.floor(oy + (j + .5) / SS);
+    f[j * nx + i] = landSet.has(`${tx},${ty}`) ? 1 : 0;
+  }
+  // ガウスぼかし（横 → 縦）
+  const sig = .38 * SS, R = Math.ceil(sig * 3), k = [];
+  let ks = 0; for (let d = -R; d <= R; d++) { const v = Math.exp(-(d * d) / (2 * sig * sig)); k.push(v); ks += v; }
+  for (let d = 0; d < k.length; d++) k[d] /= ks;
+  const tmp = new Float32Array(nx * ny);
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    let a = 0; for (let d = -R; d <= R; d++) { const ii = i + d; if (ii >= 0 && ii < nx) a += f[j * nx + ii] * k[d + R]; } tmp[j * nx + i] = a;
+  }
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    let a = 0; for (let d = -R; d <= R; d++) { const jj = j + d; if (jj >= 0 && jj < ny) a += tmp[jj * nx + i] * k[d + R]; } f[j * nx + i] = a;
+  }
+  const out = {};
+  for (const [name, th] of Object.entries(COAST_LEVELS)) out[name] = contourPath(f, nx, ny, th, ox, oy, SS);
+  return out;
+}
+function contourPath(f, nx, ny, th, ox, oy, SS) {
+  const pt = new Map(), link = new Map();
+  const v = (i, j) => f[j * nx + i];
+  const edgePoint = (key, i1, j1, i2, j2) => {
+    if (!pt.has(key)) {
+      const a = v(i1, j1), b = v(i2, j2), t = (th - a) / (b - a || 1e-6);
+      pt.set(key, [ox + (i1 + (i2 - i1) * t + .5) / SS, oy + (j1 + (j2 - j1) * t + .5) / SS]);
+    }
+    return key;
+  };
+  const connect = (a, b) => { (link.get(a) || link.set(a, []).get(a)).push(b); (link.get(b) || link.set(b, []).get(b)).push(a); };
+  for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) {
+    const c = (v(i, j) >= th ? 8 : 0) | (v(i + 1, j) >= th ? 4 : 0) | (v(i + 1, j + 1) >= th ? 2 : 0) | (v(i, j + 1) >= th ? 1 : 0);
+    if (c === 0 || c === 15) continue;
+    const T_ = () => edgePoint(`h${i},${j}`, i, j, i + 1, j), B = () => edgePoint(`h${i},${j + 1}`, i, j + 1, i + 1, j + 1);
+    const L = () => edgePoint(`v${i},${j}`, i, j, i, j + 1), Rr = () => edgePoint(`v${i + 1},${j}`, i + 1, j, i + 1, j + 1);
+    switch (c) {
+      case 1: case 14: connect(L(), B()); break;
+      case 2: case 13: connect(B(), Rr()); break;
+      case 3: case 12: connect(L(), Rr()); break;
+      case 4: case 11: connect(T_(), Rr()); break;
+      case 6: case 9: connect(T_(), B()); break;
+      case 7: case 8: connect(L(), T_()); break;
+      case 5: connect(L(), T_()); connect(B(), Rr()); break;
+      case 10: connect(L(), B()); connect(T_(), Rr()); break;
+    }
+  }
+  const path = new Path2D(), seen = new Set();
+  for (const start of link.keys()) {
+    if (seen.has(start)) continue;
+    let prev = null, cur = start, first = true;
+    while (cur && !seen.has(cur)) {
+      seen.add(cur);
+      const [x, y] = pt.get(cur);
+      if (first) { path.moveTo(x, y); first = false; } else path.lineTo(x, y);
+      const nb = link.get(cur).find((n) => n !== prev && !seen.has(n));
+      prev = cur; cur = nb;
+    }
+    path.closePath();
+  }
+  return path;
+}
+function isWater(x, y) { return !landSet.has(`${x},${y}`); }
 function objectAt(x, y) {
   return home.objects.find((o) => {
     const t = OBJECT_TYPES[o.type];
@@ -163,11 +238,13 @@ function resize() {
 
 function camera() {
   const w = window.innerWidth, h = window.innerHeight;
-  const mw = home.map.w * T, mh = home.map.h * T;
+  // 島（陸）のまわり1マスまでを、画面に映す範囲にする
+  const left = (landBox.x0 - 1) * T, top = (landBox.y0 - 1) * T;
+  const mw = (landBox.x1 - landBox.x0 + 3) * T, mh = (landBox.y1 - landBox.y0 + 3) * T;
   let cx = (player.fx + 0.5) * T - w / 2;
   let cy = (player.fy + 0.5) * T - h / 2;
-  cx = mw <= w ? (mw - w) / 2 : Math.max(0, Math.min(mw - w, cx));
-  cy = mh <= h ? (mh - h) / 2 : Math.max(0, Math.min(mh - h, cy));
+  cx = mw <= w ? left + (mw - w) / 2 : Math.max(left, Math.min(left + mw - w, cx));
+  cy = mh <= h ? top + (mh - h) / 2 : Math.max(top, Math.min(top + mh - h, cy));
   return [Math.round(cx), Math.round(cy)];
 }
 
@@ -177,33 +254,29 @@ function roundRect(x, y, w, h, r) {
   ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
 }
 
+// 海岸線の形（タイル単位の Path2D）を、画面の位置に合わせて塗る
+function fillCoast(path, cx, cy, style) {
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const dpr = canvas.width / window.innerWidth;
+  ctx.setTransform(dpr * T, 0, 0, dpr * T, -cx * dpr, -cy * dpr);
+  ctx.clip(path, 'evenodd');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (style === 'grass') { if (!texFill('grass', cx, cy)) ctx.fillStyle = '#8ccf77'; }
+  else ctx.fillStyle = style;
+  ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+  ctx.restore();
+}
+
 function drawGround(now, cx, cy) {
-  const { w, h } = home.map;
   // 海
   if (!texFill('sea', cx, cy, (now / 120) % (TEXTURES.sea.tiles * T))) ctx.fillStyle = '#5ec3e8';
   ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
-  const wave = (now / 900) % (Math.PI * 2);
-  if (!tex.sea) {
-  ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 2;
-  for (let y = -1; y < h + 1; y++) for (let x = -1; x < w + 1; x++) {
-    if (!isWater(x, y) || (x + y) % 3) continue;
-    const px = x * T - cx + T * .25, py = y * T - cy + T * .5 + Math.sin(wave + x + y) * 3;
-    ctx.beginPath(); ctx.moveTo(px, py); ctx.quadraticCurveTo(px + T * .12, py - 6, px + T * .25, py); ctx.quadraticCurveTo(px + T * .37, py + 6, px + T * .5, py); ctx.stroke();
-  }
-  }
-  // 砂浜と草地
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    if (isWater(x, y)) continue;
-    const px = x * T - cx, py = y * T - cy;
-    ctx.fillStyle = '#f1dca5';
-    ctx.fillRect(px - T * .12, py - T * .12, T * 1.24, T * 1.24);
-  }
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    if (isWater(x, y)) continue;
-    const px = x * T - cx, py = y * T - cy;
-    if (!texFill('grass', cx, cy)) ctx.fillStyle = (x + y) % 2 ? '#8ccf77' : '#88cb73';
-    ctx.fillRect(px, py, T + 1, T + 1);
-  }
+  // 打ち寄せる波（白い泡）→ 浅瀬 → 砂浜 → 草地
+  fillCoast(coast.foam, cx, cy, `rgba(255,255,255,${.45 + .2 * Math.sin(now / 700)})`);
+  fillCoast(coast.shallow, cx, cy, 'rgba(170,232,244,.9)');
+  fillCoast(coast.sand, cx, cy, '#f1dca5');
+  fillCoast(coast.grass, cx, cy, 'grass');
   // 道（となりの道とつながって見えるように描く）
   for (const [x, y] of PATH_TILES) {
     const px = x * T - cx, py = y * T - cy, m = T * .12;
@@ -611,10 +684,28 @@ function openSettings() {
           profile = { ...(profile || {}), hero: { ...(profile?.hero || {}), gender: heroGender() === 'boy' ? 'girl' : 'boy' } };
           await store.set(`${book.id}/profile`, profile); loadHero(); closeModal();
         } }, `しゅじんこうを ${heroGender() === 'boy' ? 'おんなのこ' : 'おとこのこ'}に する（かり）`),
+        h('button', { class: 'btn', 'data-act': 'furigana', onclick: async () => {
+          const on = !(settings?.furigana !== false);
+          settings = await store.update(`${book.id}/settings`, (st) => ({ ...(st || {}), furigana: on }), { fallback: {} }) || { ...(settings || {}), furigana: on };
+          closeModal(); openSettings();
+        } }, `ふりがな：${settings?.furigana !== false ? 'つける' : 'ならった かんじには つけない'}（かえる）`),
+        h('button', { class: 'btn', 'data-act': 'grade', onclick: () => openGrade(false) }, profile?.grade ? `がくねん：${profile.grade}ねんせい（かえる）` : 'がくねんを えらぶ'),
         h('button', { class: 'btn', 'data-act': 'switch', onclick: async () => { closeModal(); await showPicker({ mode: 'manage' }); location.reload(); } }, 'ぼうけんの しょを かえる・つくる'),
         PREVIEW ? null : h('button', { class: 'btn', 'data-act': 'backup', onclick: backup }, 'バックアップを ほぞん（せんせい・おうちの ひと よう）')),
       h('p', { class: 'small' }, `ハテナリア ホームアイランド ${HOME_VERSION}${store.isVolatile ? '　※この ブラウザでは きろくが のこりません' : ''}`),
       h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', onclick: closeModal }, 'とじる')));
+  });
+}
+// 学年を えらぶ（進級したとき・学年が入っていない古い冒険の書のとき）
+function openGrade(first) {
+  openModal((m) => {
+    m.append(h('h2', {}, 'なんねんせい？'),
+      h('p', { class: 'body' }, first ? 'いまの がくねんを えらんでね。\nしまで でる もんだいが、がくねんに あわせて かわるよ。' : 'しんきゅう したら、あたらしい がくねんを えらんでね。'),
+      h('div', { class: 'grades' }, ...[1, 2, 3, 4, 5, 6].map((g) => h('button', {
+        class: 'btn' + (profile?.grade === g ? ' on' : ''), 'data-grade': String(g),
+        onclick: async () => { await books.setGrade(book.id, g); profile = { ...(profile || {}), grade: g }; closeModal(); },
+      }, `${g}ねんせい`))),
+      first ? null : h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', onclick: closeModal }, 'とじる')));
   });
 }
 async function backup() {
@@ -691,18 +782,70 @@ function loadHero() {
   const im = new Image(); im.onload = () => { heroImg = im; }; im.src = src;
 }
 let profile = null;
+let settings = null; // 冒険の書の共通設定（ふりがな・読み上げ）
 function heroGender() { return profile?.hero?.gender === 'girl' ? 'girl' : 'boy'; }
+
+// ------------------------------------------------------------------ タイトル画面
+// ブラウザを開いて最初の1回だけ出す（島から戻ったときや、同じタブで開き直したときは出さない）
+const LOGO_SRC = 'assets/home/logo.webp';
+function titleShownThisSession() { try { return sessionStorage.getItem('hatenaria-title') === '1'; } catch { return false; } }
+function markTitleShown() { try { sessionStorage.setItem('hatenaria-title', '1'); } catch { /* 使えなくても動く */ } }
+function showTitle(curBook) {
+  return new Promise((resolve) => {
+    const wrap = h('div', { class: 'tscreen', role: 'dialog', 'aria-label': 'ハテナリア' });
+    const logo = h('img', { class: 'logo', src: LOGO_SRC, alt: 'ハテナリア', draggable: 'false' });
+    const who = h('div', { class: 'who' }, curBook ? `📖 ${curBook.name} の ぼうけんの しょ` : '');
+    const go = h('button', { class: 'go' }, 'はじめる');
+    const sw = h('button', { class: 'sw' }, curBook ? 'ぼうけんの しょを かえる・つくる' : 'ぼうけんの しょを つくる');
+    const btns = curBook ? [go, sw] : [go];
+    wrap.append(logo, who, h('div', { class: 'tbtns' }, ...btns));
+    document.body.append(wrap);
+    let idx = 0, keyMode = false, done = false;
+    const paint = () => btns.forEach((b, i) => b.classList.toggle('kfocus', keyMode && i === idx));
+    const finish = (choice) => {
+      if (done) return; done = true;
+      document.removeEventListener('keydown', onKey, true);
+      markTitleShown(); wrap.remove(); resolve(choice);
+    };
+    const onKey = (e) => {
+      const k = e.key;
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(k)) {
+        e.preventDefault(); e.stopPropagation();
+        if (!keyMode) keyMode = true; else idx = (idx + (k === 'ArrowUp' || k === 'ArrowLeft' ? -1 : 1) + btns.length) % btns.length;
+        paint(); btns[idx].focus({ preventScroll: true }); return;
+      }
+      if ((k === 'Enter' || k === ' ') && !e.repeat) {
+        e.preventDefault(); e.stopPropagation();
+        finish(btns[idx] === go ? 'start' : 'switch');
+      }
+    };
+    document.addEventListener('keydown', onKey, true);
+    wrap.addEventListener('pointerdown', () => { keyMode = false; paint(); }, true);
+    go.addEventListener('click', () => finish('start'));
+    sw.addEventListener('click', () => finish('switch'));
+    go.focus({ preventScroll: true });
+    // 最初から Enter だけで はじめられるよう、「はじめる」を選んだ状態にしておく（2-8）
+    keyMode = true; paint();
+  });
+}
 
 // ------------------------------------------------------------------ 起動
 async function start() {
   store.requestPersist();
   book = await books.getCurrent();
+  const returning = book && await store.get(`${book.id}/homeTrip`);
+  if (!returning && !titleShownThisSession()) {
+    const choice = await showTitle(book);
+    if (choice === 'switch') book = await showPicker({ mode: 'manage' });
+  } else markTitleShown();
   if (!book) book = await showPicker({ mode: 'manage' });
   home = await store.get(`${book.id}/home`);
   if (!home) { home = DEFAULT_HOME(); await store.set(`${book.id}/home`, home); }
   else if (migrateHome(home)) await store.set(`${book.id}/home`, home);
+  refreshLand();
   wallet = await store.get(`${book.id}/wallet`, { coin: 0, materials: {} });
   profile = await store.get(`${book.id}/profile`, {});
+  settings = await store.get(`${book.id}/settings`, {});
   cls = await store.get(`${book.id}/class`);
   Object.assign(player, home.player, { fx: home.player.x, fy: home.player.y });
   loadHero();
@@ -721,6 +864,7 @@ async function start() {
   document.body.classList.add('ready');
   requestAnimationFrame(loop);
   await welcomeBack();
+  if (!profile?.grade && !modalOpen) openGrade(true); // 学年がない古い冒険の書
   // テスト用
   window.__home = { player, get home() { return home; }, get T() { return T; }, camera, version: HOME_VERSION };
 }

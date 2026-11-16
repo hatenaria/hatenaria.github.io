@@ -18,16 +18,24 @@ export async function getBook(id) {
   return (await listBooks()).find((b) => b.id === id) || null;
 }
 
-function cleanName(name) {
+export function cleanName(name) {
   const n = String(name ?? '').trim().replace(/\s+/g, ' ');
   if (!n) throw new Error('なまえを いれてね');
   if ([...n].length > NAME_MAX) throw new Error(`なまえは ${NAME_MAX}もじ までだよ`);
   return n;
 }
 
-/** 新しい冒険の書を作る。name はハンドルネーム（実名は使わない） */
-export async function createBook(name) {
+export const GRADES = [1, 2, 3, 4, 5, 6];
+function cleanGrade(g) {
+  const n = Number(g);
+  if (!GRADES.includes(n)) throw new Error('がくねんを えらんでね');
+  return n;
+}
+
+/** 新しい冒険の書を作る。name はハンドルネーム（実名は使わない）、grade は学年（1〜6） */
+export async function createBook(name, grade) {
   const handle = cleanName(name);
+  const g = cleanGrade(grade);
   let created = null;
   await store.update('meta/books', (books) => {
     books = books || [];
@@ -38,11 +46,19 @@ export async function createBook(name) {
   }, { fallback: [] });
   await store.set(`${created.id}/profile`, {
     handle,
-    hero: { gender: null, hair: null, outfit: null, hat: null }, // 主人公はホームの作成画面で決める
+    grade: g, // 学年。進級したらホームの「せってい」で変える（仕様書3-5）
+    hero: { gender: null, hair: null, hairColor: null, outfit: null, accessory: null, hat: null }, // 主人公はホームの作成画面で決める（仕様書3-5）
   });
-  await store.set(`${created.id}/settings`, { speech: false });
+  await store.set(`${created.id}/settings`, { speech: false, furigana: true }); // furigana：習った漢字にも ふりがなを付けるか（仕様書2-5。習っていない漢字は常に付ける）
   await store.set(`${created.id}/wallet`, { coin: 0, materials: {}, firstOfDay: {} });
   return created;
+}
+
+/** 学年を変える（進級したとき） */
+export async function setGrade(id, grade) {
+  const g = cleanGrade(grade);
+  await store.update(`${id}/profile`, (p) => ({ ...(p || {}), grade: g }), { fallback: {} });
+  return g;
 }
 
 /** ハンドルネームを変える */
