@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>主人公の部品 確認ページ（common/hero）</title>
+<style>
+body{margin:0;font-family:"Hiragino Maru Gothic ProN","BIZ UDPGothic",sans-serif;background:#eef4ea;color:#333;touch-action:manipulation}
+header{padding:8px 12px;background:#3d7a4a;color:#fff;font-weight:bold}
+.wrap{padding:12px;display:flex;flex-direction:column;gap:8px;align-items:center}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.row b{min-width:5em}
+button{font:inherit;min-height:44px;padding:4px 14px;border-radius:10px;border:2px solid #bbb;background:#fff;cursor:pointer}
+button.on{border-color:#3d7a4a;background:#e3f1e5;font-weight:bold}
+canvas{background:#bfe3a6;border-radius:10px}
+#msg{font-size:13px;color:#666}
+</style>
+</head>
+<body>
+<header>主人公の部品 確認ページ（/common/hero/）</header>
+<div class="wrap">
+  <div class="row"><b>せいべつ</b><span id="g"></span></div>
+  <div class="row"><b>かみがた</b><span id="h"></span></div>
+  <div class="row"><b>かみのいろ</b><span id="c"></span></div>
+  <canvas id="cv" width="820" height="300"></canvas>
+  <div id="msg">上段：立ち（下・左・右・上）。下段：歩いているところ（アニメーション）</div>
+</div>
+<script type="module">
+import { createHero, HAIRS, HAIR_COLORS, HERO_VERSION } from './hero.js';
+const st = { gender: 'boy', hair: null, hairColor: null };
+let hero = null;
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+function buttons(el, items, key) {
+  el.innerHTML = '';
+  for (const [id, name] of items) {
+    const b = document.createElement('button'); b.textContent = name; b.className = st[key] === id ? 'on' : '';
+    b.onclick = async () => { st[key] = id; if (key === 'gender') st.hair = null; await rebuild(); }; el.append(b);
+  }
+}
+async function rebuild() {
+  hero = await createHero(st, './');
+  buttons(document.getElementById('g'), [['boy', 'おとこのこ'], ['girl', 'おんなのこ']], 'gender');
+  buttons(document.getElementById('h'), Object.entries(HAIRS).map(([k, v]) => [k, v.name]), 'hair');
+  buttons(document.getElementById('c'), Object.entries(HAIR_COLORS).map(([k, v]) => [k, v.name]), 'hairColor');
+  document.querySelectorAll('#h button').forEach((b, i) => b.classList.toggle('on', Object.keys(HAIRS)[i] === hero.hero.hair));
+  document.querySelectorAll('#c button').forEach((b, i) => b.classList.toggle('on', Object.keys(HAIR_COLORS)[i] === hero.hero.hairColor));
+  document.getElementById('msg').textContent = `hero.js ${HERO_VERSION}　いまの設定：${JSON.stringify(hero.hero)}`;
+}
+function loop(t) {
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  if (hero) ['down', 'left', 'right', 'up'].forEach((d, i) => {
+    hero.draw(ctx, 110 + i * 200, 140, d, 0, 120 / 192);
+    hero.draw(ctx, 110 + i * 200, 290, d, Math.floor(t / 250) % 2, 120 / 192);
+  });
+  requestAnimationFrame(loop);
+}
+rebuild().catch(e => { document.getElementById('msg').textContent = '読み込めませんでした：' + e.message; });
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

@@ -2,10 +2,11 @@
 // 各アプリは直接これを読み込まず、つなぎ口（island-link.js の中身）から読み込む。
 // つなぎ口がこのファイルを読み込めたら「連携モード」になる。
 
-import * as store from './store.js?v=0.5.0';
-import * as books from './books.js?v=0.5.0';
+import * as store from './store.js?v=0.7.0';
+import * as classroom from './classroom.js?v=0.7.0';
+import * as books from './books.js?v=0.7.0';
 
-export const COMMON_VERSION = '0.1.5';
+export const COMMON_VERSION = '0.2.0';
 export const HOME_URL = new URL('../index.html', import.meta.url).href;
 
 const SESSIONS_MAX = 200; // 1件ごとの詳細を残す数（仕様書2-7）
@@ -113,7 +114,6 @@ export async function connect({ appId, subject }) {
 
     /**
      * 学習のひと区切りの要約を残す。クラスに入っていれば、先生へ送る箱（outbox）にも入れる。
-     * 送信そのものは GAS の部品ができてから（作業④）。
      * summary の例：{ minutes: 5, skills: [{id:'math.g1.A.compose10', self:4, hint:1, review:0}] }
      */
     async record(summary = {}) {
@@ -126,6 +126,7 @@ export async function connect({ appId, subject }) {
       const cls = await store.get(`${p}/class`);
       if (cls && cls.code) {
         await store.update(`${p}/outbox`, (box) => [...(box || []), entry].slice(-OUTBOX_MAX), { fallback: [] });
+        classroom.flush(p); // 数秒あとに先生へ送る（送れなければ箱に残って、あとで送る）
       }
       return entry;
     },
@@ -133,7 +134,7 @@ export async function connect({ appId, subject }) {
     /** 先生のクラス設定でその技能が開いているか。クラスに入っていなければ常に開いている */
     async isUnitOpen(skillId) {
       const cls = await store.get(`${p}/class`);
-      const closed = cls?.settings?.closedSkills || []; // 形式は作業④で確定（仮）
+      const closed = cls?.settings?.closedSkills || []; // 先生のシート「たんげん」で ✓を外した技能IDの はじめの部分
       return !closed.some((prefix) => String(skillId).startsWith(prefix));
     },
 

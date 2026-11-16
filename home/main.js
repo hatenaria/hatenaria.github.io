@@ -1,16 +1,17 @@
 // ホームアイランド v0.2
 // 島を歩く・建物を調べる・掲示板・気球で島めぐり・島から戻ったときの「おかえり」
 
-import * as store from '../common/store.js?v=0.5.0';
-import * as books from '../common/books.js?v=0.5.0';
-import { showPicker } from '../common/book-picker.js?v=0.5.0';
-import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, HERO_SHEETS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE } from './data.js?v=0.5.0';
+import * as store from '../common/store.js?v=0.7.0';
+import * as books from '../common/books.js?v=0.7.0';
+import { createHero, HAIRS, HAIR_COLORS, resolveHero } from '../common/hero/hero.js?v=0.7.0';
+import * as classroom from '../common/classroom.js?v=0.7.0';
+import { showPicker } from '../common/book-picker.js?v=0.7.0';
+import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE } from './data.js?v=0.7.0';
 
-export const HOME_VERSION = '0.5.0';
+export const HOME_VERSION = '0.7.0';
 const PREVIEW = !!window.GI_PREVIEW; // アーティファクトでの試作表示（島へは移動しない）
 
 // 主人公の画像（仕様書2-4の規格：1コマ 384×512、足元 x=192, y=488。縮小した画像でも同じ比率で扱う）
-const FOOT = { x: 192 / 384, y: 488 / 512 };
 const sprites = {}; // 建物の画像（読み込めたものだけ）
 const tex = {};     // 地面の模様（読み込めたものだけ）
 // 地面の模様を、地図といっしょに動くように貼る
@@ -38,7 +39,7 @@ let heldDir = null;
 let pathQueue = [];
 let pendingInteract = null;
 let modalOpen = false;
-let heroImg = null;
+let heroParts = null; // 共通部品 /common/hero/ の主人公（体・髪・服を重ねる）
 
 const canvas = document.getElementById('world');
 const ctx = canvas.getContext('2d');
@@ -423,12 +424,8 @@ function drawHero(px, py, now) {
   const walking = player.moving;
   const frame = walking ? 1 : 0;
   ctx.fillStyle = 'rgba(30,50,20,.25)'; ctx.beginPath(); ctx.ellipse(px, py, T * .28, T * .1, 0, 0, 7); ctx.fill();
-  if (heroImg) {
-    const fw = heroImg.width / 4, fh = heroImg.height / 2, s = T / fw; // 画面では横1マス
-    ctx.drawImage(heroImg, DIR_COL[player.dir] * fw, frame * fh, fw, fh, px - fw * FOOT.x * s, py - fh * FOOT.y * s, fw * s, fh * s);
-    return;
-  }
-  // 仮の主人公（正式な画像ができたら上の drawImage に切り替わる）
+  if (heroParts) { heroParts.draw(ctx, px, py, player.dir, frame, T / 192); return; }
+  // 予備の主人公（共通部品 /common/hero/ が読めないときだけ）
   const bob = walking ? -Math.abs(Math.sin((now - player.t0) / STEP_MS * Math.PI)) * T * .06 : 0;
   const lift = player.step ? 1 : -1;
   ctx.fillStyle = '#3b5998';
@@ -555,22 +552,25 @@ function message(title, body) {
     h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', onclick: closeModal }, 'とじる'))));
 }
 
+// 先生のお知らせ（クラスに入っていれば先生のシートから。なければ はじめの お知らせ）
+function notices() { return cls?.notices?.length ? cls.notices : SAMPLE_NOTICES; }
 function unreadCount() {
-  return SAMPLE_NOTICES.filter((n) => !home.readNotices.includes(n.id)).length;
+  return notices().filter((n) => !home.readNotices.includes(n.id)).length;
 }
 
 function openBoard() {
   openModal((m) => {
     m.append(h('h2', {}, '📌 けいじばん'));
     const list = h('div', { class: 'notices', 'data-scroll': '1' });
-    for (const n of SAMPLE_NOTICES) {
+    if (cls?.className) m.append(h('p', { class: 'body small' }, `${cls.className}の おしらせ`));
+    for (const n of notices()) {
       const unread = !home.readNotices.includes(n.id);
       list.append(h('article', { class: 'notice' + (unread ? ' unread' : '') },
         h('div', { class: 'ndate' }, n.date.replace(/^\d+-0?(\d+)-0?(\d+)$/, '$1がつ $2にち'), unread ? h('span', { class: 'new' }, 'あたらしい') : null),
         h('h3', {}, n.title), h('p', {}, n.body)));
     }
     m.append(list, h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', onclick: closeModal }, 'とじる')));
-    home.readNotices = [...new Set([...home.readNotices, ...SAMPLE_NOTICES.map((n) => n.id)])];
+    home.readNotices = [...new Set([...home.readNotices, ...notices().map((n) => n.id)])].slice(-200);
     saveHome();
   });
 }
@@ -762,6 +762,8 @@ function expandCandidates() {
 
 function openIslandMenu() {
   if (modalOpen) return;
+  if (!classroom.buildAllowed(cls)) return message('🛠 しまづくり', cls?.settings?.buildRule === 'off'
+    ? 'いまは しまづくりが できないよ。（せんせいの せってい）' : 'がっこうの じかんは しまづくりが できないよ。\nいえに かえってから やってみてね。（せんせいの せってい）');
   openModal((m) => {
     m.append(h('h2', {}, '🛠 しまづくり'),
       h('p', { class: 'body small' }, 'しまを ひろげたり、たてものや かざりを うごかしたり できるよ。'),
@@ -1016,6 +1018,100 @@ function drawEditOver(now, cx, cy) {
   }
 }
 
+
+// ------------------------------------------------------------------ クラスに はいる（参加用リンク）
+function openJoin(link) {
+  let num = '';
+  openModal((m) => {
+    m.className = 'modal build';
+    const disp = h('div', { class: 'numdisp', 'aria-live': 'polite' }, '　');
+    const err = h('p', { class: 'body small err' });
+    const paint = () => { disp.textContent = num || '　'; go.disabled = !num; };
+    const press = (d) => { if (d === 'del') num = num.slice(0, -1); else if (num.length < 2) num = (num + d).replace(/^0+/, ''); paint(); };
+    const pad = h('div', { class: 'numpad' }, ...['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0'].map((d) =>
+      h('button', { class: 'btn', 'data-num': d, onclick: () => press(d) }, d === 'del' ? 'けす' : d)));
+    const go = h('button', { class: 'btn go', 'data-act': 'join', disabled: '', onclick: async () => {
+      go.disabled = true; err.textContent = 'とうろく しているよ…';
+      try {
+        cls = await classroom.join(book.id, link, { number: num, handle: book.name, grade: profile?.grade });
+        classroom.clearJoinLink();
+        closeModal();
+        message('クラスに はいったよ！', `${cls.className || ''}の ${cls.number}ばん ${book.name}さん、よろしくね。\nがくしゅうの きろくが せんせいに とどくように なったよ。`);
+      } catch (e) { err.textContent = e.message || 'とうろく できなかったよ。もういちど ためしてね。'; go.disabled = false; }
+    } }, 'はいる');
+    m.append(h('h2', {}, '🏫 クラスに はいる'),
+      cls ? h('p', { class: 'body small' }, `いまは ${cls.className || cls.code}に はいっているよ。あたらしい クラスに はいりなおすよ。`) : null,
+      h('p', { class: 'body small' }, `ぼうけんの しょ：📖 ${book.name}　しゅっせきばんごうを いれてね。`),
+      disp, pad, err,
+      h('div', { class: 'row end' },
+        h('button', { class: 'btn', 'data-act': 'cancel', onclick: () => { classroom.clearJoinLink(); closeModal(); } }, 'やめる'), go));
+    m.addEventListener('keydown', (e) => {
+      if (/^[0-9]$/.test(e.key)) { e.preventDefault(); e.stopPropagation(); press(e.key); }
+      else if (e.key === 'Backspace') { e.preventDefault(); e.stopPropagation(); press('del'); }
+      else if (e.key === 'Enter' && num && !e.repeat) { e.preventDefault(); e.stopPropagation(); go.click(); }
+    }, true);
+    paint();
+  });
+}
+
+function openClassInfo() {
+  openModal((m) => {
+    if (!cls) {
+      m.append(h('h2', {}, '🏫 クラス'), h('p', { class: 'body' }, 'まだ クラスに はいっていないよ。\nせんせいから もらった リンクを ひらくと はいれるよ。'),
+        h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', onclick: closeModal }, 'とじる')));
+      return;
+    }
+    m.append(h('h2', {}, '🏫 クラス'),
+      h('p', { class: 'body' }, cls.invalid ? 'クラスの とうろくが きれているよ。\nせんせいに もういちど リンクを もらってね。'
+        : `${cls.className || cls.code}　${cls.number}ばん　${cls.handle}\nがくしゅうの きろくが せんせいに とどくよ。`),
+      h('div', { class: 'row end' },
+        h('button', { class: 'btn', 'data-act': 'leave', onclick: () => openModal((m2) => {
+          m2.append(h('h2', {}, 'クラスを ぬける？'), h('p', { class: 'body' }, 'ぬけると、きろくが せんせいに とどかなく なるよ。'),
+            h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-default': '', onclick: closeModal }, 'やめる'),
+              h('button', { class: 'btn', 'data-act': 'yes', onclick: async () => { await classroom.leave(book.id); cls = null; closeModal(); message('クラスを ぬけたよ', 'また はいるときは、せんせいの リンクを ひらいてね。'); } }, 'ぬける')));
+        }) }, 'クラスを ぬける'),
+        h('button', { class: 'btn', 'data-act': 'close', 'data-default': '', onclick: closeModal }, 'とじる')));
+  });
+}
+
+
+// ------------------------------------------------------------------ しゅじんこうを かえる（男女・髪型・髪の色）
+function openHeroEditor() {
+  const cur = () => resolveHero(profile?.hero || {});
+  openModal((m) => {
+    m.className = 'modal build hero-ed';
+    const cv = h('canvas', { class: 'hero-pv', width: '384', height: '200', 'aria-label': 'しゅじんこうの みほん' });
+    const save = async (patch) => {
+      const next = { ...(profile?.hero || {}), ...patch };
+      if (patch.gender && !patch.hair) next.hair = null; // 性別を かえたら、その性別の はじめの 髪型に
+      profile = { ...(profile || {}), hero: next };
+      await store.update(`${book.id}/profile`, (p) => ({ ...(p || {}), hero: next }), { fallback: {} });
+      await loadHero();
+      openHeroEditor(); // ボタンの えらばれ方を かきなおす
+    };
+    const h0 = cur();
+    const row = (label, items) => h('div', { class: 'xrow' }, h('div', { class: 'xlabel' }, label), h('div', { class: 'hopts' }, ...items));
+    const opt = (text, on, act, onclick, style) => h('button', { class: 'btn xmat' + (on ? ' on' : ''), 'data-hero': act, ...(style ? { style } : {}), onclick }, text);
+    m.append(h('h2', {}, '🧒 しゅじんこう'), cv,
+      row('おとこのこ・おんなのこ', [
+        opt('おとこのこ', h0.gender === 'boy', 'boy', () => save({ gender: 'boy' })),
+        opt('おんなのこ', h0.gender === 'girl', 'girl', () => save({ gender: 'girl' }))]),
+      row('かみがた', Object.entries(HAIRS).map(([id, x]) => opt(x.name, h0.hair === id, 'hair-' + id, () => save({ hair: id })))),
+      row('かみの いろ', Object.entries(HAIR_COLORS).map(([id, x]) => {
+        const c = x.stops[2]; return opt(x.name, h0.hairColor === id, 'color-' + id, () => save({ hairColor: id }), `border-left:14px solid rgb(${c.join(',')})`);
+      })),
+      h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', 'data-default': '', onclick: closeModal }, 'できた')));
+    // みほん：4つの むきで 立つ
+    const x = cv.getContext('2d');
+    const paint = () => {
+      x.clearRect(0, 0, cv.width, cv.height);
+      if (!heroParts) return;
+      ['down', 'left', 'right', 'up'].forEach((d, i) => heroParts.draw(x, 48 + i * 96, 190, d, 0, .7));
+    };
+    paint();
+  });
+}
+
 // ------------------------------------------------------------------ 島めぐり（気球）
 function islandOpen(is) {
   if (!is.ready) return false;
@@ -1120,15 +1216,13 @@ function openSettings() {
     m.append(h('h2', {}, '⚙ せってい'),
       h('p', { class: 'body' }, `いまの ぼうけんの しょ：📖 ${book.name}`),
       h('div', { class: 'col' },
-        h('button', { class: 'btn', 'data-act': 'hero', onclick: async () => {
-          profile = { ...(profile || {}), hero: { ...(profile?.hero || {}), gender: heroGender() === 'boy' ? 'girl' : 'boy' } };
-          await store.set(`${book.id}/profile`, profile); loadHero(); closeModal();
-        } }, `しゅじんこうを ${heroGender() === 'boy' ? 'おんなのこ' : 'おとこのこ'}に する（かり）`),
+        h('button', { class: 'btn', 'data-act': 'hero', onclick: openHeroEditor }, '🧒 しゅじんこうを かえる'),
         h('button', { class: 'btn', 'data-act': 'furigana', onclick: async () => {
           const on = !(settings?.furigana !== false);
           settings = await store.update(`${book.id}/settings`, (st) => ({ ...(st || {}), furigana: on }), { fallback: {} }) || { ...(settings || {}), furigana: on };
           closeModal(); openSettings();
         } }, `ふりがな：${settings?.furigana !== false ? 'つける' : 'ならった かんじには つけない'}（かえる）`),
+        h('button', { class: 'btn', 'data-act': 'class', onclick: openClassInfo }, cls ? `クラス：${cls.className || cls.code}（${cls.number}ばん）` : 'クラス：はいっていない'),
         h('button', { class: 'btn', 'data-act': 'grade', onclick: () => openGrade(false) }, profile?.grade ? `がくねん：${profile.grade}ねんせい（かえる）` : 'がくねんを えらぶ'),
         h('button', { class: 'btn', 'data-act': 'switch', onclick: async () => { closeModal(); await showPicker({ mode: 'manage' }); location.reload(); } }, 'ぼうけんの しょを かえる・つくる'),
         PREVIEW ? null : h('button', { class: 'btn', 'data-act': 'backup', onclick: backup }, 'バックアップを ほぞん（せんせい・おうちの ひと よう）')),
@@ -1223,9 +1317,8 @@ function doCheck() {
   if (o) interact(o);
 }
 
-function loadHero() {
-  const src = HERO_SHEETS[heroGender()] || HERO_SHEETS.boy;
-  const im = new Image(); im.onload = () => { heroImg = im; }; im.src = src;
+async function loadHero() {
+  try { heroParts = await createHero(profile?.hero || {}); } catch { heroParts = null; }
 }
 let profile = null;
 let settings = null; // 冒険の書の共通設定（ふりがな・読み上げ）
@@ -1233,7 +1326,7 @@ function heroGender() { return profile?.hero?.gender === 'girl' ? 'girl' : 'boy'
 
 // ------------------------------------------------------------------ タイトル画面
 // ブラウザを開いて最初の1回だけ出す（島から戻ったときや、同じタブで開き直したときは出さない）
-const LOGO_SRC = 'assets/home/logo.webp?v=0.5.0';
+const LOGO_SRC = 'assets/home/logo.webp?v=0.7.0';
 function titleShownThisSession() { try { return sessionStorage.getItem('hatenaria-title') === '1'; } catch { return false; } }
 function markTitleShown() { try { sessionStorage.setItem('hatenaria-title', '1'); } catch { /* 使えなくても動く */ } }
 function showTitle(curBook) {
@@ -1311,6 +1404,14 @@ async function start() {
   requestAnimationFrame(loop);
   await welcomeBack();
   if (!profile?.grade && !modalOpen) openGrade(true); // 学年がない古い冒険の書
+  // 参加用リンクから来たとき
+  const link = classroom.readJoinLink();
+  if (link) {
+    if (modalOpen) { const wait = setInterval(() => { if (!modalOpen) { clearInterval(wait); openJoin(link); } }, 300); } else openJoin(link);
+  }
+  // 先生の設定とお知らせを読み直し、送れていない要約を送る（待たずに うしろで）
+  classroom.refresh(book.id).then((c) => { if (c) cls = c; });
+  classroom.flush(book.id);
   // テスト用
   window.__home = { player, get home() { return home; }, get T() { return T; }, camera, version: HOME_VERSION, get editMode() { return editMode; }, expandCandidates };
 }

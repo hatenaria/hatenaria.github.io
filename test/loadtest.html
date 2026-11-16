@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ハテナリア 先生用 GAS の負荷テスト</title>
+<style>
+  body{font-family:"Hiragino Maru Gothic ProN","BIZ UDPGothic","Meiryo",sans-serif;max-width:760px;margin:24px auto;padding:0 16px;line-height:1.7;color:#3a3226}
+  input{font-size:16px;padding:6px 8px;width:100%;box-sizing:border-box}
+  button{font-size:18px;padding:10px 20px;border-radius:12px;border:none;background:#ffd66b;cursor:pointer}
+  #log{white-space:pre-wrap;background:#f6f1e6;border-radius:12px;padding:12px;min-height:120px;font-size:14px}
+  .warn{background:#fde2dc;border-radius:12px;padding:10px 14px}
+</style>
+</head>
+<body>
+<h1>先生用 GAS の負荷テスト</h1>
+<p class="warn">かならず<strong>テスト用のスプレッドシート</strong>で行ってください。架空の児童（出席番号31〜60）が登録され、「きろく」に架空の記録が入ります。終わったら、テスト用のスプレッドシートごと削除してください。</p>
+<p>参加用リンク（先生のスプレッドシートの［ハテナリア］→［参加用リンクを みる］）：<br><input id="link" placeholder="https://hatenaria.github.io/?join=...&c=..."></p>
+<p>同時に使う台数：<input id="n" type="number" value="30" min="1" max="30" style="width:80px"></p>
+<button id="go">はじめる</button>
+<div id="log"></div>
+<script type="module">
+import { endpointOf } from '../common/classroom.js';
+const log = (t) => { document.getElementById('log').textContent += t + '\n'; };
+const post = async (url, body) => { const r = await fetch(url, { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'text/plain;charset=utf-8' } }); return r.json(); };
+document.getElementById('go').onclick = async () => {
+  document.getElementById('log').textContent = '';
+  const u = new URL(document.getElementById('link').value.trim());
+  const url = endpointOf(u.searchParams.get('join')), code = u.searchParams.get('c');
+  if (!url || !code) { log('参加用リンクの形が ちがいます'); return; }
+  const n = Math.min(30, Math.max(1, Number(document.getElementById('n').value) || 30));
+  log(`① ${n}台を登録します…`);
+  const t0 = performance.now();
+  const kids = await Promise.all([...Array(n)].map(async (_, i) => {
+    try { const r = await post(url, { action: 'join', code, number: 31 + i, handle: `テスト${31 + i}` }); return r.ok ? { number: 31 + i, token: r.token } : null; }
+    catch { return null; }
+  }));
+  const ok = kids.filter(Boolean);
+  log(`   登録できた：${ok.length}/${n}（${((performance.now() - t0) / 1000).toFixed(1)}秒）`);
+  log(`② ${ok.length}台が いっせいに 要約を送ります（実際と同じく、0.5〜4.5秒ずらします）…`);
+  const t1 = performance.now();
+  const results = await Promise.all(ok.map(async (k) => {
+    await new Promise((r) => setTimeout(r, 500 + Math.random() * 4000));
+    const s = performance.now();
+    try {
+      const r = await post(url, { action: 'report', code, number: k.number, token: k.token, handle: `テスト${k.number}`,
+        entries: [{ at: new Date().toISOString(), appId: 'loadtest', subject: 'math', minutes: 5, skills: [{ id: 'math.g3.test', self: 4, hint: 1, review: 0 }] }] });
+      return { ok: !!r.ok, code: r.code, ms: performance.now() - s };
+    } catch (e) { return { ok: false, code: 'network', ms: performance.now() - s }; }
+  }));
+  const good = results.filter((r) => r.ok), busy = results.filter((r) => r.code === 'busy');
+  const ms = results.map((r) => r.ms).sort((a, b) => a - b);
+  log(`   届いた：${good.length}/${ok.length}　こんでいて失敗：${busy.length}　そのほか失敗：${ok.length - good.length - busy.length}`);
+  log(`   1台あたりの時間：ふつう ${(ms[Math.floor(ms.length / 2)] / 1000).toFixed(1)}秒、いちばん長い ${(ms[ms.length - 1] / 1000).toFixed(1)}秒（全体 ${((performance.now() - t1) / 1000).toFixed(1)}秒）`);
+  log(good.length === ok.length ? '\n✅ すべて届きました。授業で使っても大丈夫そうです。' : '\n⚠ 届かなかった要約がありました。実際の端末では、届かなかった分は あとで自動で送り直します。結果をホームのチャットに伝えてください。');
+};
+</script>
+</body>
+</html>

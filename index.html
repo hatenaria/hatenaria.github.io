@@ -6,15 +6,15 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ハテナリア">
 <title>ハテナリア</title>
-<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png?v=0.5.0">
-<link rel="apple-touch-icon" href="assets/icons/icon-180.png?v=0.5.0">
-<link rel="manifest" href="manifest.json?v=0.5.0">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png?v=0.7.0">
+<link rel="apple-touch-icon" href="assets/icons/icon-180.png?v=0.7.0">
+<link rel="manifest" href="manifest.json?v=0.7.0">
 <style>
   :root{--ink:#3a3226;--paper:#fffaf0;--gold:#ffd66b;--gold-d:#d9a93a;--green:#9be3a8;--green-d:#5fb06d}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%;overflow:hidden;background:#5ec3e8;font-family:"Hiragino Maru Gothic ProN","BIZ UDPGothic","Meiryo",sans-serif;color:var(--ink);
     -webkit-user-select:none;user-select:none;touch-action:none}
-  canvas{display:block;position:fixed;inset:0}
+  #world{display:block;position:fixed;inset:0}
   .hud{position:fixed;top:12px;left:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;max-width:62vw;pointer-events:none}
   .chip{background:rgba(255,250,240,.94);border-radius:16px;padding:10px 16px;font-size:19px;font-weight:bold;box-shadow:0 3px 0 rgba(0,0,0,.12)}
   #coins{display:flex;gap:12px;align-items:center}
@@ -134,6 +134,15 @@
   .menu2{display:flex;flex-direction:column;gap:12px;margin:8px 0 16px}
   .btn.big{min-height:76px;font-size:24px}
   .chips.big{justify-content:center;margin:6px 0 10px}.chips.big .chip{font-size:22px;padding:4px 14px}
+  /* しゅじんこう */
+  .hero-ed{max-height:94vh;overflow:auto}.hero-pv{display:block;margin:0 auto 6px;width:min(330px,60vw);height:auto;background:linear-gradient(#e9f6ff,#fff8ea);border-radius:18px}
+  .hopts{display:flex;flex-wrap:wrap;gap:8px}.hopts .btn{min-height:56px;font-size:18px;padding:0 14px}
+  /* クラスに はいる */
+  .numdisp{font-size:40px;font-weight:bold;text-align:center;background:#fff;border-radius:16px;padding:6px;margin:4px auto 10px;width:160px;letter-spacing:.1em}
+  .numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:360px;margin:0 auto}
+  .numpad .btn{min-height:60px;font-size:26px;background:#fff;box-shadow:0 4px 0 #d8cfbd}
+  .numpad [data-num=del]{font-size:18px}
+  .err{color:#b23a2b;min-height:1.4em;text-align:center}
   /* タイトル画面 */
   .tscreen{position:fixed;inset:0;z-index:8000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
     background:linear-gradient(#9ed8f5,#cdeefc 60%,#e9f8ff);padding:16px;box-sizing:border-box}
@@ -169,6 +178,6 @@
 </div>
 <div id="hint"></div>
 <div id="layer"></div>
-<script type="module" src="home/main.js?v=0.5.0"></script>
+<script type="module" src="home/main.js?v=0.7.0"></script>
 </body>
 </html>
