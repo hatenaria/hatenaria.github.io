@@ -1,12 +1,12 @@
 // ホームアイランド v0.2
 // 島を歩く・建物を調べる・掲示板・気球で島めぐり・島から戻ったときの「おかえり」
 
-import * as store from '../common/store.js?v=0.4.0';
-import * as books from '../common/books.js?v=0.4.0';
-import { showPicker } from '../common/book-picker.js?v=0.4.0';
-import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, HERO_SHEETS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE } from './data.js?v=0.4.0';
+import * as store from '../common/store.js?v=0.5.0';
+import * as books from '../common/books.js?v=0.5.0';
+import { showPicker } from '../common/book-picker.js?v=0.5.0';
+import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, HERO_SHEETS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE } from './data.js?v=0.5.0';
 
-export const HOME_VERSION = '0.4.0';
+export const HOME_VERSION = '0.5.0';
 const PREVIEW = !!window.GI_PREVIEW; // アーティファクトでの試作表示（島へは移動しない）
 
 // 主人公の画像（仕様書2-4の規格：1コマ 384×512、足元 x=192, y=488。縮小した画像でも同じ比率で扱う）
@@ -221,7 +221,7 @@ function update(now) {
     player.fy = player.from[1] + (player.y - player.from[1]) * k;
     if (k >= 1) { player.moving = false; player.fx = player.x; player.fy = player.y; saveSoon(); }
   }
-  if (!player.moving && !modalOpen) {
+  if (!player.moving && !modalOpen && !editMode) {
     if (heldDir) { pathQueue = []; pendingInteract = null; tryStep(heldDir); }
     else if (pathQueue.length) {
       const d = pathQueue.shift();
@@ -246,11 +246,13 @@ function resize() {
 
 function camera() {
   const w = window.innerWidth, h = window.innerHeight;
-  // 島（陸）のまわり1マスまでを、画面に映す範囲にする
-  const left = (landBox.x0 - 1) * T, top = (landBox.y0 - 1) * T;
-  const mw = (landBox.x1 - landBox.x0 + 3) * T, mh = (landBox.y1 - landBox.y0 + 3) * T;
-  let cx = (player.fx + 0.5) * T - w / 2;
-  let cy = (player.fy + 0.5) * T - h / 2;
+  // 島（陸）のまわり1マスまで（しまづくりの とちを ひろげる ときは4マスまで）を、画面に映す範囲にする
+  const M = editMode?.kind === 'expand' ? 4 : 1;
+  const left = (landBox.x0 - M) * T, top = (landBox.y0 - M) * T;
+  const mw = (landBox.x1 - landBox.x0 + 1 + M * 2) * T, mh = (landBox.y1 - landBox.y0 + 1 + M * 2) * T;
+  const f = editFocus() || [player.fx + .5, player.fy + .5];
+  let cx = f[0] * T - w / 2;
+  let cy = f[1] * T - h / 2;
   cx = mw <= w ? left + (mw - w) / 2 : Math.max(left, Math.min(left + mw - w, cx));
   cy = mh <= h ? top + (mh - h) / 2 : Math.max(top, Math.min(top + mh - h, cy));
   return [Math.round(cx), Math.round(cy)];
@@ -446,6 +448,7 @@ function drawHero(px, py, now) {
 function draw(now) {
   const [cx, cy] = camera();
   drawGround(now, cx, cy);
+  drawEditUnder(now, cx, cy);
   // 奥から順に描く（足元の y が小さい順）
   const items = home.objects.map((o) => ({ o, z: o.y + OBJECT_TYPES[o.type].h - (OBJECT_TYPES[o.type].solid ? 0 : 5) }));
   items.push({ hero: true, z: player.fy + 1 - 0.01 });
@@ -460,6 +463,7 @@ function draw(now) {
     else if (o.type === 'lot') drawLot(o, t, px, py);
     else drawBuilding(o, t, px, py, now);
   }
+  drawEditOver(now, cx, cy);
   drawBuildFx(now, cx, cy);
   // 名札（主人公の体に重なるものはうすく）
   const hx = (player.fx + .5) * T - cx, hy = (player.fy + .92) * T - cy;
@@ -469,7 +473,7 @@ function draw(now) {
     drawLabelNow(text, x, y, color, over ? .25 : 1);
   }
   // 調べられる建物の名前
-  const f = !player.moving && !modalOpen && facingObject();
+  const f = !editMode && !player.moving && !modalOpen && facingObject();
   const hint = document.getElementById('hint');
   if (f) { hint.textContent = `${OBJECT_TYPES[f.type].name}を しらべる`; hint.classList.add('show'); }
   else hint.classList.remove('show');
@@ -587,6 +591,13 @@ function interact(o) {
 // ------------------------------------------------------------------ 建物を建てる（空き地）・こうかんじょ
 const costParts = (cost) => Object.entries(cost).map(([k, n]) => ({ k, n, have: k === 'coin' ? (wallet?.coin || 0) : (wallet?.materials?.[k] || 0) }));
 const costLabel = (k) => (k === 'coin' ? '🪙' : MATERIALS[k]?.icon || k);
+// 素材の小さな絵（絵がなければ絵文字）
+function matIcon(k) {
+  const m = MATERIALS[k];
+  if (!m?.img) return document.createTextNode(costLabel(k));
+  return h('img', { class: 'micon', src: m.img, alt: m.name });
+}
+const matIconHtml = (k) => (MATERIALS[k]?.img ? `<img class="micon" src="${MATERIALS[k].img}" alt="${MATERIALS[k].name}">` : (MATERIALS[k]?.icon || k));
 const affordable = (cost) => costParts(cost).every((c) => c.have >= c.n);
 
 function openBuild(lot) {
@@ -600,7 +611,7 @@ function openBuild(lot) {
       const ok = !t.artSoon && affordable(b.cost);
       const chips = h('div', { class: 'chips' }, ...costParts(b.cost).map((c) =>
         h('span', { class: 'chip' + (c.have >= c.n ? '' : ' short'), title: c.k === 'coin' ? 'コイン' : MATERIALS[c.k]?.name },
-          `${costLabel(c.k)} ${c.n}`)));
+          c.k === 'coin' ? '🪙' : matIcon(c.k), ` ${c.n}`)));
       const pic = t.sprite ? h('img', { src: t.sprite.src, alt: '' }) : h('div', { class: 'nopic' }, '？');
       list.append(h('div', { class: 'brow' + (ok ? '' : ' no') },
         pic,
@@ -686,7 +697,7 @@ function openExchange(give = null, get = null) {
       h('div', { class: 'xmats' }, ...mats.map((k) => {
         const dis = isGive ? have(k) < EXCHANGE_RATE : k === give;
         return h('button', { class: 'btn xmat' + (sel === k ? ' on' : ''), 'data-mat': k, title: MATERIALS[k].name, ...(dis ? { disabled: '' } : {}),
-          onclick: () => pick(k) }, `${MATERIALS[k].icon} ${have(k)}`);
+          onclick: () => pick(k) }, matIcon(k), ` ${have(k)}`);
       })));
     m.append(row('わたす（3こ）', (k) => openExchange(k, get === k ? null : get), give, true),
       row('もらう（1こ）', (k) => openExchange(give, k), get, false));
@@ -711,6 +722,298 @@ async function doTrade(give, get) {
   } catch { return message('たりないよ', 'そざいが たりないみたい。'); }
   renderHud();
   openExchange(give, get);
+}
+
+
+// ------------------------------------------------------------------ しまづくり（とちを ひろげる・もようがえ）
+let editMode = null;
+const CHUNK = 3;                       // 3×3マスずつ ひろげる
+const MAX_EXPANSIONS = 12;
+const EXPAND_PAIRS = [['math', 'kokugo'], ['rika', 'shakai'], ['eigo', 'math'], ['kokugo', 'rika'], ['shakai', 'eigo']];
+const WORLD = { x0: -9, y0: -9, x1: 26, y1: 22 };  // ここより外には ひろげない
+const FIXED = new Set(['school', 'board', 'house', 'balloon', 'exchange', 'kisekae']); // 大事な施設は うごかせない
+const movable = (o) => !FIXED.has(o.type);
+
+function expandCost() {
+  const n = home.expansions || 0;
+  const [a, b] = EXPAND_PAIRS[n % EXPAND_PAIRS.length];
+  return { coin: 40 + 20 * n, [a]: 3, [b]: 3 };
+}
+function expandCandidates() {
+  if ((home.expansions || 0) >= MAX_EXPANSIONS) return [];
+  const out = [];
+  const cx0 = Math.floor((landBox.x0 - CHUNK) / CHUNK), cx1 = Math.floor((landBox.x1 + CHUNK) / CHUNK);
+  const cy0 = Math.floor((landBox.y0 - CHUNK) / CHUNK), cy1 = Math.floor((landBox.y1 + CHUNK) / CHUNK);
+  for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
+    const x = cx * CHUNK, y = cy * CHUNK;
+    if (x < WORLD.x0 || y < WORLD.y0 || x + CHUNK - 1 > WORLD.x1 || y + CHUNK - 1 > WORLD.y1) continue;
+    let water = 0, touch = false;
+    for (let j = 0; j < CHUNK; j++) for (let i = 0; i < CHUNK; i++) {
+      const tx = x + i, ty = y + j;
+      if (isWater(tx, ty)) {
+        water++;
+        if (!isWater(tx - 1, ty) || !isWater(tx + 1, ty) || !isWater(tx, ty - 1) || !isWater(tx, ty + 1)) touch = true;
+      }
+    }
+    if (water >= 6 && touch) out.push({ x, y }); // ほとんどが うみの ところだけ
+  }
+  return out;
+}
+
+function openIslandMenu() {
+  if (modalOpen) return;
+  openModal((m) => {
+    m.append(h('h2', {}, '🛠 しまづくり'),
+      h('p', { class: 'body small' }, 'しまを ひろげたり、たてものや かざりを うごかしたり できるよ。'),
+      h('div', { class: 'menu2' },
+        h('button', { class: 'btn big', 'data-act': 'expand', onclick: () => { closeModal(); startEdit('expand'); } }, '🏝 とちを ひろげる'),
+        h('button', { class: 'btn big', 'data-act': 'move', 'data-default': '', onclick: () => { closeModal(); startEdit('move'); } }, '🪴 もようがえ')),
+      h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', onclick: closeModal }, 'とじる')));
+  });
+}
+
+function startEdit(kind) {
+  pathQueue = []; pendingInteract = null; heldDir = null;
+  if (kind === 'expand') {
+    const c = expandCandidates();
+    if (!c.length) return message('とちを ひろげる', (home.expansions || 0) >= MAX_EXPANSIONS ? 'これいじょう ひろげられないよ。' : 'ひろげられる ばしょが ないよ。');
+    // 主人公に いちばん ちかい ばしょから
+    c.sort((a, b) => Math.hypot(a.x + 1 - player.x, a.y + 1 - player.y) - Math.hypot(b.x + 1 - player.x, b.y + 1 - player.y));
+    editMode = { kind, sel: c[0] };
+  } else {
+    editMode = { kind, cur: [player.x, player.y], picked: null };
+  }
+  document.body.classList.add('editing');
+  updateEditBar();
+}
+function endEdit() {
+  if (editMode?.picked) cancelPick();
+  editMode = null;
+  document.body.classList.remove('editing');
+  document.getElementById('check').textContent = 'しらべる';
+  // 主人公が ものの上に いたら、ちかくの あいている マスへ
+  if (!walkable(player.x, player.y)) {
+    const p = nearestWalkable(player.x, player.y);
+    if (p) Object.assign(player, { x: p[0], y: p[1], fx: p[0], fy: p[1] });
+  }
+  saveHome();
+}
+function nearestWalkable(x, y) {
+  for (let r = 1; r < 12; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+    if (walkable(x + dx, y + dy)) return [x + dx, y + dy];
+  }
+  return null;
+}
+function editFocus() {
+  if (!editMode) return null;
+  if (editMode.kind === 'expand') return [editMode.sel.x + CHUNK / 2, editMode.sel.y + CHUNK / 2];
+  return [editMode.cur[0] + .5, editMode.cur[1] + .5];
+}
+
+function updateEditBar() {
+  const text = document.getElementById('edittext'), check = document.getElementById('check');
+  if (!editMode) return;
+  if (editMode.kind === 'expand') {
+    const parts = Object.entries(expandCost()).map(([k, n]) => `${k === 'coin' ? '🪙' : matIconHtml(k)} ${n}`).join('　');
+    text.innerHTML = `🏝 ひろげる ばしょを えらんでね　<span class="cost">${parts}</span>`;
+    check.textContent = 'ひろげる';
+  } else {
+    const p = editMode.picked;
+    text.textContent = p ? `🪴 ${OBJECT_TYPES[p.o.type].name}を おく ばしょを えらんでね` : '🪴 うごかしたい ものを えらんでね';
+    check.textContent = p ? 'ここに おく' : 'もつ';
+  }
+}
+
+function editKey(e) {
+  const k = e.key;
+  const d = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0], w: [0, -1], s: [0, 1], a: [-1, 0], d: [1, 0] }[k];
+  if (k === 'Escape') { e.preventDefault(); if (editMode.picked) { cancelPick(); updateEditBar(); } else endEdit(); return; }
+  if (editMode.kind === 'expand') {
+    if (d) {
+      e.preventDefault();
+      // えらんでいる ばしょから、おした むきに いちばん ちかい こうほへ
+      const c = expandCandidates(), s0 = editMode.sel;
+      const ahead = c.filter((q) => (q.x - s0.x) * d[0] + (q.y - s0.y) * d[1] > 0);
+      if (ahead.length) {
+        ahead.sort((a, b) => score(a) - score(b));
+        editMode.sel = ahead[0];
+      }
+      function score(q) { const along = (q.x - s0.x) * d[0] + (q.y - s0.y) * d[1]; const side = Math.abs((q.x - s0.x) * d[1]) + Math.abs((q.y - s0.y) * d[0]); return along + side * 2; }
+      return;
+    }
+    if ((k === 'Enter' || k === ' ') && !e.repeat) { e.preventDefault(); confirmExpand(editMode.sel); }
+    return;
+  }
+  // もようがえ
+  if (d) {
+    e.preventDefault();
+    editMode.cur = [editMode.cur[0] + d[0], editMode.cur[1] + d[1]];
+    if (editMode.picked) moveGhost();
+    return;
+  }
+  if ((k === 'Enter' || k === ' ') && !e.repeat) { e.preventDefault(); editSelect(); }
+}
+
+function editTap(tx, ty) {
+  if (editMode.kind === 'expand') {
+    const c = expandCandidates().find((q) => tx >= q.x && tx < q.x + CHUNK && ty >= q.y && ty < q.y + CHUNK);
+    if (c) { editMode.sel = c; confirmExpand(c); }
+    return;
+  }
+  editMode.cur = [tx, ty];
+  if (editMode.picked) moveGhost();
+  editSelect();
+}
+
+// ---- とちを ひろげる
+function confirmExpand(c) {
+  const cost = expandCost();
+  const ok = affordable(cost);
+  openModal((m) => {
+    m.className = 'modal build';
+    m.append(h('h2', {}, 'ここを ひろげる？'),
+      h('div', { class: 'chips big' }, ...costParts(cost).map((x) =>
+        h('span', { class: 'chip' + (x.have >= x.n ? '' : ' short') }, x.k === 'coin' ? '🪙' : matIcon(x.k), ` ${x.n}`))),
+      h('p', { class: 'body small' }, ok ? 'ひろげた とちには、あきちが ひとつ できるよ。' : 'コインか そざいが たりないよ。しまで あつめたり、こうかんじょで こうかん したり してね。'),
+      h('div', { class: 'row end' },
+        h('button', { class: 'btn', 'data-act': 'back', ...(ok ? {} : { 'data-default': '' }), onclick: closeModal }, 'やめる'),
+        h('button', { class: 'btn go', 'data-act': 'yes', ...(ok ? { 'data-default': '' } : { disabled: '' }), onclick: () => doExpand(c) }, 'ひろげる！')));
+  });
+}
+async function doExpand(c) {
+  const cost = expandCost();
+  try {
+    wallet = await store.update(`${book.id}/wallet`, (w) => {
+      const x = structuredClone(w || { coin: 0, materials: {} }); x.materials = x.materials || {};
+      for (const [k, n] of Object.entries(cost)) {
+        const have = k === 'coin' ? (x.coin || 0) : (x.materials[k] || 0);
+        if (have < n) throw new Error('たりない');
+        if (k === 'coin') x.coin = have - n; else x.materials[k] = have - n;
+      }
+      return x;
+    }, { fallback: { coin: 0, materials: {} } });
+  } catch { return message('たりないよ', 'コインか そざいが たりないみたい。'); }
+  const land = new Set(home.map.land);
+  for (let j = 0; j < CHUNK; j++) for (let i = 0; i < CHUNK; i++) land.add(`${c.x + i},${c.y + j}`);
+  home.map.land = [...land];
+  home.expansions = (home.expansions || 0) + 1;
+  refreshLand();
+  // あたらしい とちに あきちを ひとつ（2×2 が あいていれば）
+  const spots = [];
+  for (let y = c.y - 1; y <= c.y + CHUNK - 1; y++) for (let x = c.x - 1; x <= c.x + CHUNK - 1; x++) spots.push([x, y]);
+  spots.sort((a, b) => Math.hypot(a[0] + 1 - (c.x + 1.5), a[1] + 1 - (c.y + 1.5)) - Math.hypot(b[0] + 1 - (c.x + 1.5), b[1] + 1 - (c.y + 1.5)));
+  for (const [x, y] of spots) {
+    let free = true;
+    for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) if (isWater(x + i, y + j) || objectAt(x + i, y + j) || (x + i === player.x && y + j === player.y)) free = false;
+    if (free) { home.objects.push({ id: `lot-x${home.expansions}`, type: 'lot', x, y }); break; }
+  }
+  await saveHome();
+  renderHud();
+  closeModal();
+  buildFx = { x: c.x + 1.5, y: c.y + 2, t0: performance.now() };
+  const next = expandCandidates();
+  if (next.length) { next.sort((a, b) => Math.hypot(a.x - c.x, a.y - c.y) - Math.hypot(b.x - c.x, b.y - c.y)); editMode.sel = next[0]; updateEditBar(); }
+  else endEdit();
+}
+
+// ---- もようがえ
+function editSelect() {
+  const [x, y] = editMode.cur;
+  if (!editMode.picked) {
+    const o = objectAt(x, y);
+    if (!o) return;
+    if (!movable(o)) { flashEdit(`${OBJECT_TYPES[o.type].name}は うごかせないよ`); return; }
+    editMode.picked = { o, ox: o.x, oy: o.y, dx: x - o.x, dy: y - o.y };
+    updateEditBar();
+    return;
+  }
+  const bad = placeProblem(editMode.picked.o);
+  if (bad) { flashEdit(bad); return; }
+  editMode.picked = null;
+  saveHome();
+  updateEditBar();
+}
+function moveGhost() {
+  const p = editMode.picked;
+  p.o.x = editMode.cur[0] - p.dx; p.o.y = editMode.cur[1] - p.dy;
+}
+function cancelPick() {
+  const p = editMode.picked;
+  p.o.x = p.ox; p.o.y = p.oy;
+  editMode.picked = null;
+}
+// おけない りゆう（おけるなら null）
+function placeProblem(o) {
+  const t = OBJECT_TYPES[o.type];
+  for (let y = o.y; y < o.y + t.h; y++) for (let x = o.x; x < o.x + t.w; x++) {
+    if (isWater(x, y)) return 'うみの うえには おけないよ';
+    const other = home.objects.find((q) => q !== o && x >= q.x && x < q.x + OBJECT_TYPES[q.type].w && y >= q.y && y < q.y + OBJECT_TYPES[q.type].h);
+    if (other) return `${OBJECT_TYPES[other.type].name}と かさなるよ`;
+    if (t.solid && x === player.x && y === player.y) return 'じぶんの いる ところには おけないよ';
+  }
+  // どの たてものにも いけるか（とおれなく ならないか）
+  const seen = new Set([`${player.x},${player.y}`]), q = [[player.x, player.y]];
+  while (q.length) {
+    const [x, y] = q.shift();
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const k = `${x + dx},${y + dy}`;
+      if (!seen.has(k) && walkable(x + dx, y + dy)) { seen.add(k); q.push([x + dx, y + dy]); }
+    }
+  }
+  for (const b of home.objects) {
+    const bt = OBJECT_TYPES[b.type];
+    if (bt.deco) continue;
+    let ok = false;
+    for (let y = b.y - 1; y <= b.y + bt.h && !ok; y++) for (let x = b.x - 1; x <= b.x + bt.w && !ok; x++) {
+      const inside = x >= b.x && x < b.x + bt.w && y >= b.y && y < b.y + bt.h;
+      if ((!inside || !bt.solid) && seen.has(`${x},${y}`)) ok = true;
+    }
+    if (!ok) return `そこに おくと、${bt.name}に いけなく なるよ`;
+  }
+  return null;
+}
+let editFlash = null;
+function flashEdit(text) { editFlash = { text, t0: performance.now() }; }
+
+function drawEditUnder(now, cx, cy) {
+  if (editMode?.kind !== 'expand') return;
+  const c = expandCandidates();
+  for (const q of c) {
+    const sel = editMode.sel && q.x === editMode.sel.x && q.y === editMode.sel.y;
+    const px = q.x * T - cx, py = q.y * T - cy, W = CHUNK * T;
+    ctx.fillStyle = sel ? 'rgba(255,226,138,.55)' : 'rgba(255,255,255,.28)';
+    roundRect(px + 4, py + 4, W - 8, W - 8, T * .3); ctx.fill();
+    ctx.setLineDash(sel ? [] : [10, 8]); ctx.lineWidth = sel ? 6 : 3;
+    ctx.strokeStyle = sel ? '#f2a63a' : 'rgba(255,255,255,.9)'; ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = sel ? '#b86f12' : 'rgba(255,255,255,.95)';
+    ctx.font = `bold ${Math.round(T * (sel ? .9 : .6))}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('＋', px + W / 2, py + W / 2);
+  }
+}
+function drawEditOver(now, cx, cy) {
+  if (editMode?.kind === 'move') {
+    const p = editMode.picked;
+    if (p) {
+      const t = OBJECT_TYPES[p.o.type], bad = placeProblem(p.o);
+      ctx.fillStyle = bad ? 'rgba(242,107,91,.35)' : 'rgba(110,200,120,.35)';
+      roundRect(p.o.x * T - cx + 3, p.o.y * T - cy + 3, t.w * T - 6, t.h * T - 6, T * .2); ctx.fill();
+    }
+    const [x, y] = editMode.cur;
+    ctx.lineWidth = 5; ctx.strokeStyle = '#3b82f6';
+    roundRect(x * T - cx + 3, y * T - cy + 3, T - 6, T - 6, T * .18); ctx.stroke();
+  }
+  if (editFlash) {
+    const k = (now - editFlash.t0) / 1800;
+    if (k > 1) { editFlash = null; return; }
+    ctx.globalAlpha = Math.min(1, (1 - k) * 3);
+    const w = window.innerWidth;
+    ctx.font = `bold ${Math.round(T * .26)}px "Hiragino Maru Gothic ProN","BIZ UDPGothic",sans-serif`;
+    const tw = ctx.measureText(editFlash.text).width + 40;
+    ctx.fillStyle = 'rgba(255,250,240,.96)'; roundRect(w / 2 - tw / 2, 130, tw, T * .6, 18); ctx.fill();
+    ctx.fillStyle = '#b23a2b'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(editFlash.text, w / 2, 130 + T * .3);
+    ctx.globalAlpha = 1;
+  }
 }
 
 // ------------------------------------------------------------------ 島めぐり（気球）
@@ -857,7 +1160,7 @@ async function backup() {
 function renderHud() {
   document.getElementById('who').textContent = `📖 ${book.name}`;
   const mats = Object.entries(wallet?.materials || {}).filter(([, v]) => v > 0)
-    .map(([k, v]) => `<span class="mat" title="${MATERIALS[k]?.name || k}">${MATERIALS[k]?.icon || k} ${v}</span>`).join('');
+    .map(([k, v]) => `<span class="mat" title="${MATERIALS[k]?.name || k}">${matIconHtml(k)} ${v}</span>`).join('');
   document.getElementById('coins').innerHTML = `<span class="coin">🪙 ${wallet?.coin || 0}</span>${mats}`;
 }
 
@@ -868,6 +1171,7 @@ function bindControls() {
   window.addEventListener('keydown', (e) => {
     if (document.querySelector('.gi-picker')) return; // 冒険の書の画面が自分で受け取る
     if (modalOpen) { heldDir = null; down.clear(); modalKey(e); return; }
+    if (editMode) { heldDir = null; editKey(e); return; }
     if (keyDir[e.key]) {
       e.preventDefault(); down.add(e.key); heldDir = keyDir[e.key];
       if (!player.moving && !e.repeat) { pathQueue = []; pendingInteract = null; tryStep(heldDir); } // 短く押しても1マス進む
@@ -882,14 +1186,18 @@ function bindControls() {
   // 十字ボタン（長押しで歩き続ける）
   document.querySelectorAll('[data-dir]').forEach((b) => {
     const start = (e) => {
-      e.preventDefault(); heldDir = b.dataset.dir; b.setPointerCapture?.(e.pointerId);
+      e.preventDefault();
+      if (editMode) { editKey({ key: { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' }[b.dataset.dir], preventDefault() {} }); return; }
+      heldDir = b.dataset.dir; b.setPointerCapture?.(e.pointerId);
       if (!player.moving) { pathQueue = []; pendingInteract = null; tryStep(heldDir); } // 短くタップしても1マス進む
     };
     const stop = () => { if (heldDir === b.dataset.dir) heldDir = null; };
     b.addEventListener('pointerdown', start);
     b.addEventListener('pointerup', stop); b.addEventListener('pointercancel', stop); b.addEventListener('lostpointercapture', stop);
   });
-  document.getElementById('check').addEventListener('click', doCheck);
+  document.getElementById('check').addEventListener('click', () => (editMode ? editKey({ key: 'Enter', preventDefault() {} }) : doCheck()));
+  document.getElementById('btn-build').addEventListener('click', openIslandMenu);
+  document.getElementById('editdone').addEventListener('click', () => endEdit());
   document.getElementById('btn-balloon').addEventListener('click', openIslands);
   document.getElementById('btn-settings').addEventListener('click', openSettings);
   // 地面や建物をタップ
@@ -897,6 +1205,7 @@ function bindControls() {
     if (modalOpen) return;
     const [cx, cy] = camera();
     const tx = Math.floor((e.clientX + cx) / T), ty = Math.floor((e.clientY + cy) / T);
+    if (editMode) { editTap(tx, ty); return; }
     const o = objectAt(tx, ty);
     if (o && OBJECT_TYPES[o.type].deco) return; // 飾りをタップしても動かない
     if (o) {
@@ -924,7 +1233,7 @@ function heroGender() { return profile?.hero?.gender === 'girl' ? 'girl' : 'boy'
 
 // ------------------------------------------------------------------ タイトル画面
 // ブラウザを開いて最初の1回だけ出す（島から戻ったときや、同じタブで開き直したときは出さない）
-const LOGO_SRC = 'assets/home/logo.webp?v=0.4.0';
+const LOGO_SRC = 'assets/home/logo.webp?v=0.5.0';
 function titleShownThisSession() { try { return sessionStorage.getItem('hatenaria-title') === '1'; } catch { return false; } }
 function markTitleShown() { try { sessionStorage.setItem('hatenaria-title', '1'); } catch { /* 使えなくても動く */ } }
 function showTitle(curBook) {
@@ -1003,6 +1312,6 @@ async function start() {
   await welcomeBack();
   if (!profile?.grade && !modalOpen) openGrade(true); // 学年がない古い冒険の書
   // テスト用
-  window.__home = { player, get home() { return home; }, get T() { return T; }, camera, version: HOME_VERSION };
+  window.__home = { player, get home() { return home; }, get T() { return T; }, camera, version: HOME_VERSION, get editMode() { return editMode; }, expandCandidates };
 }
 start();
