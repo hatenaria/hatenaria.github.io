@@ -1,14 +1,14 @@
 // ホームアイランド v0.2
 // 島を歩く・建物を調べる・掲示板・気球で島めぐり・島から戻ったときの「おかえり」
 
-import * as store from '../common/store.js?v=0.8.0';
-import * as books from '../common/books.js?v=0.8.0';
-import { createHero, HAIRS, HAIR_COLORS, resolveHero } from '../common/hero/hero.js?v=0.8.0';
-import * as classroom from '../common/classroom.js?v=0.8.0';
-import { showPicker } from '../common/book-picker.js?v=0.8.0';
-import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE } from './data.js?v=0.8.0';
+import * as store from '../common/store.js?v=0.9.0';
+import * as books from '../common/books.js?v=0.9.0';
+import { createHero, HAIRS, HAIR_COLORS, resolveHero } from '../common/hero/hero.js?v=0.9.0';
+import * as classroom from '../common/classroom.js?v=0.9.0';
+import { showPicker } from '../common/book-picker.js?v=0.9.0';
+import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE } from './data.js?v=0.9.0';
 
-export const HOME_VERSION = '0.8.0';
+export const HOME_VERSION = '0.9.0';
 const PREVIEW = !!window.GI_PREVIEW; // アーティファクトでの試作表示（島へは移動しない）
 
 // 主人公の画像（仕様書2-4の規格：1コマ 384×512、足元 x=192, y=488。縮小した画像でも同じ比率で扱う）
@@ -501,7 +501,7 @@ function closeModal() {
   layer.classList.remove('show'); layer.replaceChildren(); modalOpen = false;
   document.activeElement?.blur?.();
 }
-function buttonsIn(m) { return [...m.querySelectorAll('button:not([disabled])')]; }
+function buttonsIn(m) { return [...m.querySelectorAll('button:not([disabled]), a.btn')]; }
 function focusButton(b) {
   if (!b) return;
   layer.querySelectorAll('.kfocus').forEach((x) => x.classList.remove('kfocus'));
@@ -522,7 +522,7 @@ function modalKey(e) {
   if (e.key === 'Enter' || e.key === ' ') {
     if (e.repeat || performance.now() - modalOpenedAt < 250) return; // 開いた直後の押しっぱなしを無視
     const a = document.activeElement;
-    (m.contains(a) && a.tagName === 'BUTTON' ? a : (m.querySelector('[data-default]:not([disabled])') || buttonsIn(m).pop()))?.click();
+    (m.contains(a) && (a.tagName === 'BUTTON' || a.matches('a.btn')) ? a : (m.querySelector('[data-default]:not([disabled])') || buttonsIn(m).pop()))?.click();
     return;
   }
   // 中身が長いとき（掲示板）は ↑↓ で読み進める
@@ -567,11 +567,50 @@ function openBoard() {
       const unread = !home.readNotices.includes(n.id);
       list.append(h('article', { class: 'notice' + (unread ? ' unread' : '') },
         h('div', { class: 'ndate' }, n.date.replace(/^\d+-0?(\d+)-0?(\d+)$/, '$1がつ $2にち'), unread ? h('span', { class: 'new' }, 'あたらしい') : null),
-        h('h3', {}, n.title), h('p', {}, n.body)));
+        h('h3', {}, n.title), h('p', {}, ...linkify(n.body))));
     }
+    if (cls?.timetable && !cls.invalid) m.append(h('div', { class: 'row' }, h('button', { class: 'btn go', 'data-act': 'timetable', onclick: openTimetable }, '📅 じかんわりを みる')));
     m.append(list, h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', onclick: closeModal }, 'とじる')));
     home.readNotices = [...new Set([...home.readNotices, ...notices().map((n) => n.id)])].slice(-200);
     saveHome();
+  });
+}
+
+/** おしらせの 文の中の https:// を、押せる リンクにする（先生が 共有リンクを 書いたとき） */
+function linkify(text) {
+  const out = [];
+  String(text || '').split(/(https:\/\/[^\s　]+)/).forEach((part, i) => {
+    if (i % 2) out.push(h('a', { href: part, target: '_blank', rel: 'noopener noreferrer' }, 'ひらく 🔗'));
+    else if (part) out.push(part);
+  });
+  return out;
+}
+
+/** じかんわり：画像は そのまま見せる。PDF は「ひらく」で べつの画面に ひらく */
+function openTimetable() {
+  openModal(async (m) => {
+    m.className = 'modal build tt';
+    const box = h('div', { class: 'ttbox', 'data-scroll': '1' }, h('p', { class: 'body' }, 'よみこんで いるよ…'));
+    const close = h('button', { class: 'btn', 'data-act': 'close', onclick: closeModal }, 'とじる');
+    m.append(h('h2', {}, '📅 じかんわり'), box, h('div', { class: 'row end' }, close));
+    try {
+      const tt = await classroom.loadTimetable(book.id);
+      if (!tt) throw new Error('まだ じかんわりが ないよ。');
+      const bin = atob(tt.data), bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const url = URL.createObjectURL(new Blob([bytes], { type: tt.mime }));
+      const when = new Date(tt.updated);
+      const stamp = isNaN(when) ? '' : `${when.getMonth() + 1}がつ ${when.getDate()}にちに せんせいが いれたよ`;
+      box.replaceChildren(h('p', { class: 'body small' }, stamp));
+      if (tt.mime.startsWith('image/')) box.append(h('img', { class: 'ttimg', src: url, alt: 'じかんわり' }));
+      else {
+        const a = h('a', { class: 'btn go', href: url, target: '_blank', rel: 'noopener', 'data-act': 'open-pdf' }, '📄 じかんわりを ひらく');
+        box.append(a, h('p', { class: 'body small' }, 'べつの がめんで ひらくよ。みおわったら もどってきてね。'));
+        requestAnimationFrame(() => focusButton(a));
+      }
+    } catch (e) {
+      box.replaceChildren(h('p', { class: 'body' }, (e && e.message) || 'じかんわりを よみこめなかったよ。'));
+    }
   });
 }
 
@@ -1341,7 +1380,7 @@ function heroGender() { return profile?.hero?.gender === 'girl' ? 'girl' : 'boy'
 
 // ------------------------------------------------------------------ タイトル画面
 // ブラウザを開いて最初の1回だけ出す（島から戻ったときや、同じタブで開き直したときは出さない）
-const LOGO_SRC = 'assets/home/logo.webp?v=0.8.0';
+const LOGO_SRC = 'assets/home/logo.webp?v=0.9.0';
 function titleShownThisSession() { try { return sessionStorage.getItem('hatenaria-title') === '1'; } catch { return false; } }
 function markTitleShown() { try { sessionStorage.setItem('hatenaria-title', '1'); } catch { /* 使えなくても動く */ } }
 function showTitle(curBook) {

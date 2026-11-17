@@ -2,11 +2,11 @@
 // 各アプリは直接これを読み込まず、つなぎ口（island-link.js の中身）から読み込む。
 // つなぎ口がこのファイルを読み込めたら「連携モード」になる。
 
-import * as store from './store.js?v=0.8.0';
-import * as classroom from './classroom.js?v=0.8.0';
-import * as books from './books.js?v=0.8.0';
+import * as store from './store.js?v=0.9.0';
+import * as classroom from './classroom.js?v=0.9.0';
+import * as books from './books.js?v=0.9.0';
 
-export const COMMON_VERSION = '0.2.1';
+export const COMMON_VERSION = '0.2.2';
 export const HOME_URL = new URL('../index.html', import.meta.url).href;
 
 const SESSIONS_MAX = 200; // 1件ごとの詳細を残す数（仕様書2-7）

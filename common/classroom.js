@@ -1,7 +1,7 @@
 // 先生とのつながり（共通仕様書 4章）
 // 児童の端末 → 先生のGAS：参加の登録、学習の要約（片道）。先生のGAS → 端末：クラス設定とお知らせだけ。
 // 児童の記録は先生から返ってこない。実名は送らない（出席番号とハンドルネームだけ）。
-import * as store from './store.js?v=0.8.0';
+import * as store from './store.js?v=0.9.0';
 
 const REFRESH_MS = 2 * 60 * 1000;   // クラス設定（おしらせ・宿題など）はホームを開くたびに読む。続けて開いたときだけ2分あける
 const SEND_MAX = 50;                     // 1回に送る要約の数
@@ -54,7 +54,7 @@ export async function join(bookId, { url, code }, { number, pin, handle, grade }
   const res = await post(url, { action: 'join', code, number: Number(number), pin: String(pin || ''), handle, grade });
   if (!res || !res.ok) throw new Error(res?.message || 'とうろく できなかったよ');
   const cls = { code, url, number: Number(number), handle, token: res.token, className: res.className || '',
-    settings: res.settings || {}, notices: res.notices || [], fetchedAt: Date.now(), joinedAt: new Date().toISOString() };
+    settings: res.settings || {}, notices: res.notices || [], timetable: res.timetable || null, fetchedAt: Date.now(), joinedAt: new Date().toISOString() };
   await store.set(`${bookId}/class`, cls);
   return cls;
 }
@@ -74,7 +74,7 @@ export async function refresh(bookId, { force = false } = {}) {
     const res = await get(cls.url, { action: 'config', c: cls.code, n: cls.number, t: cls.token });
     if (res && res.ok) {
       return await store.update(`${bookId}/class`, (c) => c && ({ ...c, className: res.className ?? c.className,
-        settings: res.settings || {}, notices: res.notices || [], fetchedAt: Date.now() }));
+        settings: res.settings || {}, notices: res.notices || [], timetable: res.timetable || null, fetchedAt: Date.now() }));
     }
     if (res && res.code === 'unknown') { // 先生が名簿から消した・クラスを作り直した
       return await store.update(`${bookId}/class`, (c) => c && ({ ...c, invalid: true, fetchedAt: Date.now() }));
@@ -104,6 +104,28 @@ export async function flush(bookId, { delay = true } = {}) {
     await store.update(`${bookId}/outbox`, (b) => (b || []).filter((e) => !sent.has(e.at + '|' + e.appId)), { fallback: [] });
     return batch.length;
   } catch { return 0; } finally { flushing = false; }
+}
+
+/**
+ * じかんわり（先生の Google ドライブの フォルダの いちばん新しい PDF・画像）を読む。
+ * 一度 読んだものは 端末に とっておき、先生が 新しくするまで 読みなおさない（通信できないときも 見られる）。
+ */
+export async function loadTimetable(bookId) {
+  const cls = await store.get(`${bookId}/class`);
+  const meta = cls?.timetable;
+  const cached = await store.get(`${bookId}/timetable`);
+  if (!cls || !meta) return cached || null;
+  if (cached && cached.id === meta.id && cached.updated === meta.updated) return cached;
+  try {
+    const res = await get(cls.url, { action: 'timetable', c: cls.code, n: cls.number, t: cls.token }, 40000);
+    if (res && res.ok) {
+      const tt = { id: res.id, name: res.name, mime: res.mime, updated: res.updated, data: res.data };
+      await store.set(`${bookId}/timetable`, tt);
+      return tt;
+    }
+    if (!cached) throw new Error(res?.message || 'じかんわりを よみこめなかったよ');
+  } catch (e) { if (!cached) throw e; }
+  return cached; // 通信できない：前に読んだ じかんわり
 }
 
 /** しまづくりを いま使ってよいか（先生の設定：いつでも／がっこうの じかんは できない／できない） */
