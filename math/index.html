@@ -149,49 +149,64 @@ ruby rt{font-size:.45em}
   background:radial-gradient(#fff3b0,#f0b52e);border:6px solid #c88a10;box-shadow:0 4px 0 rgba(0,0,0,.15)}
 .badge.no .medal{background:#e9e2d6;border-color:#cfc4b2;filter:grayscale(1);opacity:.55}
 /* ---- さんすうの ちず ---- */
-.mapbox{width:min(1180px,96vw);height:92vh;background:linear-gradient(#fff8ea,#fdf0dc);border-radius:30px;box-shadow:0 10px 30px rgba(60,40,20,.35),inset 0 -6px 0 rgba(160,120,80,.12);
-  display:flex;flex-direction:column;gap:8px;padding:12px 16px;box-sizing:border-box}
-.maphead{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-.maphead .mtitle{font-size:28px}.maphead .big{margin-left:auto;font-size:22px;padding:6px 30px}
-.mapleg{display:flex;align-items:center;gap:6px;font-size:15px;font-weight:bold;color:#8a5a3c}
-.lg{display:inline-flex;width:24px;height:24px;border-radius:9px;align-items:center;justify-content:center;font-size:15px;background:#fff;box-shadow:0 2px 0 rgba(0,0,0,.1);margin-left:8px}
-.lg.mastered{background:#ffe08a;color:#b07a00}.lg.clear{color:#c08a10}.lg.todo{color:#e07a50}.lg.soon{background:#ece6dc;opacity:.7}
-.mapscroll{flex:1;overflow:auto;border-radius:22px;background:#fffdf7;box-shadow:inset 0 2px 8px rgba(120,90,60,.15)}
-.mapgrid{position:relative;display:grid;grid-template-columns:118px repeat(6,212px) 190px;gap:6px;padding:0 10px 14px 0;width:max-content}
-#mapSvg{position:absolute;left:0;top:0;pointer-events:none;z-index:1}
-.ln{fill:none;stroke:#d8c6ae;stroke-width:2;opacity:.55}.ln.lit{stroke:#f0c040;opacity:.8}
-.ln.hi{stroke:#ff9d3c;stroke-width:4;opacity:1}
-.mcorner,.mghead{position:sticky;top:0;z-index:5;background:#fdf3e1}
-.mcorner{left:0;z-index:6;box-shadow:-12px 0 0 #fdf3e1,8px 0 0 #fdf3e1}
-.mghead{text-align:center;font-size:19px;font-weight:bold;color:#8a5a3c;padding:8px 0 6px;border-radius:0 0 16px 16px;display:flex;flex-direction:column;align-items:center}
-.mghead small{font-size:13px;color:#b08a60}.mghead.now{background:#ffe2a8;box-shadow:0 3px 0 rgba(200,140,40,.25)}.mghead.jh{background:#e9e2f5;color:#6a5a8a}
-.crown{font-size:22px;line-height:1}
-.mrow{position:sticky;left:0;z-index:4;background:var(--rc);border-radius:16px;padding:8px;font-size:15px;font-weight:bold;color:#5a3a22;display:flex;align-items:center;justify-content:center;text-align:center;
-  box-shadow:inset 0 -3px 0 rgba(0,0,0,.06),-12px 0 0 #fffdf7,8px 0 0 #fffdf7}
-.mrow rt{font-size:9px}
-.mcell{position:relative;background:color-mix(in srgb,var(--rc) 28%,transparent);border-radius:16px;padding:7px;display:flex;flex-wrap:wrap;gap:7px;align-content:flex-start;min-height:44px}
-.mcell.now{background:color-mix(in srgb,var(--rc) 55%,#fff6dd)}.mcell.jh{background:rgba(220,210,240,.35)}
-.mu{position:relative;z-index:2;font-family:inherit;font-size:14px;font-weight:bold;color:#5a3a22;text-align:left;border:none;border-radius:14px;padding:6px 26px 6px 10px;min-height:38px;max-width:190px;
-  background:linear-gradient(#fffefb,#fff4e4);box-shadow:0 3px 0 rgba(150,110,70,.22),0 4px 8px rgba(120,80,40,.12);cursor:pointer;line-height:1.35}
-.mu rt{font-size:9px}
+.mapbox{position:relative;width:min(1240px,97vw);height:95vh;background:linear-gradient(#fff8ea,#fdf0dc);border-radius:28px;box-shadow:0 10px 30px rgba(60,40,20,.35),inset 0 -6px 0 rgba(160,120,80,.12);
+  display:flex;flex-direction:column;gap:6px;padding:10px 14px;box-sizing:border-box}
+.maphead{display:flex;align-items:center;gap:14px}
+.maphead .mtitle{font-size:24px;white-space:nowrap}.maphead .big{margin-left:auto;font-size:20px;padding:4px 26px;min-height:48px}
+.mapprog{flex:1;display:flex;align-items:center;gap:8px;font-weight:bold;color:#8a5a3c;max-width:520px}
+.pgl{font-size:15px;white-space:nowrap}.pgbar{flex:1;height:16px;border-radius:9px;background:#efe2cc;box-shadow:inset 0 2px 3px rgba(0,0,0,.12);overflow:hidden}
+.pgbar i{display:block;height:100%;border-radius:9px;background:linear-gradient(#ffe48a,#f6b938);min-width:4px}
+.mapprog b{font-size:20px;color:#c08000}.pgn{font-size:14px}.pgt{font-size:24px}
+.maptabs{display:flex;gap:6px}
+.mtab{flex:1;min-width:0;font-family:inherit;border:none;border-radius:16px 16px 6px 6px;background:color-mix(in srgb,var(--rc) 50%,#fff);color:#6a4a32;font-size:15px;font-weight:bold;
+  padding:3px 6px;min-height:50px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;box-shadow:0 2px 0 rgba(150,110,70,.18);opacity:.82}
+.mtab img{height:40px;width:auto}.mtab span{white-space:nowrap}.mtab small{font-size:12px;color:#a07a50;white-space:nowrap}.mtab rt{font-size:9px}
+.mtab.on{background:var(--rc);opacity:1;transform:translateY(2px);box-shadow:0 3px 0 rgba(150,110,70,.3),0 0 0 3px #fff inset}
+body.kb .mtab:focus{outline:4px solid #ff7a2a}
+.mapgrid{position:relative;flex:1;min-height:0;display:grid;grid-template-columns:96px repeat(6,minmax(0,1fr)) minmax(0,.85fr);column-gap:6px;row-gap:4px;
+  background:color-mix(in srgb,var(--rc) 32%,#fffdf7);border-radius:18px;padding:6px;box-shadow:inset 0 2px 8px rgba(120,90,60,.12)}
+.mghead{text-align:center;font-size:16px;font-weight:bold;color:#8a5a3c;padding:3px 0;border-radius:12px;background:rgba(255,255,255,.65);display:flex;flex-direction:column;align-items:center;line-height:1.2}
+.mghead small{font-size:12px;color:#b08a60}.mghead.now{background:#ffe2a8;box-shadow:0 3px 0 rgba(200,140,40,.25)}.mghead.done{background:linear-gradient(#fff3c0,#ffd968)}
+.mghead.jh{background:#e9e2f5;color:#6a5a8a;font-size:13px}.crown{font-size:15px;line-height:1}
+.mrow{display:flex;align-items:center;justify-content:center;text-align:center;font-size:14px;font-weight:bold;color:#5a3a22;line-height:1.3;background:var(--rc);border-radius:14px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.06)}
+.mrow rt{font-size:8px}
+.mcell{position:relative;min-height:0;display:flex;align-items:center}
+.mcell::before{content:'';position:absolute;left:-7px;right:-7px;top:50%;border-top:5px dotted rgba(170,130,90,.35);z-index:0}
+.mcell.now{background:rgba(255,236,190,.55);border-radius:12px}
+.mcard{position:relative;z-index:1;width:100%;max-height:100%;font-family:inherit;border:none;border-radius:14px;padding:4px 5px 5px;cursor:pointer;color:#5a3a22;
+  background:linear-gradient(#fffefb,#fff2df);box-shadow:0 3px 0 rgba(150,110,70,.25),0 3px 8px rgba(120,80,40,.12);display:flex;flex-direction:column;align-items:center;gap:3px}
+.mcard .ct{font-size:12.5px;font-weight:bold;line-height:1.2;text-align:center;word-break:keep-all}
+.mcard .w{display:inline-block;max-width:100%}.mcard:has(ruby) .ct{line-height:1.55}.mcard rt{font-size:8px}
 .mapbox ruby{ruby-align:center}.mapbox rt{letter-spacing:-.04em;white-space:nowrap}
-.mu .mk{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:17px}
-.mu.mastered{background:linear-gradient(#fff3c0,#ffd968);box-shadow:0 3px 0 rgba(190,140,20,.4),0 0 10px rgba(255,210,80,.6)}.mu.mastered .mk{color:#b07a00}
-.mu.clear .mk{color:#d09a10}.mu.part .mk{color:#e0a050}
-.mu.todo{box-shadow:0 3px 0 rgba(150,110,70,.22),0 0 0 3px rgba(255,170,110,.55)}.mu.todo .mk{color:#ef8a5a;font-size:12px}
-.mu.soon{background:#f3eee6;color:#a29482;box-shadow:none;padding-right:10px}
-.mu.jh{background:linear-gradient(#f8f4ff,#ebe3fa);color:#5a4a7a}.mu.jh .mk{color:#8a7ab0}
-.mu.fog{filter:blur(.6px) grayscale(.6);opacity:.55}
-.mu.fog::after{content:'☁';position:absolute;left:-6px;top:-10px;font-size:22px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.25);filter:none}
-.mu.rel{outline:3px solid #ffb35c;outline-offset:1px}
-.mu.sel{outline:4px solid #ff7a2a;outline-offset:2px;transform:translateY(-2px)}
-body.kb .mu:focus{outline:4px solid #ff7a2a}
-.mapinfo{min-height:62px;background:#fff;border-radius:18px;padding:8px 14px;box-shadow:0 2px 6px rgba(0,0,0,.08);font-size:16px;color:#5a3a22;display:flex;flex-direction:column;gap:4px;justify-content:center}
-.mi1{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:19px}
-.mig{background:#ffe2a8;border-radius:10px;padding:2px 10px;font-size:14px;font-weight:bold;color:#8a5a3c}
-.mis{font-size:15px;font-weight:bold;color:#c06a3a}.mis.mastered{color:#b07a00}.mis.soon{color:#9a8a78}.mis.jh{color:#6a5a8a}
-.mi2{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:14px;color:#7a5a40}
-.mi2 rt{font-size:8px}
+.slots{display:flex;flex-wrap:wrap;justify-content:center;gap:2px 3px}
+.slot{display:inline-flex;width:18px;height:18px;border-radius:50%;align-items:center;justify-content:center;font-style:normal;font-size:13px;font-weight:bold;line-height:1;box-sizing:border-box}
+.mappop .slot{width:22px;height:22px;font-size:15px}
+.slot.soon{border:2px dotted #cbbba6}.slot.todo,.slot.part{background:#fff;box-shadow:0 0 0 3px rgba(255,160,100,.6)}.slot.part{background:#ffe9cf}
+.slot.clear{background:#fff7dc;color:#d09a10;box-shadow:0 0 0 2px #f0c860}.slot.mastered{background:radial-gradient(#fff6c8,#ffcf40);color:#a86e00;box-shadow:0 0 6px rgba(255,200,60,.9)}
+.slot.fog{opacity:.4}
+.slot.new{animation:pop 1.2s ease-out 3}
+@keyframes pop{0%{transform:scale(1)}30%{transform:scale(1.7);box-shadow:0 0 16px 6px rgba(255,220,90,.95)}100%{transform:scale(1)}}
+.mcard.future{background:rgba(255,252,246,.8);box-shadow:0 2px 0 rgba(150,110,70,.12);color:#8a7262}
+.mcard.done{background:linear-gradient(#fff6cc,#ffdf78);box-shadow:0 3px 0 rgba(190,140,20,.45),0 0 12px rgba(255,210,80,.7)}
+.ccrown{position:absolute;right:-6px;top:-12px;font-size:20px}
+.mcard.here{box-shadow:0 3px 0 rgba(150,110,70,.25),0 0 0 4px #ff9d3c;animation:herebob 1.6s ease-in-out infinite}
+@keyframes herebob{50%{transform:translateY(-3px)}}
+.flag{position:absolute;left:50%;top:-13px;transform:translateX(-50%);white-space:nowrap;background:#ff8a3c;color:#fff;font-size:11px;font-weight:bold;border-radius:9px;padding:1px 8px;box-shadow:0 2px 0 rgba(0,0,0,.15)}
+.mcard.fog{filter:grayscale(.6);opacity:.55}.mcard.fog::after{content:'☁';position:absolute;left:-6px;top:-10px;font-size:22px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.25)}
+.mcard.jh{background:linear-gradient(#f8f4ff,#ebe3fa);color:#5a4a7a}.jhgo{font-size:16px;color:#8a7ab0}
+.mcard.sel{outline:4px solid #ff7a2a;outline-offset:2px}
+body.kb .mcard:focus{outline:4px solid #ff7a2a;outline-offset:2px}
+.mappop{display:none;position:absolute;left:50%;bottom:16px;transform:translateX(-50%);width:min(640px,90%);z-index:20;background:#fff;border-radius:22px;padding:12px 18px 14px;
+  box-shadow:0 8px 24px rgba(60,40,20,.35);color:#5a3a22}
+.mappop.on{display:block}
+.mpx{position:absolute;right:10px;top:8px;border:none;background:#f3e6d2;border-radius:12px;width:40px;height:40px;font-size:18px;cursor:pointer;color:#8a5a3c}
+.mph{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:bold;padding-right:44px}.mph rt{font-size:9px}
+.mig{background:#ffe2a8;border-radius:10px;padding:2px 10px;font-size:13px;font-weight:bold;color:#8a5a3c;white-space:nowrap}
+.mappop ul{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:5px}
+.mappop li{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:16px}.mappop li span{font-size:13px;color:#c06a3a;font-weight:bold}
+.mappop li.soon span{color:#9a8a78}.mappop li.mastered span{color:#b07a00}.mappop li em{font-style:normal;font-size:13px;color:#4a7a40;font-weight:bold}.mappop rt{font-size:8px}
+@media (max-height:690px){.mapbox{height:97vh;gap:4px;padding:6px 12px}.mtab{min-height:42px}.mtab img{height:32px}.maphead .big{min-height:42px}.mghead small{display:none}}
+.mpn{margin-top:8px;font-size:14px;color:#7a5a40;background:#fbf3e4;border-radius:12px;padding:5px 10px}
 .srow{display:flex;align-items:center;gap:16px;font-size:23px;font-weight:bold;color:#8a5a3c}
 .tog{font-size:21px;font-weight:bold;padding:6px 20px;min-height:48px;border-radius:18px;border:3px solid #8a5a3c;background:#ffd27a;color:#8a5a3c}
 .tog.off{background:#eee}
@@ -216,7 +231,7 @@ body.kb .mu:focus{outline:4px solid #ff7a2a}
   <div id="coin" class="pill">🪙 0</div>
   <div id="timeLeft" class="pill"></div>
   <div id="tr"><button id="furi" class="pill" type="button">ふりがな</button><button id="tts" class="pill" type="button">🔊 よみあげ</button><button id="btnSet" class="pill" type="button">⚙ せってい</button></div>
-  <div id="proto">試作：さんすう アイランド v0.4.0</div>
+  <div id="proto">試作：さんすう アイランド v0.4.2</div>
   <button id="act" class="off" type="button">しらべる</button>
   <div id="dpad">
     <span></span><button class="dbtn" data-d="up" type="button" aria-label="うえ" tabindex="-1">▲</button><span></span>
@@ -273,13 +288,12 @@ body.kb .mu:focus{outline:4px solid #ff7a2a}
 </div></div>
 
 <div id="mapM" class="modal"><div class="mapbox">
-  <div class="maphead"><div class="mtitle">さんすうの ちず</div>
-    <div class="mapleg"><span class="lg mastered">★</span>ていちゃく <span class="lg clear">☆</span>クリア <span class="lg todo">●</span>ちょうせん できる <span class="lg soon"></span>じゅんびちゅう</div>
+  <div class="maphead"><div class="mtitle">さんすうの ちず</div><div class="mapprog" id="mapProg"></div>
     <button class="big" id="mapClose" type="button">とじる</button></div>
-  <div class="mapscroll" id="mapScroll"><div class="mapgrid" id="mapGrid"></div></div>
-  <div class="mapinfo" id="mapInfo"></div>
+  <div class="maptabs" id="mapTabs"></div>
+  <div class="mapgrid" id="mapGrid"></div>
+  <div class="mappop" id="mapPop"></div>
 </div></div>
-
 <div id="setM" class="modal"><div class="mbox">
   <div class="mtitle">せってい</div>
   <div class="srow">よみあげ <button class="tog" id="setTts" type="button">あり</button></div>
@@ -364,7 +378,7 @@ const Island = (() => {
 
 (()=>{
 'use strict';
-const APP_VERSION='0.4.0',APP_ID='sansu-quest-1';
+const APP_VERSION='0.4.2',APP_ID='sansu-quest-1';
 const $=s=>document.querySelector(s);
 const cv=$('#cv'),ctx=cv.getContext('2d');
 let W=0,H=0,DPR=1,T=56,OX=0,OY=0;
@@ -495,7 +509,7 @@ function drawPlayer(c,fx,fy,t,dir,fr){
    ========================================================= */
 let started=false,time=0,busy=false,held=null,path=[],pendingAct=null,marker=null;
 const P={x:8,y:11,tx:8,ty:11,t:0,moving:false,dir:'up'};
-const S={cleared:[],mastered:[],clearDay:{},badges:[],pos:null,tts:true,limitMin:0,limitMode:'learn',usage:{day:'',ms:0},soloGrade:1,soloFuri:true,gender:null};
+const S={cleared:[],mastered:[],clearDay:{},mapSeen:null,badges:[],pos:null,tts:true,limitMin:0,limitMode:'learn',usage:{day:'',ms:0},soloGrade:1,soloFuri:true,gender:null};
 const REC={attempts:[],review:{},daily:{}};
 
 function walkable(x,y,allowDoor){
@@ -628,7 +642,7 @@ function openModal(){return document.querySelector('.modal.on');}
 addEventListener('keydown',e=>{
   document.body.classList.add('kb');
   const m=openModal();
-  if(m){if(e.key==='Escape'){e.preventDefault();m.querySelector('.big').click();}
+  if(m){if(e.key==='Escape'){e.preventDefault();if(m.id==='mapM'&&mapCard){const k=mapCard;closeCard();const b=$(`.mcard[data-k="${k}"]`);if(b)b.focus();}else m.querySelector('.big').click();}
     else if(KEYS[e.key]){e.preventDefault();if(m.id==='mapM')mapMove(e.key);else moveFocus(m,e.key);}return;}
   if($('#learn').classList.contains('on')){learnKey(e);return;}
   if($('#lres').classList.contains('on')||$('#sTitle').classList.contains('on')||$('#sSelect').classList.contains('on')){
@@ -979,68 +993,68 @@ $('#badgeClose').addEventListener('click',()=>{$('#badgeM').classList.remove('on
    単元：[id, 学年(7=中学校), 列, なまえ, 技能ID[], まえの単元[]]
    なまえの {漢字|よみ|学年}：その漢字を習う学年より下の子には いつも ふりがな
    ========================================================= */
-const MAP_ROWS=[['kazu','かず','#f7dcae'],['kagen','たしざん・ひきざん','#f9cfc4'],['jojo','かけざん・わりざん','#f6c9da'],['shosu','{小数|しょうすう|2}','#d9d3f2'],['bunsu','{分数|ぶんすう|2}','#cfe0f5'],
-  ['shiki','{式|しき|3}と けいさん','#c9eae6'],['zukei','{図形|ずけい|2}','#d3ecc4'],['hakaru','はかる','#f0e3b4'],['henka','かわりかた・わりあい','#f5d6b8'],['data','データ','#dfe6c0']];
 const G1='math.g1.';
 const UNITS=[
  ['g1.n10',1,'kazu','10までの かず',[G1+'A.order'],[]],['g1.n20',1,'kazu','20までの かず',[G1+'A.num20'],['g1.n10']],['g1.n100',1,'kazu','100までの かず',[G1+'A.num100'],['g1.n20']],
  ['g1.comp',1,'kagen','いくつと いくつ',[G1+'A.compose10'],['g1.n10']],['g1.add',1,'kagen','たしざん',[G1+'A.add10'],['g1.comp']],['g1.sub',1,'kagen','ひきざん',[G1+'A.sub10'],['g1.comp']],
  ['g1.add3',1,'kagen','3つの かずの けいさん',[G1+'A.add3'],['g1.add','g1.sub']],['g1.carry',1,'kagen','くりあがりの ある たしざん',[G1+'A.addcarry'],['g1.add','g1.n20']],
  ['g1.borrow',1,'kagen','くりさがりの ある ひきざん',[G1+'A.subborrow'],['g1.sub','g1.carry']],['g1.c100',1,'kagen','100までの かずの けいさん',[G1+'A.calc100'],['g1.n100','g1.add']],
- ['g1.shape',1,'zukei','かたちあそび',[G1+'B.shape'],[]],['g1.make',1,'zukei','かたちづくり',[G1+'B.make'],['g1.shape']],
- ['g1.len',1,'hakaru','ながさくらべ',[G1+'C.length'],[]],['g1.vol',1,'hakaru','かさくらべ',[G1+'C.volume'],[]],['g1.area',1,'hakaru','ひろさくらべ',[G1+'C.area'],[]],['g1.clock',1,'hakaru','とけい',[G1+'C.clock'],[]],
- ['g1.data',1,'data','かずしらべ',[G1+'D.count'],[]],
+ ['g1.shape',1,'rittai','かたちあそび',[G1+'B.shape'],[]],['g1.make',1,'heimen','かたちづくり',[G1+'B.make'],['g1.shape']],
+ ['g1.len',1,'ryo','ながさくらべ',[G1+'C.length'],[]],['g1.vol',1,'ryo','かさくらべ',[G1+'C.volume'],[]],['g1.area',1,'ryo','ひろさくらべ',[G1+'C.area'],[]],['g1.clock',1,'jikan','とけい',[G1+'C.clock'],[]],
+ ['g1.data',1,'graph','かずしらべ',[G1+'D.count'],[]],
  ['g2.n1000',2,'kazu','1000までの かず',[],['g1.n100']],
  ['g2.add',2,'kagen','たしざんの ひっ{算|さん|2}',[],['g1.carry','g1.c100']],['g2.sub',2,'kagen','ひきざんの ひっ{算|さん|2}',[],['g1.borrow','g1.c100']],
  ['g2.big',2,'kagen','3けたの たしざん・ひきざん',[],['g2.add','g2.sub','g2.n1000']],
  ['g2.kuku',2,'jojo','かけ{算|ざん|2}（{九九|くく|1}）',[],['g2.add']],
  ['g2.frac',2,'bunsu','2ぶんの1・4ぶんの1',[],['g1.n10']],
  ['g2.rel',2,'shiki','たしざんと ひきざんの かんけい',[],['g2.add','g2.sub']],
- ['g2.tri',2,'zukei','{三角形|さんかくけい|2}と {四角形|しかくけい|2}',[],['g1.make']],['g2.box',2,'zukei','はこの かたち',[],['g1.shape']],
- ['g2.len',2,'hakaru','ながさ（cm・mm・m）',[],['g1.len']],['g2.vol',2,'hakaru','かさ（L・dL・mL）',[],['g1.vol']],['g2.time',2,'hakaru','{時|じ|2}こくと {時間|じかん|2}',[],['g1.clock']],
- ['g2.graph',2,'data','{表|ひょう|3}と グラフ',[],['g1.data']],
+ ['g2.tri',2,'heimen','{三角形|さんかくけい|2}と {四角形|しかくけい|2}',[],['g1.make']],['g2.box',2,'rittai','はこの かたち',[],['g1.shape']],
+ ['g2.len',2,'ryo','ながさ（cm・mm・m）',[],['g1.len']],['g2.vol',2,'ryo','かさ（L・dL・mL）',[],['g1.vol']],['g2.time',2,'jikan','{時|じ|2}こくと {時間|じかん|2}',[],['g1.clock']],
+ ['g2.graph',2,'graph','{表|ひょう|3}と グラフ',[],['g1.data']],
  ['g3.big',3,'kazu','{大|おお|1}きい かず（{万|まん|2}）',[],['g2.n1000']],
  ['g3.add',3,'kagen','{大|おお|1}きい かずの たし{算|ざん|2}・ひき{算|ざん|2}',[],['g2.big','g3.big']],
  ['g3.div',3,'jojo','わり{算|ざん|2}',[],['g2.kuku']],['g3.mul',3,'jojo','かけ{算|ざん|2}の ひっ{算|さん|2}',[],['g2.kuku']],['g3.rem',3,'jojo','あまりの ある わり{算|ざん|2}',[],['g3.div']],
  ['g3.dec',3,'shosu','{小数|しょうすう|2}',[],['g2.vol']],['g3.frac',3,'bunsu','{分数|ぶんすう|2}',[],['g2.frac']],
  ['g3.box',3,'shiki','□を つかった {式|しき|3}',[],['g2.rel']],
- ['g3.circle',3,'zukei','{円|えん|1}と {球|きゅう|3}',[],['g2.box']],['g3.tri',3,'zukei','{二等辺三角形|にとうへんさんかくけい|4}と {正三角形|せいさんかくけい|2}',[],['g2.tri']],
- ['g3.km',3,'hakaru','ながさ（km）',[],['g2.len']],['g3.wt',3,'hakaru','{重|おも|3}さ',[],['g2.vol']],['g3.time',3,'hakaru','{時間|じかん|2}と {秒|びょう|3}',[],['g2.time']],
- ['g3.bar',3,'data','ぼうグラフと {表|ひょう|3}',[],['g2.graph']],
+ ['g3.circle',3,'heimen','{円|えん|1}と {球|きゅう|3}',[],['g2.box']],['g3.tri',3,'heimen','{二等辺三角形|にとうへんさんかくけい|4}と {正三角形|せいさんかくけい|2}',[],['g2.tri']],
+ ['g3.km',3,'ryo','ながさ（km）',[],['g2.len']],['g3.wt',3,'ryo','{重|おも|3}さ',[],['g2.vol']],['g3.time',3,'jikan','{時間|じかん|2}と {秒|びょう|3}',[],['g2.time']],
+ ['g3.bar',3,'graph','ぼうグラフと {表|ひょう|3}',[],['g2.graph']],
  ['g4.oku',4,'kazu','{億|おく|4}と {兆|ちょう|4}',[],['g3.big']],['g4.gai',4,'kazu','がい{数|すう|2}',[],['g4.oku']],
  ['g4.div1',4,'jojo','わり{算|ざん|2}の ひっ{算|さん|2}',[],['g3.rem','g3.mul']],['g4.div2',4,'jojo','2けたで わる わり{算|ざん|2}',[],['g4.div1']],
  ['g4.dec',4,'shosu','{小数|しょうすう|2}の たし{算|ざん|2}・ひき{算|ざん|2}',[],['g3.dec']],['g4.decmd',4,'shosu','{小数|しょうすう|2}×÷{整数|せいすう|3}',[],['g4.dec','g4.div1']],
  ['g4.frac',4,'bunsu','{帯分数|たいぶんすう|4}と {仮分数|かぶんすう|5}',[],['g3.frac']],
  ['g4.rule',4,'shiki','{計算|けいさん|2}の きまり',[],['g3.box']],
- ['g4.angle',4,'zukei','{角|かく|2}の {大|おお|1}きさ',[],['g3.tri']],['g4.para',4,'zukei','{垂直|すいちょく|6}・{平行|へいこう|3}と {四角形|しかくけい|2}',[],['g4.angle']],
- ['g4.cube',4,'zukei','{直方体|ちょくほうたい|2}と {立方体|りっぽうたい|2}',[],['g2.box']],['g4.area',4,'zukei','{面積|めんせき|4}',[],['g2.tri','g1.area']],
- ['g4.change',4,'henka','かわり{方|かた|2}',[],['g3.box']],['g4.ratio',4,'henka','かんたんな {割合|わりあい|6}',[],['g4.change']],
- ['g4.line',4,'data','{折|お|4}れ{線|せん|2}グラフ',[],['g3.bar']],
+ ['g4.angle',4,'heimen','{角|かく|2}の {大|おお|1}きさ',[],['g3.tri']],['g4.para',4,'heimen','{垂直|すいちょく|6}・{平行|へいこう|3}と {四角形|しかくけい|2}',[],['g4.angle']],
+ ['g4.cube',4,'rittai','{直方体|ちょくほうたい|2}と {立方体|りっぽうたい|2}',[],['g2.box']],['g4.area',4,'menseki','{面積|めんせき|4}',[],['g2.tri','g1.area']],
+ ['g4.change',4,'henka','かわり{方|かた|2}',[],['g3.box']],['g4.ratio',4,'wari','かんたんな {割合|わりあい|6}',[],['g4.change']],
+ ['g4.line',4,'graph','{折|お|4}れ{線|せん|2}グラフ',[],['g3.bar']],
  ['g5.int',5,'kazu','{倍数|ばいすう|3}と {約数|やくすう|4}',[],['g4.div1']],
  ['g5.decm',5,'shosu','{小数|しょうすう|2}の かけ{算|ざん|2}',[],['g4.decmd']],['g5.decd',5,'shosu','{小数|しょうすう|2}の わり{算|ざん|2}',[],['g5.decm','g4.div2']],
  ['g5.frac',5,'bunsu','{分数|ぶんすう|2}の たし{算|ざん|2}・ひき{算|ざん|2}',[],['g4.frac','g5.int']],['g5.fdec',5,'bunsu','{分数|ぶんすう|2}と {小数|しょうすう|2}',[],['g4.frac','g4.dec']],
  ['g5.shiki',5,'shiki','{数量|すうりょう|4}の かんけいと {式|しき|3}',[],['g4.rule','g4.change']],
- ['g5.cong',5,'zukei','{合同|ごうどう|2}な {図形|ずけい|2}',[],['g4.para']],['g5.angles',5,'zukei','{図形|ずけい|2}の {角|かく|2}',[],['g4.angle']],
- ['g5.poly',5,'zukei','{正多角形|せいたかくけい|2}と {円周|えんしゅう|4}',[],['g3.circle']],['g5.prism',5,'zukei','{角柱|かくちゅう|3}と {円柱|えんちゅう|3}',[],['g4.cube']],
- ['g5.area',5,'zukei','{三角形|さんかくけい|2}・{四角形|しかくけい|2}の {面積|めんせき|4}',[],['g4.area']],['g5.vol',5,'zukei','{体積|たいせき|4}',[],['g4.cube','g4.area']],
- ['g5.prop',5,'henka','かんたんな {比例|ひれい|5}',[],['g4.change']],['g5.unit',5,'henka','{単位量|たんいりょう|4}あたりと {速|はや|3}さ',[],['g4.ratio','g5.decd']],['g5.pct',5,'henka','{割合|わりあい|6}',[],['g4.ratio','g5.decd']],
- ['g5.avg',5,'data','{平均|へいきん|5}',[],['g5.decd']],['g5.pie',5,'data','{帯|おび|4}グラフと {円|えん|1}グラフ',[],['g4.line','g5.pct']],
+ ['g5.cong',5,'heimen','{合同|ごうどう|2}な {図形|ずけい|2}',[],['g4.para']],['g5.angles',5,'heimen','{図形|ずけい|2}の {角|かく|2}',[],['g4.angle']],
+ ['g5.poly',5,'heimen','{正多角形|せいたかくけい|2}と {円周|えんしゅう|4}',[],['g3.circle']],['g5.prism',5,'rittai','{角柱|かくちゅう|3}と {円柱|えんちゅう|3}',[],['g4.cube']],
+ ['g5.area',5,'menseki','{三角形|さんかくけい|2}・{四角形|しかくけい|2}の {面積|めんせき|4}',[],['g4.area']],['g5.vol',5,'menseki','{体積|たいせき|4}',[],['g4.cube','g4.area']],
+ ['g5.prop',5,'henka','かんたんな {比例|ひれい|5}',[],['g4.change']],['g5.unit',5,'wari','{単位量|たんいりょう|4}あたりと {速|はや|3}さ',[],['g4.ratio','g5.decd']],['g5.pct',5,'wari','{割合|わりあい|6}',[],['g4.ratio','g5.decd']],
+ ['g5.avg',5,'sirabe','{平均|へいきん|5}',[],['g5.decd']],['g5.pie',5,'graph','{帯|おび|4}グラフと {円|えん|1}グラフ',[],['g4.line','g5.pct']],
  ['g6.fmul',6,'bunsu','{分数|ぶんすう|2}の かけ{算|ざん|2}',[],['g5.frac','g5.decm']],['g6.fdiv',6,'bunsu','{分数|ぶんすう|2}の わり{算|ざん|2}',[],['g6.fmul','g5.decd']],
  ['g6.moji',6,'shiki','{文字|もじ|1}と {式|しき|3}',[],['g5.shiki']],
- ['g6.sym',6,'zukei','{対称|たいしょう|7}な {図形|ずけい|2}',[],['g5.cong']],['g6.scale',6,'zukei','{拡大図|かくだいず|6}と {縮図|しゅくず|6}',[],['g5.cong']],
- ['g6.carea',6,'zukei','{円|えん|1}の {面積|めんせき|4}',[],['g5.poly','g5.area']],['g6.pvol',6,'zukei','{角柱|かくちゅう|3}と {円柱|えんちゅう|3}の {体積|たいせき|4}',[],['g5.vol','g5.prism','g6.carea']],
- ['g6.ratio',6,'henka','{比|ひ|5}',[],['g5.pct']],['g6.prop',6,'henka','{比例|ひれい|5}と {反比例|はんぴれい|5}',[],['g5.prop']],
- ['g6.data',6,'data','データの しらべ{方|かた|2}',[],['g5.avg']],['g6.comb',6,'data','ならべ{方|かた|2}と くみあわせ{方|かた|2}',[],[]],
+ ['g6.sym',6,'heimen','{対称|たいしょう|7}な {図形|ずけい|2}',[],['g5.cong']],['g6.scale',6,'heimen','{拡大図|かくだいず|6}と {縮図|しゅくず|6}',[],['g5.cong']],
+ ['g6.carea',6,'menseki','{円|えん|1}の {面積|めんせき|4}',[],['g5.poly','g5.area']],['g6.pvol',6,'menseki','{角柱|かくちゅう|3}と {円柱|えんちゅう|3}の {体積|たいせき|4}',[],['g5.vol','g5.prism','g6.carea']],
+ ['g6.ratio',6,'wari','{比|ひ|5}',[],['g5.pct']],['g6.prop',6,'henka','{比例|ひれい|5}と {反比例|はんぴれい|5}',[],['g5.prop']],
+ ['g6.data',6,'sirabe','データの しらべ{方|かた|2}',[],['g5.avg']],['g6.comb',6,'sirabe','ならべ{方|かた|2}と くみあわせ{方|かた|2}',[],[]],
  ['j.sign',7,'kazu','{正|せい|1}の{数|かず|2}・{負|ふ|3}の{数|かず|2}',[],['g5.int','g6.fdiv']],
  ['j.eq',7,'shiki','{文字式|もじしき|3}と {方程式|ほうていしき|5}',[],['g6.moji']],
- ['j.geo',7,'zukei','{平面図形|へいめんずけい|3}・{空間図形|くうかんずけい|3}',[],['g6.sym','g6.pvol']],
+ ['j.geo',7,'heimen','{平面図形|へいめんずけい|3}・{空間図形|くうかんずけい|3}',[],['g6.sym','g6.pvol']],
  ['j.func',7,'henka','{関数|かんすう|4}',[],['g6.prop','g6.ratio']],
- ['j.prob',7,'data','データの {活用|かつよう|4}と {確率|かくりつ|5}',[],['g6.data','g6.comb']],
-].map(([id,g,row,name,sk,pre])=>({id,g,row,name,sk,pre}));
+ ['j.prob',7,'sirabe','データの {活用|かつよう|4}と {確率|かくりつ|5}',[],['g6.data','g6.comb']],
+].map(([id,g,row,name,sk,pre,short])=>({id,g,row,name,sk,pre,short}));
 const UNIT=Object.fromEntries(UNITS.map(u=>[u.id,u]));
 const UNEXT={};for(const u of UNITS)for(const p of u.pre)(UNEXT[p]=UNEXT[p]||[]).push(u.id);
 const AREA_OF={A:'keisan',B:'katachi',C:'kurabe',D:'shirabe'};
 function rw(s){return s.replace(/\{([^|}]+)\|([^|}]+)\|(\d)\}/g,(m,k,r,g)=>(+g>GRADE||FURI)?`<ruby>${k}<rt>${r}</rt></ruby>`:k);}
+/* ちずの なまえ：分かち書きの まとまりごとに 改行（ことばの とちゅうで 切らない） */
+function rwWords(s){return s.split(/(?<=・)|\s+/).filter(Boolean).map(w=>`<span class="w">${rw(w)}</span>`).join(' ');}
 function rwRead(s){return s.replace(/\{([^|}]+)\|([^|}]+)\|(\d)\}/g,'$2');}
 const gName=g=>g===7?'ちゅうがっこう':`${g}ねんせい`;
 /* 単元の状態：mastered（★）/ clear（☆）/ part（とちゅう）/ todo（ちょうせん できる）/ soon（じゅんびちゅう）/ jh（中学校） */
@@ -1054,60 +1068,80 @@ function unitState(u){
 const unitFog=u=>MODE==='school'&&u.g===GRADE&&u.sk.length>0&&u.sk.every(id=>unitOpen[id]===false);
 const UMARK={mastered:'★',clear:'☆',part:'◐',todo:'●',soon:'',jh:'→'};
 const USTAT={mastered:'★ ていちゃく！',clear:'☆ クリア。べつの ひにも できたら ★',part:'とちゅう まで できたよ',todo:'ちょうせん できるよ',soon:'まだ じゅんびちゅう',jh:'ちゅうがっこうで まなぶよ'};
-let mapSel=null;
-function openMap(){busy=true;held=null;
-  const cols=[1,2,3,4,5,6,7],grid=$('#mapGrid');
+/* ちずは 島の 4つの エリアと おなじ タブ。エリアの中は「すじ（行）× 学年（列）」の カード。線は 行の みちだけ */
+const MAP_AREAS=[
+ ['keisan','#f7d9b9',[['kazu','かず'],['kagen','たしざん<br>ひきざん'],['jojo','かけざん<br>わりざん'],['shosu','{小数|しょうすう|2}'],['bunsu','{分数|ぶんすう|2}'],['shiki','{式|しき|3}']]],
+ ['katachi','#d3ecc4',[['heimen','ひらたい<br>かたち'],['rittai','はこや<br>つつの かたち'],['menseki','{面積|めんせき|4}<br>{体積|たいせき|4}']]],
+ ['kurabe','#f0e3b4',[['ryo','ながさ<br>かさ・おもさ'],['jikan','とけい<br>{時間|じかん|2}'],['henka','かわりかた'],['wari','{割合|わりあい|6}<br>はやさ']]],
+ ['shirabe','#dfe6c0',[['graph','{表|ひょう|3}と<br>グラフ'],['sirabe','データの<br>しらべ{方|かた|2}']]]];
+const CELL_T={'kazu.1':'100までの かず','kazu.4':'{大|おお|1}きな かずと がい{数|すう|2}','kagen.1':'たしざんと ひきざん','kagen.2':'たし{算|ざん|2}・ひき{算|ざん|2}の ひっ{算|さん|2}',
+ 'jojo.3':'わり{算|ざん|2}と かけ{算|ざん|2}の ひっ{算|さん|2}','jojo.4':'わり{算|ざん|2}の ひっ{算|さん|2}','shosu.4':'{小数|しょうすう|2}の {計算|けいさん|2}','shosu.5':'{小数|しょうすう|2}の かけ{算|ざん|2}・わり{算|ざん|2}',
+ 'bunsu.5':'{分数|ぶんすう|2}の たし{算|ざん|2}・ひき{算|ざん|2}','bunsu.6':'{分数|ぶんすう|2}の かけ{算|ざん|2}・わり{算|ざん|2}','heimen.3':'{円|えん|1}と {三角形|さんかくけい|2}','heimen.4':'{角|かく|2}と {四角形|しかくけい|2}',
+ 'heimen.5':'{合同|ごうどう|2}・{角|かく|2}・{正多角形|せいたかくけい|2}','heimen.6':'{対称|たいしょう|7}・{拡大図|かくだいず|6}と {縮図|しゅくず|6}','menseki.5':'{面積|めんせき|4}と {体積|たいせき|4}','menseki.6':'{円|えん|1}の {面積|めんせき|4}・{体積|たいせき|4}',
+ 'ryo.1':'ながさ・かさ・ひろさ くらべ','ryo.2':'ながさと かさの たんい','ryo.3':'km と {重|おも|3}さ','wari.5':'{単位量|たんいりょう|4}あたりと {割合|わりあい|6}','sirabe.6':'データの しらべ{方|かた|2}・ならべ{方|かた|2}'};
+const areaOfRow=r=>MAP_AREAS.find(a=>a[2].some(x=>x[0]===r))[0];
+const cellUnits=(row,g)=>UNITS.filter(u=>u.row===row&&u.g===g);
+const cellTitle=(row,g)=>CELL_T[`${row}.${g}`]||cellUnits(row,g).map(u=>u.name).join('・');
+const STAR_ALL=()=>UNITS.filter(u=>u.g<7);
+let mapArea=null,mapCard=null;
+const LM_IMG={keisan:'lm_cave',katachi:'lm_shape_mountain',kurabe:'lm_bridge',shirabe:'lm_forest_gate'};
+/* いま ここ：いまの学年で、さいしょに まだ ★に なっていない ちょうせんできる 単元 */
+function hereUnit(){return UNITS.find(u=>u.g===GRADE&&['todo','part','clear'].includes(unitState(u))&&!unitFog(u))||null;}
+function openMap(){busy=true;held=null;const h=hereUnit();
+  mapArea=mapArea||(h?areaOfRow(h.row):'keisan');mapCard=null;$('#mapM').classList.add('on');renderMap(true);}
+function renderMap(focus){
+  // ★の あつまり
+  const all=STAR_ALL(),got=all.filter(u=>unitState(u)==='mastered').length;
+  $('#mapProg').innerHTML=`<span class="pgl">あつめた ★</span><div class="pgbar"><i style="width:${(got/all.length*100).toFixed(1)}%"></i></div><b>${got}</b><span class="pgn">/ ${all.length}</span><span class="pgt" title="ぜんぶ あつめると…">🎁</span>`;
+  $('#mapTabs').innerHTML=MAP_AREAS.map(([k,c])=>{const us=UNITS.filter(u=>u.g<7&&areaOfRow(u.row)===k),m=us.filter(u=>unitState(u)==='mastered').length;
+    return `<button type="button" class="mtab ${k===mapArea?'on':''}" data-t="${k}" style="--rc:${c}">${IMG[LM_IMG[k]]?`<img src="${IMG[LM_IMG[k]].src}" alt="">`:''}<span>${rubyHTML(AREAS[k].name)}</span><small>★ ${m} / ${us.length}</small></button>`;}).join('');
+  $('#mapTabs').querySelectorAll('.mtab').forEach(b=>b.addEventListener('click',()=>{mapArea=b.dataset.t;mapCard=null;renderMap(false);$(`.mtab[data-t="${mapArea}"]`).focus();}));
+  const [ak,ac,rows]=MAP_AREAS.find(a=>a[0]===mapArea),here=hereUnit(),seen=S.mapSeen||{};
+  const grid=$('#mapGrid');grid.style.setProperty('--rc',ac);grid.style.gridTemplateRows=`auto repeat(${rows.length},minmax(0,1fr))`;
   let h='<div class="mcorner"></div>';
-  for(const g of cols){const us=UNITS.filter(u=>u.g===g&&u.g<7),m=us.filter(u=>unitState(u)==='mastered').length;
-    const crown=g<7&&us.length&&m===us.length;
-    h+=`<div class="mghead ${g===GRADE?'now':''} ${g===7?'jh':''}">${crown?'<span class="crown">👑</span>':''}${gName(g)}${g<7?`<small>★ ${m} / ${us.length}</small>`:'<small>つながる さき</small>'}</div>`;}
-  for(const [rk,rn,rc] of MAP_ROWS){
-    h+=`<div class="mrow" style="--rc:${rc}">${rw(rn)}</div>`;
-    for(const g of cols){const us=UNITS.filter(u=>u.g===g&&u.row===rk);
-      h+=`<div class="mcell ${g===GRADE?'now':''} ${g===7?'jh':''}" style="--rc:${rc}">${us.map(u=>{const st=unitState(u),fog=unitFog(u);
-        return `<button type="button" class="mu ${st} ${fog?'fog':''}" data-id="${u.id}"><span class="nm">${rw(u.name)}</span>${UMARK[st]?`<span class="mk">${UMARK[st]}</span>`:''}</button>`;}).join('')}</div>`;}}
-  grid.innerHTML='<svg id="mapSvg"></svg>'+h;
-  grid.style.gridTemplateRows=`auto repeat(${MAP_ROWS.length},auto)`;
-  grid.querySelectorAll('.mu').forEach(b=>{b.addEventListener('click',()=>selUnit(b.dataset.id,true));b.addEventListener('focus',()=>selUnit(b.dataset.id,false));});
-  $('#mapInfo').innerHTML='まなびを えらぶと、まえと つぎの つながりが ひかるよ。';
-  $('#mapM').classList.add('on');mapSel=null;
-  requestAnimationFrame(()=>{drawLinks();const sc=$('#mapScroll'),now=grid.querySelector('.mghead.now');if(now)sc.scrollLeft=Math.max(0,now.offsetLeft-130);
-    const first=grid.querySelector('.mcell.now .mu:not(.soon)')||grid.querySelector('.mcell.now .mu')||grid.querySelector('.mu');if(first)first.focus({preventScroll:true});});}
-function drawLinks(){const grid=$('#mapGrid'),svg=$('#mapSvg');if(!svg)return;const W=grid.scrollWidth,H=grid.scrollHeight;
-  svg.setAttribute('width',W);svg.setAttribute('height',H);svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
-  const gr=grid.getBoundingClientRect(),box=id=>{const e=grid.querySelector(`.mu[data-id="${id}"]`);if(!e)return null;const r=e.getBoundingClientRect();
-    return {l:r.left-gr.left,r:r.right-gr.left,t:r.top-gr.top,b:r.bottom-gr.top,cx:(r.left+r.right)/2-gr.left,cy:(r.top+r.bottom)/2-gr.top};};
-  let p='';for(const u of UNITS)for(const q of u.pre){const a=box(q),b=box(u.id);if(!a||!b)continue;let d;
-    if(b.l>a.r+4)d=`M${a.r} ${a.cy} C${(a.r+b.l)/2} ${a.cy},${(a.r+b.l)/2} ${b.cy},${b.l} ${b.cy}`;
-    else if(b.t>=a.b)d=`M${a.cx} ${a.b} C${a.cx} ${(a.b+b.t)/2},${b.cx} ${(a.b+b.t)/2},${b.cx} ${b.t}`;
-    else if(b.b<=a.t)d=`M${a.cx} ${a.t} C${a.cx} ${(a.t+b.b)/2},${b.cx} ${(a.t+b.b)/2},${b.cx} ${b.b}`;
-    else d=`M${a.r} ${a.cy} C${a.r+30} ${a.cy},${b.l-30} ${b.cy},${b.l} ${b.cy}`;
-    const lit=unitState(UNIT[q])==='mastered';
-    p+=`<path d="${d}" class="ln ${lit?'lit':''}" data-a="${q}" data-b="${u.id}"/>`;}
-  svg.innerHTML=p;if(mapSel)hiLinks(mapSel);}
-function hiLinks(id){const grid=$('#mapGrid');
-  grid.querySelectorAll('.ln').forEach(l=>l.classList.toggle('hi',l.dataset.a===id||l.dataset.b===id));
-  const rel=new Set([...UNIT[id].pre,...(UNEXT[id]||[])]);
-  grid.querySelectorAll('.mu').forEach(b=>{b.classList.toggle('sel',b.dataset.id===id);b.classList.toggle('rel',rel.has(b.dataset.id));});}
-function selUnit(id,say){const u=UNIT[id];if(!u)return;mapSel=id;hiLinks(id);const st=unitState(u);
-  const nm=x=>`「${rw(UNIT[x].name)}」`,pre=u.pre.map(nm).join(' '),nx=(UNEXT[id]||[]).map(nm).join(' ');
-  let where='';const sk=u.sk.filter(x=>skillOf(x));
-  if(sk.length&&u.g===GRADE){const a=AREA_OF[(sk[0].split('.')[2]||'')];if(a)where=`${rubyHTML(AREAS[a].name)}で ちょうせん できるよ。`;}
-  else if(sk.length&&u.g!==GRADE)where=`${gName(u.g)}の ときに ちょうせん できるよ。`;
-  if(unitFog(u))where='せんせいが ひらくと ちょうせん できるよ。';
-  $('#mapInfo').innerHTML=`<div class="mi1"><span class="mig">${gName(u.g)}</span><b>${rw(u.name)}</b><span class="mis ${st}">${unitFog(u)&&st==='todo'?'まだ ひらいていないよ':USTAT[st]}</span></div>`+
-    `<div class="mi2">${where}${pre?`<span>まえの まなび：${pre}</span>`:''}${nx?`<span>つぎの まなび：${nx}</span>`:''}</div>`;
-  if(say)speak(rwRead(u.name)+'。'+USTAT[st].replace(/[☆★]/g,''));}
-$('#mapClose').addEventListener('click',()=>{$('#mapM').classList.remove('on');busy=false;});
-addEventListener('resize',()=>{if($('#mapM').classList.contains('on'))drawLinks();});
-/* ちずの中を やじるしキーで となりの まなびへ */
-function mapMove(k){const bs=[...$('#mapGrid').querySelectorAll('.mu')],cur=document.activeElement;
-  if(!bs.includes(cur)){(bs[0]||$('#mapClose')).focus();return;}
+  for(let g=1;g<=7;g++){
+    if(g===7){h+=`<div class="mghead jh">ちゅうがっこう<small>つながる さき</small></div>`;continue;}
+    const us=UNITS.filter(u=>u.g===g&&areaOfRow(u.row)===ak),m=us.filter(u=>unitState(u)==='mastered').length,done=us.length&&m===us.length;
+    h+=`<div class="mghead ${g===GRADE?'now':''} ${done?'done':''}">${done?'<span class="crown">👑</span>':''}${g}ねんせい<small>★ ${m} / ${us.length}</small></div>`;}
+  for(const [rk,rn] of rows){
+    h+=`<div class="mrow">${rw(rn)}</div>`;
+    for(let g=1;g<=7;g++){const us=cellUnits(rk,g);
+      if(!us.length){h+=`<div class="mcell empty ${g===GRADE?'now':''}"></div>`;continue;}
+      const sts=us.map(unitState),done=g<7&&sts.every(x=>x==='mastered'),isHere=here&&us.includes(here),fog=us.every(unitFog),future=g>GRADE&&g<7;
+      const slots=g===7?'':us.map((u,i)=>{const st=sts[i],nw=seen[u.id]!==st&&(st==='mastered'||st==='clear');
+        return `<i class="slot ${st} ${nw?'new':''} ${unitFog(u)?'fog':''}" title="${rwRead(u.name)}">${st==='mastered'?'★':st==='clear'?'☆':''}</i>`;}).join('');
+      h+=`<div class="mcell ${g===GRADE?'now':''}"><button type="button" class="mcard ${done?'done':''} ${isHere?'here':''} ${fog?'fog':''} ${future?'future':''} ${g===7?'jh':''}" data-k="${rk}.${g}">`+
+        `${isHere?'<span class="flag">いま ここ！</span>':''}${done?'<span class="ccrown">👑</span>':''}<span class="ct">${rwWords(cellTitle(rk,g))}</span><span class="slots">${slots}</span></button></div>`;}}
+  grid.innerHTML=h;
+  grid.querySelectorAll('.mcard').forEach(b=>b.addEventListener('click',()=>openCard(b.dataset.k,true)));
+  // あたらしく ふえた ☆★を おぼえる（つぎは キラキラしない）
+  const nw=grid.querySelectorAll('.slot.new').length;
+  if(nw){S.mapSeen=Object.fromEntries(UNITS.map(u=>[u.id,unitState(u)]));saveSoon();setTimeout(()=>speak('あたらしい ほしが ふえたよ！'),300);}
+  else if(!S.mapSeen){S.mapSeen=Object.fromEntries(UNITS.map(u=>[u.id,unitState(u)]));}
+  closeCard();
+  if(focus)requestAnimationFrame(()=>{const f=grid.querySelector('.mcard.here')||grid.querySelector('.mcell.now .mcard')||grid.querySelector('.mcard');if(f)f.focus({preventScroll:true});});}
+/* カードを ひらく：中の 単元と、どこで ちょうせん できるか、つぎの カード */
+function openCard(k,say){const [rk,gs]=k.split('.'),g=+gs,us=cellUnits(rk,g);mapCard=k;
+  $('#mapGrid').querySelectorAll('.mcard').forEach(b=>b.classList.toggle('sel',b.dataset.k===k));
+  const nextG=[...Array(7-g)].map((_,i)=>g+1+i).find(x=>cellUnits(rk,x).length);
+  const lines=us.map(u=>{const st=unitState(u),sk=u.sk.filter(x=>skillOf(x));let w='';
+    if(unitFog(u))w='せんせいが ひらくと ちょうせん できるよ';
+    else if(sk.length&&u.g===GRADE){const a=AREA_OF[(sk[0].split('.')[2]||'')];if(a)w=`${rubyHTML(AREAS[a].name)}で ちょうせん！`;}
+    return `<li class="${st}"><i class="slot ${st}">${st==='mastered'?'★':st==='clear'?'☆':''}</i><b>${rw(u.name)}</b><span>${unitFog(u)&&st==='todo'?'まだ ひらいていないよ':USTAT[st]}</span>${w&&st!=='mastered'?`<em>${w}</em>`:''}</li>`;}).join('');
+  $('#mapPop').innerHTML=`<button type="button" class="mpx" aria-label="とじる">✕</button><div class="mph"><span class="mig">${gName(g)}</span>${rw(cellTitle(rk,g))}</div><ul>${lines}</ul>`+
+    (nextG?`<div class="mpn">つぎは <b>${gName(nextG)}</b>の 「${rw(cellTitle(rk,nextG))}」へ つづくよ</div>`:'');
+  $('#mapPop').classList.add('on');$('#mapPop .mpx').addEventListener('click',()=>{closeCard();const b=$(`.mcard[data-k="${k}"]`);if(b)b.focus();});
+  if(say)speak(rwRead(cellTitle(rk,g))+'。'+us.map(u=>rwRead(u.name)+'、'+USTAT[unitState(u)].replace(/[☆★]/g,'')).join('。'));}
+function closeCard(){mapCard=null;$('#mapPop').classList.remove('on');$('#mapGrid').querySelectorAll('.mcard.sel').forEach(b=>b.classList.remove('sel'));}
+$('#mapClose').addEventListener('click',()=>{$('#mapM').classList.remove('on');closeCard();busy=false;});
+/* ちずの中を やじるしキーで となりの カード・タブへ */
+function mapMove(k){const bs=[...$('#mapM').querySelectorAll('.mtab,.mcard')],cur=document.activeElement;
+  if(!bs.includes(cur)){(bs.find(b=>b.classList.contains('mcard'))||bs[0]).focus();return;}
   const r=cur.getBoundingClientRect(),cx=(r.left+r.right)/2,cy=(r.top+r.bottom)/2;let best=null,bd=1e9;
   for(const b of bs){if(b===cur)continue;const q=b.getBoundingClientRect(),x=(q.left+q.right)/2-cx,y=(q.top+q.bottom)/2-cy;
     const ok=k==='ArrowRight'?x>8:k==='ArrowLeft'?x<-8:k==='ArrowDown'?y>8:y<-8;if(!ok)continue;
     const d=(k==='ArrowRight'||k==='ArrowLeft')?Math.abs(x)+Math.abs(y)*2.5:Math.abs(y)+Math.abs(x)*2.5;if(d<bd){bd=d;best=b;}}
-  if(best){best.focus({preventScroll:true});best.scrollIntoView({block:'nearest',inline:'nearest'});}}
+  if(best){best.focus({preventScroll:true});if(mapCard)closeCard();}}
 
 
 /* =========================================================
