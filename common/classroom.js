@@ -1,7 +1,7 @@
 // 先生とのつながり（共通仕様書 4章）
 // 児童の端末 → 先生のGAS：参加の登録、学習の要約（片道）。先生のGAS → 端末：クラス設定とお知らせだけ。
 // 児童の記録は先生から返ってこない。実名は送らない（出席番号とハンドルネームだけ）。
-import * as store from './store.js?v=0.9.0';
+import * as store from './store.js?v=0.9.1';
 
 const REFRESH_MS = 2 * 60 * 1000;   // クラス設定（おしらせ・宿題など）はホームを開くたびに読む。続けて開いたときだけ2分あける
 const SEND_MAX = 50;                     // 1回に送る要約の数
@@ -71,7 +71,8 @@ export async function refresh(bookId, { force = false } = {}) {
   if (!cls || !cls.url) return cls;
   if (!force && cls.fetchedAt && Date.now() - cls.fetchedAt < REFRESH_MS) return cls;
   try {
-    const res = await get(cls.url, { action: 'config', c: cls.code, n: cls.number, t: cls.token });
+    // GET は 学校の端末で とどかない ことがあったので、すべて POST（text/plain）で 送る（2026-11-17）
+    const res = await post(cls.url, { action: 'config', c: cls.code, n: cls.number, t: cls.token }, 15000);
     if (res && res.ok) {
       return await store.update(`${bookId}/class`, (c) => c && ({ ...c, className: res.className ?? c.className,
         settings: res.settings || {}, notices: res.notices || [], timetable: res.timetable || null, fetchedAt: Date.now() }));
@@ -117,7 +118,7 @@ export async function loadTimetable(bookId) {
   if (!cls || !meta) return cached || null;
   if (cached && cached.id === meta.id && cached.updated === meta.updated) return cached;
   try {
-    const res = await get(cls.url, { action: 'timetable', c: cls.code, n: cls.number, t: cls.token }, 40000);
+    const res = await post(cls.url, { action: 'timetable', c: cls.code, n: cls.number, t: cls.token }, 40000);
     if (res && res.ok) {
       const tt = { id: res.id, name: res.name, mime: res.mime, updated: res.updated, data: res.data };
       await store.set(`${bookId}/timetable`, tt);
