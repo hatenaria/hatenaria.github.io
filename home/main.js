@@ -1,14 +1,14 @@
 // ホームアイランド v0.2
 // 島を歩く・建物を調べる・掲示板・気球で島めぐり・島から戻ったときの「おかえり」
 
-import * as store from '../common/store.js?v=0.7.0';
-import * as books from '../common/books.js?v=0.7.0';
-import { createHero, HAIRS, HAIR_COLORS, resolveHero } from '../common/hero/hero.js?v=0.7.0';
-import * as classroom from '../common/classroom.js?v=0.7.0';
-import { showPicker } from '../common/book-picker.js?v=0.7.0';
-import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE } from './data.js?v=0.7.0';
+import * as store from '../common/store.js?v=0.8.0';
+import * as books from '../common/books.js?v=0.8.0';
+import { createHero, HAIRS, HAIR_COLORS, resolveHero } from '../common/hero/hero.js?v=0.8.0';
+import * as classroom from '../common/classroom.js?v=0.8.0';
+import { showPicker } from '../common/book-picker.js?v=0.8.0';
+import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE } from './data.js?v=0.8.0';
 
-export const HOME_VERSION = '0.7.0';
+export const HOME_VERSION = '0.8.0';
 const PREVIEW = !!window.GI_PREVIEW; // アーティファクトでの試作表示（島へは移動しない）
 
 // 主人公の画像（仕様書2-4の規格：1コマ 384×512、足元 x=192, y=488。縮小した画像でも同じ比率で扱う）
@@ -1021,34 +1021,49 @@ function drawEditOver(now, cx, cy) {
 
 // ------------------------------------------------------------------ クラスに はいる（参加用リンク）
 function openJoin(link) {
-  let num = '';
+  // 1. しゅっせきばんごう → 2. あいことば（数字4けた。せんせいの カード）
+  let step = 'num', num = '', pin = '';
   openModal((m) => {
     m.className = 'modal build';
+    const lead = h('p', { class: 'body small' });
     const disp = h('div', { class: 'numdisp', 'aria-live': 'polite' }, '　');
     const err = h('p', { class: 'body small err' });
-    const paint = () => { disp.textContent = num || '　'; go.disabled = !num; };
-    const press = (d) => { if (d === 'del') num = num.slice(0, -1); else if (num.length < 2) num = (num + d).replace(/^0+/, ''); paint(); };
+    const back = h('button', { class: 'btn', 'data-act': 'back', onclick: () => { step = 'num'; pin = ''; err.textContent = ''; paint(); } }, 'もどる');
+    const paint = () => {
+      if (step === 'num') {
+        lead.textContent = `ぼうけんの しょ：📖 ${book.name}　しゅっせきばんごうを いれてね。`;
+        disp.textContent = num || '　'; go.textContent = 'つぎへ'; go.disabled = !num; back.hidden = back.disabled = true;
+      } else {
+        lead.textContent = `${num}ばん　せんせいから もらった カードの「あいことば」（すうじ 4つ）を いれてね。`;
+        disp.textContent = pin ? '●'.repeat(pin.length) + '○'.repeat(4 - pin.length) : '○○○○'; go.textContent = 'はいる'; go.disabled = pin.length !== 4; back.hidden = back.disabled = false;
+      }
+    };
+    const press = (d) => {
+      if (step === 'num') { if (d === 'del') num = num.slice(0, -1); else if (num.length < 2) num = (num + d).replace(/^0+/, ''); }
+      else if (d === 'del') pin = pin.slice(0, -1); else if (pin.length < 4) pin += d;
+      paint();
+    };
     const pad = h('div', { class: 'numpad' }, ...['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0'].map((d) =>
       h('button', { class: 'btn', 'data-num': d, onclick: () => press(d) }, d === 'del' ? 'けす' : d)));
     const go = h('button', { class: 'btn go', 'data-act': 'join', disabled: '', onclick: async () => {
+      if (step === 'num') { step = 'pin'; err.textContent = ''; paint(); return; }
       go.disabled = true; err.textContent = 'とうろく しているよ…';
       try {
-        cls = await classroom.join(book.id, link, { number: num, handle: book.name, grade: profile?.grade });
+        cls = await classroom.join(book.id, link, { number: num, pin, handle: book.name, grade: profile?.grade });
         classroom.clearJoinLink();
         closeModal();
         message('クラスに はいったよ！', `${cls.className || ''}の ${cls.number}ばん ${book.name}さん、よろしくね。\nがくしゅうの きろくが せんせいに とどくように なったよ。`);
-      } catch (e) { err.textContent = e.message || 'とうろく できなかったよ。もういちど ためしてね。'; go.disabled = false; }
-    } }, 'はいる');
+      } catch (e) { pin = ''; paint(); err.textContent = e.message || 'とうろく できなかったよ。もういちど ためしてね。'; }
+    } }, 'つぎへ');
     m.append(h('h2', {}, '🏫 クラスに はいる'),
-      cls ? h('p', { class: 'body small' }, `いまは ${cls.className || cls.code}に はいっているよ。あたらしい クラスに はいりなおすよ。`) : null,
-      h('p', { class: 'body small' }, `ぼうけんの しょ：📖 ${book.name}　しゅっせきばんごうを いれてね。`),
-      disp, pad, err,
+      ...(cls ? [h('p', { class: 'body small' }, `いまは ${cls.className || cls.code}に はいっているよ。あたらしい クラスに はいりなおすよ。`)] : []),
+      lead, disp, pad, err,
       h('div', { class: 'row end' },
-        h('button', { class: 'btn', 'data-act': 'cancel', onclick: () => { classroom.clearJoinLink(); closeModal(); } }, 'やめる'), go));
+        h('button', { class: 'btn', 'data-act': 'cancel', onclick: () => { classroom.clearJoinLink(); closeModal(); } }, 'やめる'), back, go));
     m.addEventListener('keydown', (e) => {
       if (/^[0-9]$/.test(e.key)) { e.preventDefault(); e.stopPropagation(); press(e.key); }
       else if (e.key === 'Backspace') { e.preventDefault(); e.stopPropagation(); press('del'); }
-      else if (e.key === 'Enter' && num && !e.repeat) { e.preventDefault(); e.stopPropagation(); go.click(); }
+      else if (e.key === 'Enter' && !go.disabled && !e.repeat) { e.preventDefault(); e.stopPropagation(); go.click(); }
     }, true);
     paint();
   });
@@ -1326,7 +1341,7 @@ function heroGender() { return profile?.hero?.gender === 'girl' ? 'girl' : 'boy'
 
 // ------------------------------------------------------------------ タイトル画面
 // ブラウザを開いて最初の1回だけ出す（島から戻ったときや、同じタブで開き直したときは出さない）
-const LOGO_SRC = 'assets/home/logo.webp?v=0.7.0';
+const LOGO_SRC = 'assets/home/logo.webp?v=0.8.0';
 function titleShownThisSession() { try { return sessionStorage.getItem('hatenaria-title') === '1'; } catch { return false; } }
 function markTitleShown() { try { sessionStorage.setItem('hatenaria-title', '1'); } catch { /* 使えなくても動く */ } }
 function showTitle(curBook) {

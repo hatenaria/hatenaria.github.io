@@ -1,9 +1,9 @@
 // 先生とのつながり（共通仕様書 4章）
 // 児童の端末 → 先生のGAS：参加の登録、学習の要約（片道）。先生のGAS → 端末：クラス設定とお知らせだけ。
 // 児童の記録は先生から返ってこない。実名は送らない（出席番号とハンドルネームだけ）。
-import * as store from './store.js?v=0.7.0';
+import * as store from './store.js?v=0.8.0';
 
-const REFRESH_MS = 6 * 60 * 60 * 1000;   // クラス設定の読み込みは6時間に1回まで
+const REFRESH_MS = 2 * 60 * 1000;   // クラス設定（おしらせ・宿題など）はホームを開くたびに読む。続けて開いたときだけ2分あける
 const SEND_MAX = 50;                     // 1回に送る要約の数
 
 /** 参加用リンクの GAS の場所。GAS の配置ID か、テスト用の localhost だけを受け付ける */
@@ -50,8 +50,8 @@ async function get(url, params, timeoutMs = 15000) {
 }
 
 /** クラスに入る（出席番号とハンドルネームを登録） */
-export async function join(bookId, { url, code }, { number, handle, grade }) {
-  const res = await post(url, { action: 'join', code, number: Number(number), handle, grade });
+export async function join(bookId, { url, code }, { number, pin, handle, grade }) {
+  const res = await post(url, { action: 'join', code, number: Number(number), pin: String(pin || ''), handle, grade });
   if (!res || !res.ok) throw new Error(res?.message || 'とうろく できなかったよ');
   const cls = { code, url, number: Number(number), handle, token: res.token, className: res.className || '',
     settings: res.settings || {}, notices: res.notices || [], fetchedAt: Date.now(), joinedAt: new Date().toISOString() };
