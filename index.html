@@ -6,9 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ハテナリア">
 <title>ハテナリア</title>
-<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png?v=0.9.1">
-<link rel="apple-touch-icon" href="assets/icons/icon-180.png?v=0.9.1">
-<link rel="manifest" href="manifest.json?v=0.9.1">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png?v=0.10.0">
+<link rel="apple-touch-icon" href="assets/icons/icon-180.png?v=0.10.0">
+<link rel="manifest" href="manifest.json?v=0.10.0">
 <style>
   :root{--ink:#3a3226;--paper:#fffaf0;--gold:#ffd66b;--gold-d:#d9a93a;--green:#9be3a8;--green-d:#5fb06d}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -134,6 +134,14 @@
   .menu2{display:flex;flex-direction:column;gap:12px;margin:8px 0 16px}
   .btn.big{min-height:76px;font-size:24px}
   .chips.big{justify-content:center;margin:6px 0 10px}.chips.big .chip{font-size:22px;padding:4px 14px}
+  /* やることボード */
+  .todo-list{display:flex;flex-direction:column;gap:8px;max-height:38vh;overflow:auto;margin:6px 0 10px}
+  .todo-row{display:flex;align-items:center;gap:10px;background:#fff;border-radius:14px;padding:6px 10px}
+  .todo-row.done .todo-text{text-decoration:line-through;color:#8a8170}
+  .todo-text{flex:1;font-size:20px;word-break:keep-all;overflow-wrap:anywhere}
+  .todo-check,.todo-del{min-width:56px;min-height:52px;font-size:24px;padding:0}
+  .todo-input{width:100%;box-sizing:border-box;font-size:22px;padding:12px 14px;border-radius:14px;border:2px solid #e3d6bd;margin:8px 0 12px}
+  .todo-garden{margin:4px 0 8px;line-height:1.8}
   /* じかんわり */
   .ttbox{max-height:62vh;overflow:auto;display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:12px}
   .ttimg{max-width:100%;height:auto;border-radius:10px;background:#fff}
@@ -183,6 +191,6 @@
 </div>
 <div id="hint"></div>
 <div id="layer"></div>
-<script type="module" src="home/main.js?v=0.9.1"></script>
+<script type="module" src="home/main.js?v=0.10.0"></script>
 </body>
 </html>

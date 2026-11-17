@@ -1,14 +1,14 @@
 // ホームアイランド v0.2
 // 島を歩く・建物を調べる・掲示板・気球で島めぐり・島から戻ったときの「おかえり」
 
-import * as store from '../common/store.js?v=0.9.1';
-import * as books from '../common/books.js?v=0.9.1';
-import { createHero, HAIRS, HAIR_COLORS, resolveHero } from '../common/hero/hero.js?v=0.9.1';
-import * as classroom from '../common/classroom.js?v=0.9.1';
-import { showPicker } from '../common/book-picker.js?v=0.9.1';
-import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE } from './data.js?v=0.9.1';
+import * as store from '../common/store.js?v=0.10.0';
+import * as books from '../common/books.js?v=0.10.0';
+import { createHero, HAIRS, HAIR_COLORS, resolveHero } from '../common/hero/hero.js?v=0.10.0';
+import * as classroom from '../common/classroom.js?v=0.10.0';
+import { showPicker } from '../common/book-picker.js?v=0.10.0';
+import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE } from './data.js?v=0.10.0';
 
-export const HOME_VERSION = '0.9.1';
+export const HOME_VERSION = '0.10.0';
 const PREVIEW = !!window.GI_PREVIEW; // アーティファクトでの試作表示（島へは移動しない）
 
 // 主人公の画像（仕様書2-4の規格：1コマ 384×512、足元 x=192, y=488。縮小した画像でも同じ比率で扱う）
@@ -514,6 +514,8 @@ function focusButton(b) {
 function modalKey(e) {
   const m = layer.querySelector('.modal');
   if (!m) return;
+  // 文字を入れているときは、矢印・スペース・Enter を 入力欄に まかせる（Esc だけ 小窓を とじる）
+  if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName) && e.key !== 'Escape') return;
   const keys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', ' ', 'Escape', 'Tab'];
   if (!keys.includes(e.key)) return;
   e.preventDefault(); // ボタンの二重決定やページのスクロールを防ぐ
@@ -542,6 +544,7 @@ function modalKey(e) {
 function h(tag, attrs = {}, ...kids) {
   const e = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue; // null・false の 属性は つけない
     if (k === 'class') e.className = v; else if (k.startsWith('on')) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v);
   }
   for (const c of kids) if (c != null) e.append(c);
@@ -617,6 +620,7 @@ function openTimetable() {
 function interact(o) {
   const t = OBJECT_TYPES[o.type];
   if (o.type === 'board') return openBoard();
+  if (o.type === 'todo') return openTodo();
   if (o.type === 'balloon') return openIslands();
   if (o.type === 'school') return message('がっこう', 'せんせいからの おしらせは、がっこうの まえの けいじばんで よめるよ。');
   if (o.type === 'house') return message('じぶんの いえ', `${book.name}さんの いえだよ。\nいつか なかにも はいれるように なるよ。`);
@@ -770,7 +774,7 @@ const CHUNK = 3;                       // 3×3マスずつ ひろげる
 const MAX_EXPANSIONS = 12;
 const EXPAND_PAIRS = [['math', 'kokugo'], ['rika', 'shakai'], ['eigo', 'math'], ['kokugo', 'rika'], ['shakai', 'eigo']];
 const WORLD = { x0: -9, y0: -9, x1: 26, y1: 22 };  // ここより外には ひろげない
-const FIXED = new Set(['school', 'board', 'house', 'balloon', 'exchange', 'kisekae']); // 大事な施設は うごかせない
+const FIXED = new Set(['school', 'board', 'todo', 'house', 'balloon', 'exchange', 'kisekae']); // 大事な施設は うごかせない
 const movable = (o) => !FIXED.has(o.type);
 
 function expandCost() {
@@ -1129,6 +1133,72 @@ function openClassInfo() {
 }
 
 
+// ------------------------------------------------------------------ やることボード（自分の家の前。自分だけの やること。先生には 送らない）
+const TODO_MAX = 10;
+const TODO_PRESETS = [['📚', 'しゅくだい'], ['✏️', 'れんしゅう'], ['🎒', 'もちもの'], ['🧹', 'おてつだい']];
+const todayKey = (d = new Date()) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+async function loadTodo() {
+  // おわった ものは、つぎの日に 片づける（さいた はなは のこる）
+  return store.update(`${book.id}/todo`, (t) => {
+    t = t || { items: [], flowers: 0 };
+    const today = todayKey();
+    t.items = (t.items || []).filter((it) => !(it.done && it.doneOn !== today));
+    return t;
+  }, { fallback: null });
+}
+function openTodo() {
+  let mode = 'list'; // 'list' | 'write'
+  openModal(async (m) => {
+    m.className = 'modal build todo';
+    let t = await loadTodo();
+    const save = async (fn) => { t = await store.update(`${book.id}/todo`, (x) => { x = x || { items: [], flowers: 0 }; fn(x); return x; }, { fallback: null }); paint(); };
+    const add = (icon, text) => save((x) => {
+      if (x.items.length >= TODO_MAX) return;
+      x.items.push({ id: Math.random().toString(36).slice(2, 9), icon, text: String(text).slice(0, 20), done: false, at: Date.now() });
+    });
+    const paint = () => {
+      const today = todayKey();
+      const doneToday = t.items.filter((it) => it.done && it.doneOn === today).length;
+      const kids = [h('h2', {}, '📝 やることボード'),
+        h('p', { class: 'body small' }, `${book.name}さんの やること。ここに かいたことは、この たんまつの なかだけに のこるよ。`)];
+      if (mode === 'write') {
+        const inp = h('input', { class: 'todo-input', type: 'text', maxlength: '20', placeholder: 'やることを かいてね（20もじまで）', 'aria-label': 'やること' });
+        const ok = () => { const v = inp.value.trim(); if (!v) return; mode = 'list'; add('⭐', v); };
+        inp.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); ok(); } });
+        kids.push(inp, h('div', { class: 'row end' },
+          h('button', { class: 'btn', 'data-act': 'back', onclick: () => { mode = 'list'; paint(); } }, 'もどる'),
+          h('button', { class: 'btn go', 'data-act': 'write-ok', onclick: ok }, 'いれる')));
+        m.replaceChildren(...kids);
+        requestAnimationFrame(() => inp.focus());
+        return;
+      }
+      const list = h('div', { class: 'todo-list', 'data-scroll': '1' });
+      if (!t.items.length) list.append(h('p', { class: 'body small' }, 'まだ なにも ないよ。したの ボタンで いれてみよう。'));
+      for (const it of t.items) {
+        list.append(h('div', { class: 'todo-row' + (it.done ? ' done' : '') },
+          h('button', { class: 'btn todo-check', 'data-todo': it.id, 'aria-label': (it.done ? 'おわった：' : 'まだ：') + it.text, onclick: () => save((x) => {
+            const y = x.items.find((z) => z.id === it.id); if (!y) return;
+            y.done = !y.done; y.doneOn = y.done ? todayKey() : null;
+            x.flowers = Math.max(0, (x.flowers || 0) + (y.done ? 1 : -1));
+          }) }, it.done ? '✅' : '⬜'),
+          h('span', { class: 'todo-text' }, `${it.icon || ''} ${it.text}`),
+          h('button', { class: 'btn todo-del', 'data-del': it.id, 'aria-label': 'けす：' + it.text, onclick: () => save((x) => { x.items = x.items.filter((z) => z.id !== it.id); }) }, '🗑')));
+      }
+      const full = t.items.length >= TODO_MAX;
+      const presets = h('div', { class: 'hopts' }, ...TODO_PRESETS.map(([ic, tx]) =>
+        h('button', { class: 'btn xmat', 'data-preset': tx, disabled: full ? '' : null, onclick: () => add(ic, tx) }, `${ic} ${tx}`)),
+        h('button', { class: 'btn xmat', 'data-act': 'write', disabled: full ? '' : null, onclick: () => { mode = 'write'; paint(); } }, '✍️ じぶんで かく'));
+      const garden = h('p', { class: 'body small todo-garden' },
+        doneToday ? `きょう おわった こと：${doneToday}　${'🌸'.repeat(Math.min(doneToday, 10))}` : 'おわったら ⬜ を おしてね。はなが さくよ。',
+        h('br'), `これまでに さいた はな：🌷 ${t.flowers || 0}`);
+      kids.push(list, garden, h('div', { class: 'xlabel' }, full ? `いっぱいだよ（${TODO_MAX}こ まで）` : 'やることを いれる'), presets,
+        h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', onclick: closeModal }, 'とじる')));
+      m.replaceChildren(...kids);
+    };
+    paint();
+  });
+}
+
 // ------------------------------------------------------------------ しゅじんこうを かえる（男女・髪型・髪の色）
 function openHeroEditor() {
   const cur = () => resolveHero(profile?.hero || {});
@@ -1380,7 +1450,7 @@ function heroGender() { return profile?.hero?.gender === 'girl' ? 'girl' : 'boy'
 
 // ------------------------------------------------------------------ タイトル画面
 // ブラウザを開いて最初の1回だけ出す（島から戻ったときや、同じタブで開き直したときは出さない）
-const LOGO_SRC = 'assets/home/logo.webp?v=0.9.1';
+const LOGO_SRC = 'assets/home/logo.webp?v=0.10.0';
 function titleShownThisSession() { try { return sessionStorage.getItem('hatenaria-title') === '1'; } catch { return false; } }
 function markTitleShown() { try { sessionStorage.setItem('hatenaria-title', '1'); } catch { /* 使えなくても動く */ } }
 function showTitle(curBook) {
