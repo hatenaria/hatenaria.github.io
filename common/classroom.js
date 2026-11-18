@@ -1,7 +1,7 @@
 // 先生とのつながり（共通仕様書 4章）
 // 児童の端末 → 先生のGAS：参加の登録、学習の要約（片道）。先生のGAS → 端末：クラス設定とお知らせだけ。
 // 児童の記録は先生から返ってこない。実名は送らない（出席番号とハンドルネームだけ）。
-import * as store from './store.js?v=0.11.0';
+import * as store from './store.js?v=0.12.0';
 
 const REFRESH_MS = 2 * 60 * 1000;   // クラス設定（おしらせ・宿題など）はホームを開くたびに読む。続けて開いたときだけ2分あける
 const SEND_MAX = 50;                     // 1回に送る要約の数
@@ -54,7 +54,7 @@ export async function join(bookId, { url, code }, { number, pin, handle, grade }
   const res = await post(url, { action: 'join', code, number: Number(number), pin: String(pin || ''), handle, grade });
   if (!res || !res.ok) throw new Error(res?.message || 'とうろく できなかったよ');
   const cls = { code, url, number: Number(number), handle, token: res.token, className: res.className || '',
-    settings: res.settings || {}, notices: res.notices || [], timetable: res.timetable || null, fetchedAt: Date.now(), joinedAt: new Date().toISOString() };
+    settings: res.settings || {}, notices: res.notices || [], timetable: res.timetable || null, events: res.events || [], fetchedAt: Date.now(), joinedAt: new Date().toISOString() };
   await store.set(`${bookId}/class`, cls);
   return cls;
 }
@@ -75,7 +75,7 @@ export async function refresh(bookId, { force = false } = {}) {
     const res = await post(cls.url, { action: 'config', c: cls.code, n: cls.number, t: cls.token }, 15000);
     if (res && res.ok) {
       return await store.update(`${bookId}/class`, (c) => c && ({ ...c, className: res.className ?? c.className,
-        settings: res.settings || {}, notices: res.notices || [], timetable: res.timetable || null, fetchedAt: Date.now() }));
+        settings: res.settings || {}, notices: res.notices || [], timetable: res.timetable || null, events: res.events || [], fetchedAt: Date.now() }));
     }
     if (res && res.code === 'unknown') { // 先生が名簿から消した・クラスを作り直した
       return await store.update(`${bookId}/class`, (c) => c && ({ ...c, invalid: true, fetchedAt: Date.now() }));

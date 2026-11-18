@@ -6,9 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ハテナリア">
 <title>ハテナリア</title>
-<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png?v=0.11.0">
-<link rel="apple-touch-icon" href="assets/icons/icon-180.png?v=0.11.0">
-<link rel="manifest" href="manifest.json?v=0.11.0">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png?v=0.12.0">
+<link rel="apple-touch-icon" href="assets/icons/icon-180.png?v=0.12.0">
+<link rel="manifest" href="manifest.json?v=0.12.0">
 <style>
   :root{--ink:#3a3226;--paper:#fffaf0;--gold:#ffd66b;--gold-d:#d9a93a;--green:#9be3a8;--green-d:#5fb06d}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -137,6 +137,18 @@
   .menu2{display:flex;flex-direction:column;gap:12px;margin:8px 0 16px}
   .btn.big{min-height:76px;font-size:24px}
   .chips.big{justify-content:center;margin:6px 0 10px}.chips.big .chip{font-size:22px;padding:4px 14px}
+  /* きせかえや */
+  .kisekae .tabs{margin:6px 0}
+  .kisekae .wlist{max-height:30vh;overflow:auto;margin:4px 0}
+  .kisekae .wtag{display:block;font-size:13px;opacity:.75;margin-top:2px}
+  /* クラスイベント */
+  .ev-card{background:linear-gradient(#fff,#fff5e2);border-radius:16px;padding:10px 16px;margin:4px 0 12px;box-shadow:inset 0 -5px 0 #f1dcb4}
+  .ev-card h3{margin:0 0 4px;font-size:20px}
+  .ev-card.has-tree{position:relative;padding-right:120px;min-height:130px}
+  .ev-tree{position:absolute;right:12px;bottom:8px;width:96px}
+  .ev-bar{height:18px;border-radius:9px;background:#eadfca;overflow:hidden;margin:6px 0}
+  .ev-fill{height:100%;background:linear-gradient(90deg,#7cc6a4,#9bd8a0);border-radius:9px}
+  .ev-num{margin:2px 0;font-weight:bold;font-size:18px}
   /* かざりだな・まなびの きろく */
   .shelf-box,.desk-box{max-height:56vh;overflow:auto;margin-bottom:10px}
   .shelf-row{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 12px}
@@ -195,7 +207,7 @@
 <body>
 <canvas id="world" aria-label="ホームアイランドの しま"></canvas>
 <div class="hud"><span class="chip" id="who"></span><span class="chip" id="coins"></span></div>
-<div class="editbar" id="editbar"><span id="edittext"></span><button class="btn" id="editdone">おわる</button></div>
+<div class="editbar" id="editbar"><span id="edittext"></span><button class="btn" id="editrot" hidden>🔄 まわす</button><button class="btn" id="editdone">おわる</button></div>
 <div class="tr">
   <button class="btn" id="btn-build">🛠 しまづくり</button>
   <button class="btn sky" id="btn-balloon">🎈 しまめぐり</button>
@@ -212,6 +224,6 @@
 </div>
 <div id="hint"></div>
 <div id="layer"></div>
-<script type="module" src="home/main.js?v=0.11.0"></script>
+<script type="module" src="home/main.js?v=0.12.0"></script>
 </body>
 </html>

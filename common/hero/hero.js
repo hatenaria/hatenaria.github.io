@@ -14,9 +14,9 @@
 // 重ねる順（共通仕様書 2-4）：奥の髪 → 体 → 服 → アクセサリー → 手前の髪
 // 画像が読めないときは createHero が例外を投げる。呼ぶ側で仮の絵に切り替える
 // =====================================================================
-import { SHEET, BODY, HAIRS, HAIR_COLORS, HAIR_COLOR_STOPS, OUTFITS, ACCESSORIES, DEFAULTS } from './parts.js?v=0.11.0';
+import { SHEET, BODY, HAIRS, HAIR_COLORS, HAIR_COLOR_STOPS, OUTFITS, ACCESSORIES, DEFAULTS } from './parts.js?v=0.12.0';
 
-export const HERO_VERSION = '1.1.0';
+export const HERO_VERSION = '1.2.0';
 const { cellW: CW, cellH: CH, footX: FX, footY: FY, dirs: DIRS } = SHEET;
 const DEFAULT_BASE = new URL('./', import.meta.url).href;
 

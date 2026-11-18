@@ -1,4 +1,4 @@
-// ハテナリア 共通部品：主人公の部品一覧（parts.js） 版 1.1.0
+// ハテナリア 共通部品：主人公の部品一覧（parts.js） 版 1.2.0（2026-11-18 からホームのチャットが管理）
 // ---------------------------------------------------------------------
 // 部品を増やすときは、画像を1枚このフォルダに置き、下の一覧に1行足すだけ。
 // プログラム（hero.js）は書き換えない（共通仕様書 2-4「追加の手順」）。
@@ -21,6 +21,8 @@ export const BODY = { src: 'body.webp' }; // hero_body_v2（男女共通、描�
 export const HAIRS = {
   'boy-01':  { name: 'はねた みじかい かみ', gender: 'boy',  src: 'hair_boy_01.webp' },
   'girl-01': { name: 'ポニーテール',         gender: 'girl', src: 'hair_girl_01.webp' },
+  'boy-02':  { name: 'まるい ショート',       gender: 'boy',  src: 'hair_boy_02.webp' },   // 第3便
+  'girl-02': { name: 'ふんわり ボブ',         gender: 'girl', src: 'hair_girl_02.webp' },  // 第3便
 };
 
 /** 髪色。髪の明るさの濃淡に、いちばん暗い所・影・基本・明るい所の4色を当てる（パステル調） */
@@ -33,13 +35,17 @@ export const HAIR_COLORS = {
 };
 export const HAIR_COLOR_STOPS = [0, 0.35, 0.6, 1]; // 輪郭・影・基本・光沢 を当てる明るさの位置
 
-/** 服（上下セット）。冒険服A・B は ChatGPT で制作中。完成したらここに足す
- *  例：'adventurer-a': { name: 'ぼうけんふく A', src: 'outfit_adventurer_a.webp' } */
-export const OUTFITS = {};
+/** 服（上下セット）。ねだんは ホームの data.js（WARDROBE_PRICES）で きめる */
+export const OUTFITS = {
+  'adventurer-a': { name: 'たんけんの ベスト', src: 'outfit_adventurer_a.webp' }, // 第2便
+  'adventurer-b': { name: 'たんけんの ジャケット', src: 'outfit_adventurer_b.webp' }, // 第2便
+  'casual-c':     { name: 'ふんわり パーカー', src: 'outfit_casual_c.webp' },      // 第3便
+};
 
-/** アクセサリー。コンパスのペンダントは制作中
- *  例：'compass': { name: 'コンパスの ペンダント', src: 'accessory_compass.webp' } */
-export const ACCESSORIES = {};
+/** アクセサリー（上段の4コマだけ。歩くときは胸の動きに合わせて動く） */
+export const ACCESSORIES = {
+  'compass': { name: 'コンパスの ペンダント', src: 'accessory_compass.webp' }, // 第2便
+};
 
 /** profile.hero で null（まだ決めていない）のときに使う値 */
 export const DEFAULTS = {

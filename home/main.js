@@ -1,14 +1,14 @@
 // ホームアイランド v0.2
 // 島を歩く・建物を調べる・掲示板・気球で島めぐり・島から戻ったときの「おかえり」
 
-import * as store from '../common/store.js?v=0.11.0';
-import * as books from '../common/books.js?v=0.11.0';
-import { createHero, HAIRS, HAIR_COLORS, resolveHero } from '../common/hero/hero.js?v=0.11.0';
-import * as classroom from '../common/classroom.js?v=0.11.0';
-import { showPicker } from '../common/book-picker.js?v=0.11.0';
-import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM } from './data.js?v=0.11.0';
+import * as store from '../common/store.js?v=0.12.0';
+import * as books from '../common/books.js?v=0.12.0';
+import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.12.0';
+import * as classroom from '../common/classroom.js?v=0.12.0';
+import { showPicker } from '../common/book-picker.js?v=0.12.0';
+import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES } from './data.js?v=0.12.0';
 
-export const HOME_VERSION = '0.11.0';
+export const HOME_VERSION = '0.12.0';
 const PREVIEW = !!window.GI_PREVIEW; // アーティファクトでの試作表示（島へは移動しない）
 
 // 主人公の画像（仕様書2-4の規格：1コマ 384×512、足元 x=192, y=488。縮小した画像でも同じ比率で扱う）
@@ -143,6 +143,7 @@ function objectAt(x, y) {
 function walkable(x, y) {
   if (scene === 'room') return roomWalkable(x, y);
   if (isWater(x, y)) return false;
+  if (isGate(x, y)) return false;
   const o = objectAt(x, y);
   return !(o && OBJECT_TYPES[o.type].solid);
 }
@@ -218,6 +219,7 @@ function frontOf(o) {
 function facingObject() {
   if (scene === 'room') return roomFacing();
   const [dx, dy] = DIRS[player.dir];
+  if (isGate(player.x + dx, player.y + dy)) return GATE;
   const here = objectAt(player.x, player.y);
   const o = objectAt(player.x + dx, player.y + dy) || (here && !OBJECT_TYPES[here.type].solid ? here : null);
   return o && !OBJECT_TYPES[o.type].deco && !OBJECT_TYPES[o.type].ground ? o : null;
@@ -238,6 +240,7 @@ function update(now) {
     } else if (pendingInteract) {
       const o = pendingInteract; pendingInteract = null;
       if (scene === 'room') { if (roomFaceDir) player.dir = roomFaceDir; roomInteract(o); }
+      else if (o.gate) { player.dir = 'up'; interact(o); }
       else { player.dir = (player.y >= o.y + OBJECT_TYPES[o.type].h) ? 'up' : player.dir; interact(o); }
     }
   }
@@ -428,7 +431,7 @@ function drawPlaza(o, t, px, py, now) {
   for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; ctx.beginPath(); ctx.ellipse(cx + Math.cos(a) * W * .32, cy + Math.sin(a) * H * .28, T * .12, T * .08, a, 0, 7); ctx.fill(); }
   ctx.fillStyle = '#f7c8d6'; ctx.beginPath(); ctx.ellipse(cx, cy, T * .32, T * .24, 0, 0, 7); ctx.fill();
   ctx.fillStyle = '#fff6d8'; ctx.font = `${Math.round(T * .3)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('✦', cx, cy + 1);
-  drawLabel('イベントひろば', cx, py + H * .12);
+  if (!gateTile()) drawLabel('イベントひろば', cx, py + H * .12); // もんが たつ あいだは もんの 名前を 出す
 }
 
 function drawLot(o, t, px, py) {
@@ -483,6 +486,7 @@ function draw(now) {
     else if (o.type === 'plaza') drawPlaza(o, t, px, py, now);
     else drawBuilding(o, t, px, py, now);
   }
+  drawGate(now);
   drawEditOver(now, cx, cy);
   drawBuildFx(now, cx, cy);
   // 名札（主人公の体に重なるものはうすく）
@@ -495,7 +499,7 @@ function draw(now) {
   // 調べられる建物の名前
   const f = !editMode && !player.moving && !modalOpen && facingObject();
   const hint = document.getElementById('hint');
-  if (f) { hint.textContent = `${OBJECT_TYPES[f.type].name}を しらべる`; hint.classList.add('show'); }
+  if (f) { hint.textContent = `${f.gate ? 'イベントの もん' : OBJECT_TYPES[f.type].name}を しらべる`; hint.classList.add('show'); }
   else hint.classList.remove('show');
 }
 
@@ -595,6 +599,9 @@ function openBoard() {
         h('div', { class: 'ndate' }, n.date.replace(/^\d+-0?(\d+)-0?(\d+)$/, '$1がつ $2にち'), unread ? h('span', { class: 'new' }, 'あたらしい') : null),
         h('h3', {}, n.title), h('p', {}, ...linkify(n.body))));
     }
+    const ev = activeEvent() || unclaimedEvent();
+    if (ev) m.append(eventCard(ev));
+    if (ev && ev.done >= ev.goal && !claimedEvents.includes(ev.id)) m.append(h('div', { class: 'row' }, h('button', { class: 'btn go', 'data-act': 'evclaim', onclick: () => { closeModal(); claimEvent(ev); } }, '🎁 ごほうびを うけとる')));
     if (cls?.timetable && !cls.invalid) m.append(h('div', { class: 'row' }, h('button', { class: 'btn go', 'data-act': 'timetable', onclick: openTimetable }, '📅 じかんわりを みる')));
     m.append(list, h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', onclick: closeModal }, 'とじる')));
     home.readNotices = [...new Set([...home.readNotices, ...notices().map((n) => n.id)])].slice(-200);
@@ -646,7 +653,9 @@ function interact(o) {
   if (o.type === 'todo') return openTodo();
   if (o.type === 'balloon') return openIslands();
   if (o.type === 'school') return message('がっこう', 'せんせいからの おしらせは、がっこうの まえの けいじばんで よめるよ。');
+  if (o.gate) return openEvent();
   if (o.type === 'house') return enterRoom();
+  if (o.type === 'kisekae') return openKisekae();
   if (o.type === 'lot') return openBuild(o);
   if (o.type === 'exchange') return openExchange();
   if (t.built) return message(t.name, BUILDABLES.find((b) => b.type === o.type)?.desc || '');
@@ -1156,6 +1165,105 @@ function openClassInfo() {
 }
 
 
+// ------------------------------------------------------------------ クラスイベント（みんなで もくひょう。仕様書11-3）
+// 先生の シート「イベント」の 期間中は、イベントひろばの おくに「イベントの もん」が たつ
+const activeEvent = () => (cls && !cls.invalid ? (cls.events || []).find((e) => e.open) : null);
+const doneEvents = () => (cls && !cls.invalid ? (cls.events || []).filter((e) => e.done >= e.goal) : []);
+let claimedEvents = [];
+function gateTile() {
+  if (scene !== 'island' || !activeEvent()) return null;
+  const pz = home.objects.find((o) => o.type === 'plaza');
+  return pz ? [pz.x + 1, pz.y] : null;
+}
+// ツリーの イベント（名前に「ツリー」「クリスマス」）は、ひろばに ツリーが たち、みんなの 数で かざりが ふえる
+const isTreeEvent = (ev) => !!ev && /ツリー|クリスマス/.test(ev.name);
+function treeTile() {
+  const g = gateTile(); if (!g || !isTreeEvent(activeEvent())) return null;
+  return [g[0] + 1, g[1] + 1];
+}
+const treeStage = (ev) => { const k = ev.done / ev.goal; return k >= 1 ? 3 : k >= .6 ? 2 : k >= .3 ? 1 : 0; };
+const isGate = (x, y) => { const g = gateTile(); if (g && g[0] === x && g[1] === y) return true; const t = treeTile(); return !!t && t[0] === x && t[1] === y; };
+const GATE = { type: 'gate', gate: true };
+function unclaimedEvent() { return doneEvents().find((e) => !claimedEvents.includes(e.id)); }
+const eventImgs = {};
+for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.12.0'], ['t0', 'assets/home/xmas_tree0.webp?v=0.12.0'], ['t1', 'assets/home/xmas_tree1.webp?v=0.12.0'], ['t2', 'assets/home/xmas_tree2.webp?v=0.12.0'], ['t3', 'assets/home/xmas_tree3.webp?v=0.12.0']]) {
+  const im = new Image(); im.onload = () => { eventImgs[k] = im; }; im.src = new URL('../' + src, import.meta.url).href;
+}
+function drawGate(now) {
+  const g = gateTile(); if (!g) return;
+  const [cx, cy] = camera();
+  const x = g[0] * T - cx, y = g[1] * T - cy, w = T;
+  const ev = activeEvent();
+  const tt = treeTile();
+  if (tt && eventImgs['t' + treeStage(ev)]) { // ツリー（もんの みぎ まえ）
+    const im = eventImgs['t' + treeStage(ev)], tw = T * 1.15, th = im.height * tw / im.width;
+    const tx = tt[0] * T - cx + (T - tw) / 2, ty = tt[1] * T - cy + T * .95 - th;
+    ctx.fillStyle = 'rgba(60,40,20,.16)'; ctx.beginPath(); ctx.ellipse(tx + tw / 2, ty + th - T * .04, T * .45, T * .12, 0, 0, 7); ctx.fill();
+    ctx.drawImage(im, tx, ty, tw, th);
+  }
+  ctx.fillStyle = 'rgba(60,40,20,.16)'; ctx.beginPath(); ctx.ellipse(x + w / 2, y + T * .92, T * .8, T * .14, 0, 0, 7); ctx.fill();
+  const k = Math.min(1, ev.done / ev.goal);
+  let barY = y + T * .5;
+  if (eventImgs.gate) {
+    const im = eventImgs.gate, gw = T * 1.9, gh = im.height * gw / im.width, gx = x + (w - gw) / 2, gy = y + T * .97 - gh;
+    ctx.drawImage(im, gx, gy, gw, gh);
+    // かんばんに イベントの 名前
+    const sx = gx + gw * .5, sy = gy + gh * .245, maxW = gw * .74;
+    let fs = Math.round(T * .3); ctx.font = `bold ${fs}px "Zen Maru Gothic", sans-serif`;
+    while (ctx.measureText(ev.name).width > maxW && fs > 9) { fs--; ctx.font = `bold ${fs}px "Zen Maru Gothic", sans-serif`; }
+    ctx.fillStyle = '#7a3e1c'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ev.name, sx, sy);
+    barY = gy + gh * .4;
+  } else { // 絵が まだのときの かんたんな もん
+    ctx.fillStyle = '#e8916f'; roundRect(x - T * .18, y - T * .55, T * .2, T * 1.45, T * .08); ctx.fill(); roundRect(x + w - T * .02, y - T * .55, T * .2, T * 1.45, T * .08); ctx.fill();
+    ctx.fillStyle = '#f6c26b'; roundRect(x - T * .32, y - T * .78, w + T * .64, T * .3, T * .14); ctx.fill();
+    drawLabelNow(ev.name, x + w / 2, y - T * 1.0, '#7a3e1c');
+  }
+  // すすみぐあいの バー
+  ctx.fillStyle = 'rgba(255,255,255,.92)'; roundRect(x + T * .05, barY, w - T * .1, T * .16, T * .08); ctx.fill();
+  ctx.fillStyle = '#7cc6a4'; roundRect(x + T * .05, barY, Math.max(T * .16, (w - T * .1) * k), T * .16, T * .08); ctx.fill();
+  if (unclaimedEvent()) drawUnreadBadge(x + w / 2 + T * .8, y - T * 1.2, now);
+}
+function eventCard(ev) {
+  const k = Math.min(1, ev.done / ev.goal);
+  const tree = isTreeEvent(ev) ? h('img', { class: 'ev-tree', src: new URL(`../assets/home/xmas_tree${treeStage(ev)}.webp?v=${HOME_VERSION}`, import.meta.url).href, alt: '' }) : null;
+  return h('div', { class: 'ev-card' + (tree ? ' has-tree' : ''), 'data-event': ev.id }, tree,
+    h('h3', {}, `🎉 ${ev.name}`),
+    ev.desc ? h('p', { class: 'body small' }, ev.desc) : null,
+    h('div', { class: 'ev-bar' }, h('div', { class: 'ev-fill', style: `width:${Math.round(k * 100)}%` })),
+    h('p', { class: 'ev-num' }, ev.done >= ev.goal ? `たっせい！ みんなで ${ev.done}もん` : `みんなで ${ev.done} / ${ev.goal}もん`),
+    h('p', { class: 'body small' }, `${ev.start.slice(5).replace('-', '/')}〜${ev.end.slice(5).replace('-', '/')}　1人 1日 ${ev.cap}もんまで かぞえるよ`));
+}
+async function claimEvent(ev) {
+  if (claimedEvents.includes(ev.id)) return;
+  claimedEvents = [...claimedEvents, ev.id];
+  await store.set(`${book.id}/eventsClaimed`, claimedEvents);
+  const f = FURNITURE[ev.reward];
+  if (f) {
+    if (!room) await loadRoom();
+    room.storage[ev.reward] = (room.storage[ev.reward] || 0) + 1; await saveRoom();
+  }
+  // かざりだなに 記念の トロフィー
+  await store.update(`${book.id}/collection`, (list) => {
+    list = Array.isArray(list) ? list : [];
+    if (list.some((x) => x.appId === 'class-event' && x.id === ev.id)) return list;
+    return [...list, { appId: 'class-event', subject: 'event', id: ev.id, name: ev.name.slice(0, 30), img: '', kind: 'trophy', at: new Date().toISOString() }];
+  }, { fallback: [] });
+  message('🎉 たっせい！', `${ev.name}\nクラスの みんなで がんばったね。\n${f ? `ごほうびの「${f.name}」が「しまってある かぐ」に とどいたよ。\n` : ''}かざりだなに きねんの トロフィーが ならんだよ。`);
+}
+function openEvent() {
+  const ev = activeEvent() || unclaimedEvent();
+  if (!ev) return;
+  openModal((m) => {
+    m.className = 'modal build ev';
+    const canClaim = ev.done >= ev.goal && !claimedEvents.includes(ev.id);
+    m.append(h('h2', {}, '🎪 イベントの もん'), eventCard(ev),
+      h('p', { class: 'body small' }, canClaim ? 'みんなで たっせい した！ ごほうびを うけとろう。' : 'しまで もんだいを とくと、みんなの かずが ふえるよ。'),
+      h('div', { class: 'row end' },
+        h('button', { class: 'btn', 'data-act': 'close', onclick: closeModal }, 'とじる'),
+        canClaim ? h('button', { class: 'btn go', 'data-act': 'claim', 'data-default': '', onclick: () => { closeModal(); claimEvent(ev); } }, 'ごほうびを うけとる') : null));
+  });
+}
+
 // ================================================================== 自分の家の中（v0.11.0、仕様書10章）
 // 島と 同じ 主人公・同じ 操作で、へやの 中を 歩く。へやの マスは 遠近に あわせて 絵の 床に のせる
 let scene = 'island';     // 'island' | 'room'
@@ -1165,9 +1273,16 @@ let roomEdit = null;      // もようがえ中：{ cur:[x,y], move:{item, from:
 const roomImgs = {};      // 絵（へや・かぐ）
 function loadRoomImages() {
   for (const [k, w] of Object.entries(ROOM_WALLS)) if (!roomImgs['wall:' + k]) { const im = new Image(); im.onload = () => { roomImgs['wall:' + k] = im; }; im.src = w.src; }
-  for (const [k, f] of Object.entries(FURNITURE)) if (!roomImgs[k]) { const im = new Image(); im.onload = () => { roomImgs[k] = im; }; im.src = f.src; }
+  for (const [k, f] of Object.entries(FURNITURE)) {
+    if (!roomImgs[k]) { const im = new Image(); im.onload = () => { roomImgs[k] = im; }; im.src = f.src; }
+    for (const [d, v] of Object.entries(f.views || {})) if (!roomImgs[k + ':' + d]) { const im = new Image(); im.onload = () => { roomImgs[k + ':' + d] = im; }; im.src = v.src; }
+  }
 }
-const fsize = (it) => FURNITURE[it.type] || { w: 1, h: 1 };
+// むきに あわせた 床の 大きさ（左右むきでは w と h が いれかわる）
+const fsize = (it) => { const f = FURNITURE[it.type] || { w: 1, h: 1 }; return (it.dir === 'left' || it.dir === 'right') ? { w: f.h, h: f.w } : { w: f.w, h: f.h }; };
+// その かぐが むける むき（絵が ある むきだけ）
+function furnDirs(type) { const v = FURNITURE[type]?.views || {}; return ['down', ...(v.left ? ['left'] : []), ...(v.up ? ['up'] : []), ...(v.left ? ['right'] : [])]; }
+function nextDir(type, d) { const a = furnDirs(type); return a[(a.indexOf(d || 'down') + 1) % a.length]; }
 const inRoom = (x, y) => x >= 0 && y >= 0 && x < ROOM.cols && y < ROOM.rows;
 const isDoor = (x, y) => ROOM.door.some(([a, b]) => a === x && b === y);
 function roomItemsAt(x, y, items = room.items) {
@@ -1210,6 +1325,11 @@ async function loadRoom() {
   room = await store.get(`${book.id}/room`);
   if (!room) { room = DEFAULT_ROOM(); await store.set(`${book.id}/room`, room); }
   room.storage = room.storage || {};
+  if ((room.v || 1) < 2) { // v2：つくえの まえの いすを うしろむきに
+    const ch = room.items.find((it) => it.type === 'chair' && it.x === 4 && it.y === 1 && !it.dir);
+    if (ch) ch.dir = 'up';
+    room.v = 2; saveRoom();
+  }
   loadRoomImages();
 }
 async function saveRoom() { await store.set(`${book.id}/room`, room); }
@@ -1314,14 +1434,20 @@ function drawRoom(now) {
       if (heroParts) heroParts.draw(ctx, px, py, player.dir, player.moving ? 1 : 0, s);
       continue;
     }
-    const it = x.ghostItem || x.it, f = FURNITURE[it.type], img = roomImgs[it.type];
+    const it = x.ghostItem || x.it, f = FURNITURE[it.type];
+    const dir = it.dir || 'down', vk = dir === 'right' ? 'left' : dir;
+    const view = vk !== 'down' && f.views?.[vk];
+    const img = view ? roomImgs[it.type + ':' + vk] : roomImgs[it.type];
     if (!img) continue;
     const fz = fsize(it), vb = it.y + fz.h - (f.flat ? fz.h / 2 - 0.1 : 0.12);
     const [cx2, by] = roomPt(it.x + fz.w / 2, vb);
-    const pw = f.sw * roomCellW(vb), ph = pw * img.height / img.width;
+    const pw = (view ? view.sw : f.sw) * roomCellW(vb), ph = pw * img.height / img.width;
     ctx.globalAlpha = x.ghostItem ? 0.75 : 1;
+    ctx.save();
+    if (dir === 'right') { ctx.translate(cx2, 0); ctx.scale(-1, 1); ctx.translate(-cx2, 0); } // 右むきは 左むきの 絵を はんてん
     if (f.flat) ctx.drawImage(img, cx2 - pw / 2, by - ph / 2, pw, ph);
     else ctx.drawImage(img, cx2 - pw / 2, by - ph, pw, ph);
+    ctx.restore();
     ctx.globalAlpha = 1;
     // かざりだなに バッジを ならべる
     if (f.act === 'shelf' && !x.ghostItem) drawShelfBadges(cx2 - pw / 2, by - ph, pw, ph);
@@ -1435,6 +1561,7 @@ function endRoomEdit() {
   if (roomEdit?.move) { roomEdit.move.item.x = roomEdit.move.from[0]; roomEdit.move.item.y = roomEdit.move.from[1]; }
   roomEdit = null;
   document.body.classList.remove('editing');
+  document.getElementById('editrot').hidden = true;
   document.getElementById('check').textContent = 'しらべる';
   if (!roomWalkable(player.x, player.y)) { const [dx, dy] = ROOM.door[0]; Object.assign(player, { x: dx, y: dy, fx: dx, fy: dy }); }
   saveRoom();
@@ -1444,13 +1571,17 @@ function roomEditBar() {
   const holding = roomEdit.move ? FURNITURE[roomEdit.move.item.type].name : roomEdit.place ? FURNITURE[roomEdit.place.type].name : null;
   text.textContent = holding ? `🛋 ${holding}を おく ばしょを えらんでね` : '🛋 うごかしたい かぐを えらんでね';
   check.textContent = holding ? 'ここに おく' : 'えらぶ';
+  const type = roomEdit.move ? roomEdit.move.item.type : roomEdit.place?.type;
+  document.getElementById('editrot').hidden = !(type && furnDirs(type).length > 1);
 }
 function roomGhost() {
   if (!roomEdit) return null;
   const type = roomEdit.move ? roomEdit.move.item.type : roomEdit.place?.type;
   if (!type) return null;
   const f = FURNITURE[type];
-  const g = { type, x: roomEdit.cur[0], y: roomEdit.cur[1], w: f.w, h: f.h, flat: !!f.flat };
+  const dir = (roomEdit.move ? roomEdit.move.dir : roomEdit.place?.dir) || 'down';
+  const sz = fsize({ type, dir });
+  const g = { type, dir, x: roomEdit.cur[0], y: roomEdit.cur[1], w: sz.w, h: sz.h, flat: !!f.flat };
   g.ok = !roomPlaceProblem(g);
   return g;
 }
@@ -1465,7 +1596,7 @@ function roomPlaceProblem(g) {
   }
   if (g.flat) return null;
   // でいりぐちから、しらべる かぐと 主人公の ところへ いけるか
-  const items = [...others, { type: g.type, x: g.x, y: g.y }];
+  const items = [...others, { type: g.type, x: g.x, y: g.y, dir: g.dir }];
   const solid = (x, y) => roomItemsAt(x, y, items).some((it) => !FURNITURE[it.type].flat);
   const seen = new Set(), q = [];
   for (const [x, y] of ROOM.door) if (!solid(x, y)) { seen.add(`${x},${y}`); q.push([x, y]); }
@@ -1491,8 +1622,8 @@ function roomEditSelect() {
   if (g) {
     const why = roomPlaceProblem(g);
     if (why) { flashEdit(why); return; }
-    if (roomEdit.move) { roomEdit.move.item.x = g.x; roomEdit.move.item.y = g.y; roomEdit.move = null; }
-    else { room.items.push({ id: 'r' + Date.now().toString(36), type: g.type, x: g.x, y: g.y }); room.storage[g.type] = Math.max(0, (room.storage[g.type] || 1) - 1); roomEdit.place = null; }
+    if (roomEdit.move) { Object.assign(roomEdit.move.item, { x: g.x, y: g.y, dir: g.dir }); roomEdit.move = null; }
+    else { room.items.push({ id: 'r' + Date.now().toString(36), type: g.type, x: g.x, y: g.y, dir: g.dir }); room.storage[g.type] = Math.max(0, (room.storage[g.type] || 1) - 1); roomEdit.place = null; }
     saveRoom(); roomEditBar();
     return;
   }
@@ -1502,7 +1633,14 @@ function roomEditSelect() {
   openModal((m) => {
     m.className = 'modal menu2';
     m.append(h('h2', {}, f.name),
-      h('button', { class: 'btn', 'data-act': 'move', 'data-default': '', onclick: () => { closeModal(); roomEdit.move = { item: it, from: [it.x, it.y] }; roomEdit.cur = [it.x, it.y]; roomEditBar(); } }, '✋ うごかす'),
+      h('button', { class: 'btn', 'data-act': 'move', 'data-default': '', onclick: () => { closeModal(); roomEdit.move = { item: it, from: [it.x, it.y], dir: it.dir || 'down' }; roomEdit.cur = [it.x, it.y]; roomEditBar(); } }, '✋ うごかす'),
+      furnDirs(it.type).length > 1 ? h('button', { class: 'btn', 'data-act': 'rotate', onclick: () => {
+        closeModal();
+        roomEdit.move = { item: it, from: [it.x, it.y], dir: nextDir(it.type, it.dir) }; roomEdit.cur = [it.x, it.y];
+        const why = roomPlaceProblem(roomGhost());
+        if (why) { roomEdit.move = null; flashEdit(why.replace('そこに おくと', 'まわすと')); roomEditBar(); return; }
+        roomEditSelect();
+      } }, '🔄 まわす') : null,
       f.act === 'desk' || f.act === 'shelf' ? h('p', { class: 'body small' }, 'この かぐは だいじなので しまえないよ。') :
         h('button', { class: 'btn', 'data-act': 'store', onclick: () => { closeModal(); room.items = room.items.filter((x) => x !== it); room.storage[it.type] = (room.storage[it.type] || 0) + 1; saveRoom(); } }, '📦 しまう'),
       h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', onclick: closeModal }, 'やめる')));
@@ -1524,7 +1662,19 @@ function roomEditKey(e) {
     roomEdit.cur = c;
     return;
   }
+  if ((k === 'r' || k === 'R') && !e.repeat) { e.preventDefault(); rotateHeld(); return; }
   if ((k === 'Enter' || k === ' ') && !e.repeat) { e.preventDefault(); roomEditSelect(); }
+}
+// もっている かぐを まわす（Rキー・「まわす」ボタン）
+function rotateHeld() {
+  const h2 = roomEdit?.move || roomEdit?.place;
+  if (!h2) return;
+  const type = roomEdit.move ? roomEdit.move.item.type : roomEdit.place.type;
+  h2.dir = nextDir(type, h2.dir);
+  // はみだすなら 左上へ よせる
+  const sz = fsize({ type, dir: h2.dir });
+  roomEdit.cur = [Math.min(roomEdit.cur[0], ROOM.cols - sz.w), Math.min(roomEdit.cur[1], ROOM.rows - sz.h)];
+  roomEditBar();
 }
 
 // ------------------------------------------------------------------ 自分の家（へやの なかが できるまでの 入口）・かざりだな・まなびの きろく
@@ -1714,6 +1864,81 @@ function openTodo() {
   });
 }
 
+// ------------------------------------------------------------------ きせかえや（服・髪型・アクセサリーを かう・きる）
+let wardrobe = { owned: [] }; // `${book.id}/wardrobe`。'outfit:id' の 形で もっている ものを ならべる
+const PARTS = { outfit: OUTFITS, hair: HAIRS, accessory: ACCESSORIES };
+const partCost = (kind, id) => WARDROBE_PRICES[`${kind}:${id}`] || WARDROBE_COST[kind];
+const isFreePart = (kind) => kind === 'hair'; // 髪型は はじめから ぜんぶ えらべる（仕様書 10-5）
+const ownsPart = (kind, id) => isFreePart(kind, id) || wardrobe.owned.includes(`${kind}:${id}`);
+const costText = (c) => Object.entries(c).map(([k, n]) => k === 'coin' ? `🪙${n}` : `${SUBJECT_LABELS[k] || k}の そざい ${n}`).join('　');
+async function loadWardrobe() {
+  const w = await store.get(`${book.id}/wardrobe`);
+  wardrobe = { owned: Array.isArray(w?.owned) ? w.owned : [] };
+}
+async function wearParts(patch) {
+  const next = { ...(profile?.hero || {}), ...patch };
+  profile = { ...(profile || {}), hero: next };
+  await store.update(`${book.id}/profile`, (p) => ({ ...(p || {}), hero: next }), { fallback: {} });
+  await loadHero();
+}
+function openKisekae(state) {
+  const worn = resolveHero(profile?.hero || {});
+  const st = state || { kind: Object.keys(OUTFITS).length ? 'outfit' : 'hair', pick: null };
+  const tryHero = { ...worn };
+  if (st.pick) tryHero[st.kind] = st.pick.id;
+  openModal((m) => {
+    m.className = 'modal build hero-ed kisekae';
+    const cv = h('canvas', { class: 'hero-pv', width: '384', height: '200', 'aria-label': 'きてみた みほん' });
+    const tabs = h('div', { class: 'hopts tabs' }, ...WARDROBE_KINDS.map((k) =>
+      h('button', { class: 'btn xmat' + (st.kind === k.kind ? ' on' : ''), 'data-tab': k.kind, onclick: () => openKisekae({ kind: k.kind, pick: null }) }, k.label)));
+    const list = h('div', { class: 'hopts wlist', 'data-scroll': '1' });
+    const items = Object.entries(PARTS[st.kind]);
+    if (st.kind !== 'hair') {
+      list.append(h('button', { class: 'btn xmat' + ((st.pick ? st.pick.id : worn[st.kind]) == null ? ' on' : ''), 'data-part': 'none',
+        onclick: () => openKisekae({ kind: st.kind, pick: { id: null } }) }, st.kind === 'outfit' ? 'はだぎ' : 'つけない'));
+    }
+    for (const [id, x] of items) {
+      const on = (st.pick ? st.pick.id : worn[st.kind]) === id;
+      list.append(h('button', { class: 'btn xmat' + (on ? ' on' : ''), 'data-part': id, onclick: () => openKisekae({ kind: st.kind, pick: { id } }) },
+        x.name, h('span', { class: 'wtag' }, ownsPart(st.kind, id) ? (worn[st.kind] === id ? 'きている' : 'もっている') : costText(partCost(st.kind, id)))));
+    }
+    if (!items.length) list.append(h('p', { class: 'body small' }, 'あたらしい しなものは もうすぐ とどくよ。たのしみに まってね。'));
+    const pick = st.pick;
+    let action = null;
+    if (pick && pick.id !== worn[st.kind]) {
+      if (pick.id == null || ownsPart(st.kind, pick.id)) action = h('button', { class: 'btn go', 'data-act': 'wear', 'data-default': '', onclick: async () => { await wearParts({ [st.kind]: pick.id }); openKisekae({ kind: st.kind, pick: null }); } }, 'これを きる');
+      else action = h('button', { class: 'btn go', 'data-act': 'buy', 'data-default': '', onclick: () => buyPart(st.kind, pick.id) }, `かう（${costText(partCost(st.kind, pick.id))}）`);
+    }
+    m.append(h('h2', {}, '👗 きせかえや'), cv, tabs, list,
+      h('p', { class: 'body small' }, pick ? 'みほんで きてみているよ。' : 'しなものを えらぶと、みほんで きてみられるよ。'),
+      h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', ...(action ? {} : { 'data-default': '' }), onclick: closeModal }, 'とじる'), action));
+    const x = cv.getContext('2d');
+    createHero(tryHero).then((hp) => { ['down', 'left', 'right', 'up'].forEach((d, i) => hp.draw(x, 48 + i * 96, 190, d, 0, .7)); }).catch(() => {});
+  });
+}
+async function buyPart(kind, id) {
+  const cost = partCost(kind, id);
+  try {
+    wallet = await store.update(`${book.id}/wallet`, (w) => {
+      const x = structuredClone(w || { coin: 0, materials: {} }); x.materials = x.materials || {};
+      for (const [k, n] of Object.entries(cost)) {
+        const have = k === 'coin' ? (x.coin || 0) : (x.materials[k] || 0);
+        if (have < n) throw new Error('たりない');
+        if (k === 'coin') x.coin = have - n; else x.materials[k] = have - n;
+      }
+      return x;
+    }, { fallback: { coin: 0, materials: {} } });
+  } catch { return message('たりないよ', 'コインか そざいが たりないみたい。しまで あつめてこよう。'); }
+  const key = `${kind}:${id}`;
+  wardrobe = await store.update(`${book.id}/wardrobe`, (w) => {
+    const owned = Array.isArray(w?.owned) ? w.owned : [];
+    return { owned: owned.includes(key) ? owned : [...owned, key] };
+  }, { fallback: { owned: [] } });
+  await wearParts({ [kind]: id });
+  renderHud();
+  message('かったよ！', `「${PARTS[kind][id].name}」を きたよ。\nほかの ものに きがえるときも、きせかえやで できるよ。`);
+}
+
 // ------------------------------------------------------------------ しゅじんこうを かえる（男女・髪型・髪の色）
 function openHeroEditor() {
   const cur = () => resolveHero(profile?.hero || {});
@@ -1735,7 +1960,10 @@ function openHeroEditor() {
       row('おとこのこ・おんなのこ', [
         opt('おとこのこ', h0.gender === 'boy', 'boy', () => save({ gender: 'boy' })),
         opt('おんなのこ', h0.gender === 'girl', 'girl', () => save({ gender: 'girl' }))]),
-      row('かみがた', Object.entries(HAIRS).map(([id, x]) => opt(x.name, h0.hair === id, 'hair-' + id, () => save({ hair: id })))),
+      row('かみがた', Object.entries(HAIRS).filter(([id]) => ownsPart('hair', id)).map(([id, x]) => opt(x.name, h0.hair === id, 'hair-' + id, () => save({ hair: id })))),
+      Object.keys(OUTFITS).some((id) => ownsPart('outfit', id)) ? row('ふく', [opt('はだぎ', h0.outfit == null, 'outfit-none', () => save({ outfit: null })),
+        ...Object.entries(OUTFITS).filter(([id]) => ownsPart('outfit', id)).map(([id, x]) => opt(x.name, h0.outfit === id, 'outfit-' + id, () => save({ outfit: id })))]) : null,
+      h('p', { class: 'body small' }, 'あたらしい ふくや かみがたは、しまの「きせかえや」で てに はいるよ。'),
       row('かみの いろ', Object.entries(HAIR_COLORS).map(([id, x]) => {
         const c = x.stops[2]; return opt(x.name, h0.hairColor === id, 'color-' + id, () => save({ hairColor: id }), `border-left:14px solid rgb(${c.join(',')})`);
       })),
@@ -1940,6 +2168,7 @@ function bindControls() {
   document.getElementById('btn-build').addEventListener('click', openIslandMenu);
   document.getElementById('editdone').addEventListener('click', () => (roomEdit ? endRoomEdit() : endEdit()));
   document.getElementById('btn-room').addEventListener('click', openRoomMenu);
+  document.getElementById('editrot').addEventListener('click', rotateHeld);
   document.getElementById('btn-out').addEventListener('click', exitRoom);
   document.getElementById('btn-balloon').addEventListener('click', openIslands);
   document.getElementById('btn-settings').addEventListener('click', openSettings);
@@ -1950,6 +2179,7 @@ function bindControls() {
     const [cx, cy] = camera();
     const tx = Math.floor((e.clientX + cx) / T), ty = Math.floor((e.clientY + cy) / T);
     if (editMode) { editTap(tx, ty); return; }
+    if (isGate(tx, ty)) { const g = gateTile(), fr = [g[0], g[1] + 1]; pathQueue = findPath(player.x, player.y, fr[0], fr[1]) || []; pendingInteract = GATE; return; }
     let o = objectAt(tx, ty);
     if (o && OBJECT_TYPES[o.type].ground) o = null; // ひろばは 地面と同じ
     if (o && OBJECT_TYPES[o.type].deco) return; // 飾りをタップしても動かない
@@ -1977,7 +2207,7 @@ function heroGender() { return profile?.hero?.gender === 'girl' ? 'girl' : 'boy'
 
 // ------------------------------------------------------------------ タイトル画面
 // ブラウザを開いて最初の1回だけ出す（島から戻ったときや、同じタブで開き直したときは出さない）
-const LOGO_SRC = 'assets/home/logo.webp?v=0.11.0';
+const LOGO_SRC = 'assets/home/logo.webp?v=0.12.0';
 function titleShownThisSession() { try { return sessionStorage.getItem('hatenaria-title') === '1'; } catch { return false; } }
 function markTitleShown() { try { sessionStorage.setItem('hatenaria-title', '1'); } catch { /* 使えなくても動く */ } }
 function showTitle(curBook) {
@@ -2037,6 +2267,8 @@ async function start() {
   profile = await store.get(`${book.id}/profile`, {});
   settings = await store.get(`${book.id}/settings`, {});
   cls = await store.get(`${book.id}/class`);
+  claimedEvents = (await store.get(`${book.id}/eventsClaimed`, [])) || [];
+  await loadWardrobe();
   Object.assign(player, home.player, { fx: home.player.x, fy: home.player.y });
   loadHero();
   for (const [type, t] of Object.entries(OBJECT_TYPES)) {
@@ -2064,6 +2296,6 @@ async function start() {
   classroom.refresh(book.id).then((c) => { if (c) cls = c; });
   classroom.flush(book.id);
   // テスト用
-  window.__home = { player, get home() { return home; }, get T() { return T; }, camera, version: HOME_VERSION, get editMode() { return editMode; }, expandCandidates, get scene() { return scene; }, get room() { return room; }, get roomEdit() { return roomEdit; }, enterRoom, exitRoom, roomPt, roomTileAt };
+  window.__home = { player, get home() { return home; }, get T() { return T; }, camera, version: HOME_VERSION, get editMode() { return editMode; }, expandCandidates, get scene() { return scene; }, get room() { return room; }, get roomEdit() { return roomEdit; }, enterRoom, exitRoom, roomPt, roomTileAt, walkable, openEvent, gateTile, treeTile, openKisekae, get wardrobe() { return wardrobe; } };
 }
 start();
