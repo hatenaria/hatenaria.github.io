@@ -1,5 +1,5 @@
 // =====================================================================
-// ハテナリア つなぎ口（island-link.js） 版 0.1.3
+// ハテナリア つなぎ口（island-link.js） 版 0.1.4
 // ---------------------------------------------------------------------
 // このかたまりを、各アプリの HTML の <script> の中にそのまま貼り付けて使う。
 // ・島のフォルダに置いたとき … 共通部品を読み込み「連携モード」になる
@@ -11,6 +11,8 @@
 //   if (island.connected) { ... 島につながっているときだけの処理 ... }
 //   await Island.reward(3);                 // ひと区切りごとにコイン・素材
 //   await Island.record({ minutes: 5 });    // 学習の要約
+//   await Island.collect({ id: 'badge-keisan', name: 'けいさん バッジ', img: 'math/assets/island/badge_keisan.webp' }); // かざりだなへ
+//   await Island.progress({ id: 'g1-add', name: 'たしざん', star: 1 }); // ☆＝1、★＝2（まなびの きろくへ）
 //
 // 単独モードでは reward / record は何もせず null を返し、isUnitOpen は常に true。
 // loadState は undefined を返すので、アプリは今までどおり自分の保存を使う。
@@ -27,6 +29,8 @@ const Island = (() => {
     furigana: null, // 連携モードでは true／false（習った漢字にも ふりがなを付けるか）。単独モードでは null
     reward: async () => null,
     record: async () => null,
+    collect: async () => false,  // 0.1.4
+    progress: async () => false, // 0.1.4
     wallet: async () => null,
     isUnitOpen: async () => true,
     loadState: async () => undefined,

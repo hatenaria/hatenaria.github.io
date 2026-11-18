@@ -2,11 +2,11 @@
 // 各アプリは直接これを読み込まず、つなぎ口（island-link.js の中身）から読み込む。
 // つなぎ口がこのファイルを読み込めたら「連携モード」になる。
 
-import * as store from './store.js?v=0.10.0';
-import * as classroom from './classroom.js?v=0.10.0';
-import * as books from './books.js?v=0.10.0';
+import * as store from './store.js?v=0.11.0';
+import * as classroom from './classroom.js?v=0.11.0';
+import * as books from './books.js?v=0.11.0';
 
-export const COMMON_VERSION = '0.2.3';
+export const COMMON_VERSION = '0.3.0';
 export const HOME_URL = new URL('../index.html', import.meta.url).href;
 
 const SESSIONS_MAX = 200; // 1件ごとの詳細を残す数（仕様書2-7）
@@ -136,6 +136,47 @@ export async function connect({ appId, subject }) {
       const cls = await store.get(`${p}/class`);
       const closed = cls?.settings?.closedSkills || []; // 先生のシート「たんげん」で ✓を外した技能IDの はじめの部分
       return !closed.some((prefix) => String(skillId).startsWith(prefix));
+    },
+
+    /**
+     * バッジ・トロフィーを ホームの「かざりだな」に 届ける（仕様書10-3）。
+     * 同じ id は 何度 呼んでも 1つだけ。起動のときに 持っている物を 送りなおしてもよい。
+     * @param {{id:string, name:string, img:string, kind?:'badge'|'trophy'}} item
+     *   img は サイトの いちばん上からの パス（例 'math/assets/island/badge_keisan.webp'）
+     * @returns {Promise<boolean>} 新しく 届いたら true
+     */
+    async collect(item = {}) {
+      const id = String(item.id || '').slice(0, 60), name = String(item.name || '').slice(0, 30);
+      if (!id || !name) return false;
+      const img = String(item.img || '').replace(/^\/+/, '').slice(0, 200);
+      const kind = item.kind === 'trophy' ? 'trophy' : 'badge';
+      let added = false;
+      await store.update(`${p}/collection`, (list) => {
+        list = Array.isArray(list) ? list : [];
+        const old = list.find((x) => x.appId === appId && x.id === id);
+        if (old) { old.name = name; old.img = img; old.kind = kind; return list; }
+        added = true;
+        return [...list, { appId, subject, id, name, img, kind, at: new Date().toISOString() }].slice(-300);
+      }, { fallback: [] });
+      return added;
+    },
+
+    /**
+     * 単元ごとの 到達（☆クリア・★定着）を ホームの「まなびの きろく」に 届ける（仕様書2-7、10-1）。
+     * star：0＝まだ、1＝☆、2＝★。下がることは ない（いちど ★なら ★のまま）。
+     * @param {{id:string, name:string, star:0|1|2, area?:string}} unit
+     */
+    async progress(unit = {}) {
+      const id = String(unit.id || '').slice(0, 60), name = String(unit.name || '').slice(0, 30);
+      const star = Math.max(0, Math.min(2, Math.floor(Number(unit.star) || 0)));
+      if (!id || !name) return false;
+      await store.update(`${p}/progress/${appId}`, (m) => {
+        m = m && typeof m === 'object' ? m : {};
+        const old = m[id];
+        m[id] = { name, area: String(unit.area || '').slice(0, 20), star: Math.max(star, old?.star || 0), subject, at: new Date().toISOString() };
+        return m;
+      }, { fallback: {} });
+      return true;
     },
 
     /** このアプリ独自の状態（シール帳など）を冒険の書ごとに読み書きする */

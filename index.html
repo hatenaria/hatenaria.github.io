@@ -6,9 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ハテナリア">
 <title>ハテナリア</title>
-<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png?v=0.10.0">
-<link rel="apple-touch-icon" href="assets/icons/icon-180.png?v=0.10.0">
-<link rel="manifest" href="manifest.json?v=0.10.0">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png?v=0.11.0">
+<link rel="apple-touch-icon" href="assets/icons/icon-180.png?v=0.11.0">
+<link rel="manifest" href="manifest.json?v=0.11.0">
 <style>
   :root{--ink:#3a3226;--paper:#fffaf0;--gold:#ffd66b;--gold-d:#d9a93a;--green:#9be3a8;--green-d:#5fb06d}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -131,9 +131,23 @@
   body.editing .editbar{display:flex}
   .editbar .btn{white-space:nowrap;flex:none}
   body.editing .tr,body.editing .hud{visibility:hidden}
+  #btn-room,#btn-out{display:none}
+  body.in-room #btn-room,body.in-room #btn-out{display:inline-flex}
+  body.in-room #btn-build,body.in-room #btn-balloon{display:none}
   .menu2{display:flex;flex-direction:column;gap:12px;margin:8px 0 16px}
   .btn.big{min-height:76px;font-size:24px}
   .chips.big{justify-content:center;margin:6px 0 10px}.chips.big .chip{font-size:22px;padding:4px 14px}
+  /* かざりだな・まなびの きろく */
+  .shelf-box,.desk-box{max-height:56vh;overflow:auto;margin-bottom:10px}
+  .shelf-row{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 12px}
+  .shelf-item{margin:0;width:96px;text-align:center;background:linear-gradient(#fff,#f6ead2);border-radius:14px;padding:8px 4px 6px;box-shadow:inset 0 -6px 0 #e6d2a8}
+  .shelf-item img,.shelf-ph{display:block;width:64px;height:64px;margin:0 auto;object-fit:contain;font-size:48px;line-height:64px}
+  .shelf-item.trophy{background:linear-gradient(#fff8e1,#ffe9a8)}
+  .shelf-item figcaption{font-size:13px;line-height:1.3;margin-top:4px}
+  .desk-box{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+  .desk-card{background:#fff;border-radius:16px;padding:10px 14px}
+  .desk-card h3{margin:0 0 4px;font-size:20px}.desk-stars{margin:0;font-size:18px;font-weight:bold}
+  .desk-units{margin:6px 0 0;padding-left:0;list-style:none;font-size:16px}
   /* やることボード */
   .todo-list{display:flex;flex-direction:column;gap:8px;max-height:38vh;overflow:auto;margin:6px 0 10px}
   .todo-row{display:flex;align-items:center;gap:10px;background:#fff;border-radius:14px;padding:6px 10px}
@@ -141,6 +155,11 @@
   .todo-text{flex:1;font-size:20px;word-break:keep-all;overflow-wrap:anywhere}
   .todo-check,.todo-del{min-width:56px;min-height:52px;font-size:24px;padding:0}
   .todo-input{width:100%;box-sizing:border-box;font-size:22px;padding:12px 14px;border-radius:14px;border:2px solid #e3d6bd;margin:8px 0 12px}
+  .todo-due{min-height:44px;font-size:15px;padding:0 10px;white-space:nowrap;box-shadow:none}
+  .todo-due.due-today{background:#ffd9d2}.todo-due.due-soon{background:#ffe7c4}.todo-due.due-later{background:#e3f0ff}.todo-due.due-any{background:#eee8dc}
+  .todo-due.due-late{background:#f2c7c7}
+  .todo-ask{margin:8px 0 10px;font-size:22px;text-align:center}
+  .todo-date{max-width:260px}
   .todo-garden{margin:4px 0 8px;line-height:1.8}
   /* じかんわり */
   .ttbox{max-height:62vh;overflow:auto;display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:12px}
@@ -180,6 +199,8 @@
 <div class="tr">
   <button class="btn" id="btn-build">🛠 しまづくり</button>
   <button class="btn sky" id="btn-balloon">🎈 しまめぐり</button>
+  <button class="btn" id="btn-room">🛋 もようがえ</button>
+  <button class="btn sky" id="btn-out">🚪 そとへ</button>
   <button class="btn" id="btn-settings" aria-label="せってい">⚙</button>
 </div>
 <button class="btn" id="check">しらべる</button>
@@ -191,6 +212,6 @@
 </div>
 <div id="hint"></div>
 <div id="layer"></div>
-<script type="module" src="home/main.js?v=0.10.0"></script>
+<script type="module" src="home/main.js?v=0.11.0"></script>
 </body>
 </html>

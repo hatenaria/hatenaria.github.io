@@ -1,14 +1,14 @@
 // ホームアイランド v0.2
 // 島を歩く・建物を調べる・掲示板・気球で島めぐり・島から戻ったときの「おかえり」
 
-import * as store from '../common/store.js?v=0.10.0';
-import * as books from '../common/books.js?v=0.10.0';
-import { createHero, HAIRS, HAIR_COLORS, resolveHero } from '../common/hero/hero.js?v=0.10.0';
-import * as classroom from '../common/classroom.js?v=0.10.0';
-import { showPicker } from '../common/book-picker.js?v=0.10.0';
-import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE } from './data.js?v=0.10.0';
+import * as store from '../common/store.js?v=0.11.0';
+import * as books from '../common/books.js?v=0.11.0';
+import { createHero, HAIRS, HAIR_COLORS, resolveHero } from '../common/hero/hero.js?v=0.11.0';
+import * as classroom from '../common/classroom.js?v=0.11.0';
+import { showPicker } from '../common/book-picker.js?v=0.11.0';
+import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM } from './data.js?v=0.11.0';
 
-export const HOME_VERSION = '0.10.0';
+export const HOME_VERSION = '0.11.0';
 const PREVIEW = !!window.GI_PREVIEW; // アーティファクトでの試作表示（島へは移動しない）
 
 // 主人公の画像（仕様書2-4の規格：1コマ 384×512、足元 x=192, y=488。縮小した画像でも同じ比率で扱う）
@@ -141,6 +141,7 @@ function objectAt(x, y) {
   }) || null;
 }
 function walkable(x, y) {
+  if (scene === 'room') return roomWalkable(x, y);
   if (isWater(x, y)) return false;
   const o = objectAt(x, y);
   return !(o && OBJECT_TYPES[o.type].solid);
@@ -149,7 +150,7 @@ const pathSet = new Set(PATH_TILES.map(([x, y]) => `${x},${y}`));
 
 // ------------------------------------------------------------------ 保存
 async function saveHome() {
-  home.player = { x: player.x, y: player.y, dir: player.dir };
+  if (scene !== 'room') home.player = { x: player.x, y: player.y, dir: player.dir }; // へやの中では 島の 場所を そのままに
   await store.set(`${book.id}/home`, home);
 }
 let saveTimer = null;
@@ -160,6 +161,11 @@ function tryStep(dir) {
   player.dir = dir;
   const [dx, dy] = DIRS[dir];
   const nx = player.x + dx, ny = player.y + dy;
+  if (scene === 'room' && dir === 'down' && isDoor(player.x, player.y) && ny >= ROOM.rows) { exitRoom(); return false; }
+  if (scene === 'island' && dir === 'up' && settings?.autoDoor) { // とびらに ふれたら はいる（せってい）
+    const o = objectAt(nx, ny);
+    if (o && o.type === 'house' && ny === o.y + OBJECT_TYPES.house.h - 1) { enterRoom(); return false; }
+  }
   if (!walkable(nx, ny)) return false;
   player.from = [player.x, player.y];
   player.x = nx; player.y = ny;
@@ -210,9 +216,11 @@ function frontOf(o) {
 }
 
 function facingObject() {
+  if (scene === 'room') return roomFacing();
   const [dx, dy] = DIRS[player.dir];
-  const o = objectAt(player.x + dx, player.y + dy) || (objectAt(player.x, player.y)?.type === 'lot' ? objectAt(player.x, player.y) : null);
-  return o && !OBJECT_TYPES[o.type].deco ? o : null;
+  const here = objectAt(player.x, player.y);
+  const o = objectAt(player.x + dx, player.y + dy) || (here && !OBJECT_TYPES[here.type].solid ? here : null);
+  return o && !OBJECT_TYPES[o.type].deco && !OBJECT_TYPES[o.type].ground ? o : null;
 }
 
 function update(now) {
@@ -222,15 +230,15 @@ function update(now) {
     player.fy = player.from[1] + (player.y - player.from[1]) * k;
     if (k >= 1) { player.moving = false; player.fx = player.x; player.fy = player.y; saveSoon(); }
   }
-  if (!player.moving && !modalOpen && !editMode) {
+  if (!player.moving && !modalOpen && !editMode && !roomEdit) {
     if (heldDir) { pathQueue = []; pendingInteract = null; tryStep(heldDir); }
     else if (pathQueue.length) {
       const d = pathQueue.shift();
       if (!tryStep(d)) pathQueue = [];
     } else if (pendingInteract) {
       const o = pendingInteract; pendingInteract = null;
-      player.dir = (player.y >= o.y + OBJECT_TYPES[o.type].h) ? 'up' : player.dir;
-      interact(o);
+      if (scene === 'room') { if (roomFaceDir) player.dir = roomFaceDir; roomInteract(o); }
+      else { player.dir = (player.y >= o.y + OBJECT_TYPES[o.type].h) ? 'up' : player.dir; interact(o); }
     }
   }
 }
@@ -410,6 +418,19 @@ function drawBalloon(o, t, px, py, now) {
   drawLabel(t.name, bx, py + H * .82);
 }
 
+function drawPlaza(o, t, px, py, now) {
+  // いまは 石だたみの まるい ひろば（絵ができたら さしかえる）
+  const W = t.w * T, H = t.h * T, cx = px + W / 2, cy = py + H / 2;
+  ctx.fillStyle = 'rgba(70,60,40,.12)'; ctx.beginPath(); ctx.ellipse(cx, cy + T * .06, W * .49, H * .44, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#efe3cc'; ctx.beginPath(); ctx.ellipse(cx, cy, W * .48, H * .42, 0, 0, 7); ctx.fill();
+  ctx.strokeStyle = '#d8c6a4'; ctx.lineWidth = T * .07; ctx.stroke();
+  ctx.fillStyle = '#e4d3b2';
+  for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; ctx.beginPath(); ctx.ellipse(cx + Math.cos(a) * W * .32, cy + Math.sin(a) * H * .28, T * .12, T * .08, a, 0, 7); ctx.fill(); }
+  ctx.fillStyle = '#f7c8d6'; ctx.beginPath(); ctx.ellipse(cx, cy, T * .32, T * .24, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#fff6d8'; ctx.font = `${Math.round(T * .3)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('✦', cx, cy + 1);
+  drawLabel('イベントひろば', cx, py + H * .12);
+}
+
 function drawLot(o, t, px, py) {
   if (sprites.lot) { drawSprite(o, { ...t, sprite: t.sprite }, px, py, sprites.lot); return; }
   const W = t.w * T, H = t.h * T;
@@ -443,6 +464,7 @@ function drawHero(px, py, now) {
 }
 
 function draw(now) {
+  if (scene === 'room') return drawRoom(now);
   const [cx, cy] = camera();
   drawGround(now, cx, cy);
   drawEditUnder(now, cx, cy);
@@ -458,6 +480,7 @@ function draw(now) {
     if (o.type === 'board') drawBoard(o, px, py, now);
     else if (o.type === 'balloon') drawBalloon(o, t, px, py, now);
     else if (o.type === 'lot') drawLot(o, t, px, py);
+    else if (o.type === 'plaza') drawPlaza(o, t, px, py, now);
     else drawBuilding(o, t, px, py, now);
   }
   drawEditOver(now, cx, cy);
@@ -623,7 +646,7 @@ function interact(o) {
   if (o.type === 'todo') return openTodo();
   if (o.type === 'balloon') return openIslands();
   if (o.type === 'school') return message('がっこう', 'せんせいからの おしらせは、がっこうの まえの けいじばんで よめるよ。');
-  if (o.type === 'house') return message('じぶんの いえ', `${book.name}さんの いえだよ。\nいつか なかにも はいれるように なるよ。`);
+  if (o.type === 'house') return enterRoom();
   if (o.type === 'lot') return openBuild(o);
   if (o.type === 'exchange') return openExchange();
   if (t.built) return message(t.name, BUILDABLES.find((b) => b.type === o.type)?.desc || '');
@@ -774,7 +797,7 @@ const CHUNK = 3;                       // 3×3マスずつ ひろげる
 const MAX_EXPANSIONS = 12;
 const EXPAND_PAIRS = [['math', 'kokugo'], ['rika', 'shakai'], ['eigo', 'math'], ['kokugo', 'rika'], ['shakai', 'eigo']];
 const WORLD = { x0: -9, y0: -9, x1: 26, y1: 22 };  // ここより外には ひろげない
-const FIXED = new Set(['school', 'board', 'todo', 'house', 'balloon', 'exchange', 'kisekae']); // 大事な施設は うごかせない
+const FIXED = new Set(['school', 'board', 'todo', 'plaza', 'house', 'balloon', 'exchange', 'kisekae']); // 大事な施設は うごかせない
 const movable = (o) => !FIXED.has(o.type);
 
 function expandCost() {
@@ -1133,10 +1156,483 @@ function openClassInfo() {
 }
 
 
+// ================================================================== 自分の家の中（v0.11.0、仕様書10章）
+// 島と 同じ 主人公・同じ 操作で、へやの 中を 歩く。へやの マスは 遠近に あわせて 絵の 床に のせる
+let scene = 'island';     // 'island' | 'room'
+let room = null;          // p1/room の中身
+let islandPos = null;     // へやに 入る まえに いた 島の 場所
+let roomEdit = null;      // もようがえ中：{ cur:[x,y], move:{item, from:[x,y]} | null, place:{type} | null }
+const roomImgs = {};      // 絵（へや・かぐ）
+function loadRoomImages() {
+  for (const [k, w] of Object.entries(ROOM_WALLS)) if (!roomImgs['wall:' + k]) { const im = new Image(); im.onload = () => { roomImgs['wall:' + k] = im; }; im.src = w.src; }
+  for (const [k, f] of Object.entries(FURNITURE)) if (!roomImgs[k]) { const im = new Image(); im.onload = () => { roomImgs[k] = im; }; im.src = f.src; }
+}
+const fsize = (it) => FURNITURE[it.type] || { w: 1, h: 1 };
+const inRoom = (x, y) => x >= 0 && y >= 0 && x < ROOM.cols && y < ROOM.rows;
+const isDoor = (x, y) => ROOM.door.some(([a, b]) => a === x && b === y);
+function roomItemsAt(x, y, items = room.items) {
+  return items.filter((it) => { const f = fsize(it); return x >= it.x && x < it.x + f.w && y >= it.y && y < it.y + f.h; });
+}
+function roomItemAt(x, y) { const a = roomItemsAt(x, y); return a.find((it) => !FURNITURE[it.type].flat) || a[0] || null; }
+function roomWalkable(x, y) { return inRoom(x, y) && !roomItemsAt(x, y).some((it) => !FURNITURE[it.type].flat); }
+
+// へやの 絵を 画面に おさめる（よこ・たて どちらも はみださない）
+function roomView() {
+  const w = window.innerWidth, hh = window.innerHeight;
+  const k = Math.min(w / ROOM.img.w, hh / ROOM.img.h);
+  return { k, ox: (w - ROOM.img.w * k) / 2, oy: (hh - ROOM.img.h * k) / 2 };
+}
+// マスの 座標（u は よこ 0〜6、v は おく 0〜5）→ 画面の 位置
+function roomPt(u, v) {
+  const F = ROOM.floor, t = v / ROOM.rows;
+  const y = F.y0 + (F.y1 - F.y0) * t;
+  const L = F.back[0] + (F.front[0] - F.back[0]) * t, R = F.back[1] + (F.front[1] - F.back[1]) * t;
+  const x = L + (R - L) * (u / ROOM.cols);
+  const V = roomView();
+  return [V.ox + x * V.k, V.oy + y * V.k];
+}
+function roomCellW(v) {
+  const F = ROOM.floor, t = v / ROOM.rows, V = roomView();
+  return ((F.back[1] - F.back[0]) + ((F.front[1] - F.front[0]) - (F.back[1] - F.back[0])) * t) / ROOM.cols * V.k;
+}
+function roomTileAt(sx, sy) {
+  const V = roomView(), F = ROOM.floor;
+  const y = (sy - V.oy) / V.k, x = (sx - V.ox) / V.k;
+  const t = (y - F.y0) / (F.y1 - F.y0);
+  if (t < 0 || t >= 1) return null;
+  const L = F.back[0] + (F.front[0] - F.back[0]) * t, R = F.back[1] + (F.front[1] - F.back[1]) * t;
+  const u = (x - L) / (R - L) * ROOM.cols;
+  if (u < 0 || u >= ROOM.cols) return null;
+  return [Math.floor(u), Math.floor(t * ROOM.rows)];
+}
+
+async function loadRoom() {
+  room = await store.get(`${book.id}/room`);
+  if (!room) { room = DEFAULT_ROOM(); await store.set(`${book.id}/room`, room); }
+  room.storage = room.storage || {};
+  loadRoomImages();
+}
+async function saveRoom() { await store.set(`${book.id}/room`, room); }
+
+async function enterRoom() {
+  if (scene === 'room') return;
+  if (!room) await loadRoom();
+  pathQueue = []; pendingInteract = null; heldDir = null;
+  islandPos = { x: player.x, y: player.y, dir: player.dir };
+  await saveHome();
+  scene = 'room';
+  const [dx, dy] = ROOM.door[0];
+  Object.assign(player, { x: dx, y: dy, fx: dx, fy: dy, dir: 'up', moving: false });
+  document.body.classList.add('in-room');
+}
+async function exitRoom() {
+  if (scene !== 'room') return;
+  if (roomEdit) endRoomEdit();
+  pathQueue = []; pendingInteract = null; heldDir = null;
+  scene = 'island';
+  document.body.classList.remove('in-room');
+  // 家の まえ（入口）に 立つ
+  const hs = home.objects.find((o) => o.type === 'house');
+  const front = hs ? [hs.x + 1, hs.y + OBJECT_TYPES.house.h] : [islandPos?.x, islandPos?.y];
+  const p = walkable(front[0], front[1]) ? front : (nearestWalkable(front[0], front[1]) || [islandPos.x, islandPos.y]);
+  Object.assign(player, { x: p[0], y: p[1], fx: p[0], fy: p[1], dir: 'down', moving: false });
+  await saveHome();
+}
+
+function roomFacing() {
+  const [dx, dy] = DIRS[player.dir];
+  const it = roomItemAt(player.x + dx, player.y + dy);
+  return it && FURNITURE[it.type].act ? it : null;
+}
+function roomInteract(it) {
+  const f = FURNITURE[it.type];
+  if (f.act === 'desk') return openDesk();
+  if (f.act === 'shelf') return openShelf();
+  if (f.act === 'bed') return message('ベッド', `${book.name}さんの ベッド。\nよく ねると、あたまも からだも げんきに なるよ。`);
+  if (f.act === 'books') return message('ほんだな', 'すきな ほんが ならんでいるよ。\nしまで しらべた ことも、ほんで たしかめてみよう。');
+}
+function roomFrontOf(it) {
+  const f = fsize(it), cands = [];
+  for (let x = it.x; x < it.x + f.w; x++) cands.push([x, it.y + f.h, 'up']);
+  for (let y = it.y; y < it.y + f.h; y++) { cands.push([it.x - 1, y, 'right'], [it.x + f.w, y, 'left']); }
+  let best = null;
+  for (const [x, y, dir] of cands) {
+    if (!roomWalkable(x, y)) continue;
+    const p = findPath(player.x, player.y, x, y);
+    if (p && (!best || p.length < best.p.length)) best = { x, y, p, dir };
+  }
+  return best;
+}
+let roomFaceDir = null;
+function roomTap(e) {
+  const tile = roomTileAt(e.clientX, e.clientY);
+  if (roomEdit) { if (tile) { roomEdit.cur = tile; roomEditSelect(); } return; }
+  if (!tile) return;
+  const it = roomItemAt(tile[0], tile[1]);
+  if (it && FURNITURE[it.type].act) {
+    const f = roomFrontOf(it);
+    if (f) { pathQueue = f.p; pendingInteract = it; roomFaceDir = f.dir; }
+    return;
+  }
+  if (roomWalkable(tile[0], tile[1])) { pathQueue = findPath(player.x, player.y, tile[0], tile[1]) || []; pendingInteract = null; }
+}
+
+function drawRoom(now) {
+  const w = window.innerWidth, hh = window.innerHeight;
+  ctx.fillStyle = '#f3e3c8'; ctx.fillRect(0, 0, w, hh);
+  const V = roomView();
+  const wall = roomImgs['wall:' + room.wall] || roomImgs['wall:stripe'];
+  if (wall) ctx.drawImage(wall, V.ox, V.oy, ROOM.img.w * V.k, ROOM.img.h * V.k);
+  // もようがえ中：マス目
+  if (roomEdit) {
+    ctx.save(); ctx.strokeStyle = 'rgba(120,90,50,.25)'; ctx.lineWidth = 1.5;
+    for (let v = 0; v <= ROOM.rows; v++) { const [a, b] = roomPt(0, v), [c, d] = roomPt(ROOM.cols, v); ctx.beginPath(); ctx.moveTo(a, b); ctx.lineTo(c, d); ctx.stroke(); }
+    for (let u = 0; u <= ROOM.cols; u++) { const [a, b] = roomPt(u, 0), [c, d] = roomPt(u, ROOM.rows); ctx.beginPath(); ctx.moveTo(a, b); ctx.lineTo(c, d); ctx.stroke(); }
+    ctx.restore();
+  }
+  const quad = (x, y, w2, h2, fill, stroke) => {
+    const p = [roomPt(x, y), roomPt(x + w2, y), roomPt(x + w2, y + h2), roomPt(x, y + h2)];
+    ctx.beginPath(); p.forEach(([a, b], i) => (i ? ctx.lineTo(a, b) : ctx.moveTo(a, b))); ctx.closePath();
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 3; ctx.stroke(); }
+  };
+  // 置こうとしている かぐの 場所
+  const ghost = roomGhost();
+  if (ghost) quad(ghost.x, ghost.y, ghost.w, ghost.h, ghost.ok ? 'rgba(90,190,120,.35)' : 'rgba(230,90,80,.35)', ghost.ok ? '#3a9a5a' : '#d0473b');
+  if (roomEdit && !ghost) quad(roomEdit.cur[0], roomEdit.cur[1], 1, 1, 'rgba(255,214,107,.35)', '#e0a43a');
+  // かぐと 主人公を 奥から じゅんに
+  const list = room.items.filter((it) => !(roomEdit?.move && roomEdit.move.item === it));
+  const items = list.map((it) => ({ it, z: FURNITURE[it.type].flat ? -1 : it.y + fsize(it).h }));
+  items.push({ hero: true, z: player.fy + 0.99 });
+  if (ghost) items.push({ ghostItem: ghost, z: ghost.flat ? -0.5 : ghost.y + ghost.h + 0.01 });
+  items.sort((a, b) => a.z - b.z);
+  for (const x of items) {
+    if (x.hero) {
+      const [px, py] = roomPt(player.fx + .5, player.fy + .82);
+      const s = roomCellW(player.fy + .82) * 1.2 / 192;
+      ctx.fillStyle = 'rgba(60,40,20,.18)'; ctx.beginPath(); ctx.ellipse(px, py, 60 * s, 18 * s, 0, 0, 7); ctx.fill();
+      if (heroParts) heroParts.draw(ctx, px, py, player.dir, player.moving ? 1 : 0, s);
+      continue;
+    }
+    const it = x.ghostItem || x.it, f = FURNITURE[it.type], img = roomImgs[it.type];
+    if (!img) continue;
+    const fz = fsize(it), vb = it.y + fz.h - (f.flat ? fz.h / 2 - 0.1 : 0.12);
+    const [cx2, by] = roomPt(it.x + fz.w / 2, vb);
+    const pw = f.sw * roomCellW(vb), ph = pw * img.height / img.width;
+    ctx.globalAlpha = x.ghostItem ? 0.75 : 1;
+    if (f.flat) ctx.drawImage(img, cx2 - pw / 2, by - ph / 2, pw, ph);
+    else ctx.drawImage(img, cx2 - pw / 2, by - ph, pw, ph);
+    ctx.globalAlpha = 1;
+    // かざりだなに バッジを ならべる
+    if (f.act === 'shelf' && !x.ghostItem) drawShelfBadges(cx2 - pw / 2, by - ph, pw, ph);
+  }
+  // しらべられる かぐの 名前
+  const hint = document.getElementById('hint');
+  const fc = !roomEdit && !player.moving && !modalOpen && roomFacing();
+  if (fc) { hint.textContent = `${FURNITURE[fc.type].name}を しらべる`; hint.classList.add('show'); } else hint.classList.remove('show');
+}
+let shelfCache = { at: 0, imgs: [] };
+function drawShelfBadges(x, y, w, h2) {
+  if (performance.now() - shelfCache.at > 3000) {
+    shelfCache.at = performance.now();
+    store.get(`${book.id}/collection`, []).then((list) => {
+      shelfCache.imgs = (list || []).slice(-9).map((c) => { const im = new Image(); im.src = new URL(c.img || '', new URL('../', import.meta.url)).href; return im; });
+    });
+  }
+  // 3だん × 3こ
+  shelfCache.imgs.forEach((im, i) => {
+    if (!im.complete || !im.naturalWidth) return;
+    const row = Math.floor(i / 3), col = i % 3, s = w * 0.2;
+    const bx = x + w * (0.22 + col * 0.28) - s / 2, by = y + h2 * (0.32 + row * 0.25) - s;
+    ctx.drawImage(im, bx, by, s, s);
+  });
+}
+
+// ---------------------------------------------------------------- もようがえ（へや）
+function openRoomMenu() {
+  openModal((m) => {
+    m.className = 'modal menu2';
+    const stored = Object.values(room.storage).reduce((a, b) => a + b, 0);
+    m.append(h('h2', {}, '🛋 へやの もようがえ'),
+      h('button', { class: 'btn', 'data-act': 'room-move', onclick: () => { closeModal(); startRoomEdit(); } }, '✋ かぐを うごかす・しまう'),
+      h('button', { class: 'btn', 'data-act': 'room-put', disabled: stored ? null : '', onclick: openStorage }, `📦 しまってある かぐを おく（${stored}）`),
+      h('button', { class: 'btn', 'data-act': 'room-shop', onclick: openFurnitureShop }, '🛒 かぐを かう'),
+      h('button', { class: 'btn', 'data-act': 'room-wall', onclick: openWallPicker }, '🖼 かべと ゆかを かえる'),
+      h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', onclick: closeModal }, 'とじる')));
+  });
+}
+function openFurnitureShop() {
+  openModal((m) => {
+    m.className = 'modal build';
+    m.append(h('h2', {}, '🛒 かぐを かう'), h('p', { class: 'body small' }, 'かった かぐは「しまってある かぐ」に はいるよ。'));
+    const list = h('div', { class: 'blist', 'data-scroll': '1' });
+    for (const [type, f] of Object.entries(FURNITURE)) {
+      if (!f.cost) continue;
+      const ok = affordable(f.cost);
+      const chips = h('div', { class: 'chips' }, ...costParts(f.cost).map((c) =>
+        h('span', { class: 'chip' + (c.have >= c.n ? '' : ' short') }, c.k === 'coin' ? '🪙' : matIcon(c.k), ` ${c.n}`)));
+      list.append(h('div', { class: 'brow' + (ok ? '' : ' no') }, h('img', { src: f.src, alt: '' }),
+        h('div', { class: 'binfo' }, h('div', { class: 'bname' }, f.name), chips, ok ? null : h('div', { class: 'bnote' }, 'まだ たりないよ')),
+        h('button', { class: 'btn go', 'data-buy': type, disabled: ok ? null : '', onclick: () => buyFurniture(type) }, 'かう')));
+    }
+    m.append(list, h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'back', onclick: openRoomMenu }, 'もどる')));
+  });
+}
+async function buyFurniture(type) {
+  const f = FURNITURE[type];
+  try {
+    wallet = await store.update(`${book.id}/wallet`, (w) => {
+      const x = structuredClone(w || { coin: 0, materials: {} }); x.materials = x.materials || {};
+      for (const [k, n] of Object.entries(f.cost)) {
+        const have = k === 'coin' ? (x.coin || 0) : (x.materials[k] || 0);
+        if (have < n) throw new Error('たりない');
+        if (k === 'coin') x.coin = have - n; else x.materials[k] = have - n;
+      }
+      return x;
+    }, { fallback: { coin: 0, materials: {} } });
+  } catch { return message('たりないよ', 'コインか そざいが たりないみたい。しまで あつめてこよう。'); }
+  room.storage[type] = (room.storage[type] || 0) + 1;
+  await saveRoom(); renderHud();
+  openModal((m) => {
+    m.append(h('h2', {}, `${f.name}を かったよ！`), h('p', { class: 'body' }, 'いますぐ へやに おく？'),
+      h('div', { class: 'row end' },
+        h('button', { class: 'btn', 'data-act': 'later', onclick: closeModal }, 'あとで'),
+        h('button', { class: 'btn go', 'data-act': 'place-now', 'data-default': '', onclick: () => { closeModal(); startRoomEdit({ type }); } }, 'おく')));
+  });
+}
+function openStorage() {
+  openModal((m) => {
+    m.className = 'modal build';
+    m.append(h('h2', {}, '📦 しまってある かぐ'));
+    const list = h('div', { class: 'blist', 'data-scroll': '1' });
+    for (const [type, n] of Object.entries(room.storage)) {
+      if (!n) continue;
+      const f = FURNITURE[type];
+      list.append(h('div', { class: 'brow' }, h('img', { src: f.src, alt: '' }),
+        h('div', { class: 'binfo' }, h('div', { class: 'bname' }, `${f.name}　×${n}`)),
+        h('button', { class: 'btn go', 'data-place': type, onclick: () => { closeModal(); startRoomEdit({ type }); } }, 'おく')));
+    }
+    m.append(list, h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'back', onclick: openRoomMenu }, 'もどる')));
+  });
+}
+function openWallPicker() {
+  openModal((m) => {
+    m.className = 'modal menu2';
+    m.append(h('h2', {}, '🖼 かべと ゆか'),
+      ...Object.entries(ROOM_WALLS).map(([k, w]) => h('button', { class: 'btn' + (room.wall === k ? ' on' : ''), 'data-wall': k,
+        onclick: async () => { room.wall = k; await saveRoom(); closeModal(); } }, `${room.wall === k ? '✓ ' : ''}${w.name}`)),
+      h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'back', onclick: openRoomMenu }, 'もどる')));
+  });
+}
+
+function startRoomEdit(opt = {}) {
+  pathQueue = []; pendingInteract = null; heldDir = null;
+  roomEdit = { cur: [2, 2], move: null, place: opt.type ? { type: opt.type } : null };
+  document.body.classList.add('editing');
+  roomEditBar();
+}
+function endRoomEdit() {
+  if (roomEdit?.move) { roomEdit.move.item.x = roomEdit.move.from[0]; roomEdit.move.item.y = roomEdit.move.from[1]; }
+  roomEdit = null;
+  document.body.classList.remove('editing');
+  document.getElementById('check').textContent = 'しらべる';
+  if (!roomWalkable(player.x, player.y)) { const [dx, dy] = ROOM.door[0]; Object.assign(player, { x: dx, y: dy, fx: dx, fy: dy }); }
+  saveRoom();
+}
+function roomEditBar() {
+  const text = document.getElementById('edittext'), check = document.getElementById('check');
+  const holding = roomEdit.move ? FURNITURE[roomEdit.move.item.type].name : roomEdit.place ? FURNITURE[roomEdit.place.type].name : null;
+  text.textContent = holding ? `🛋 ${holding}を おく ばしょを えらんでね` : '🛋 うごかしたい かぐを えらんでね';
+  check.textContent = holding ? 'ここに おく' : 'えらぶ';
+}
+function roomGhost() {
+  if (!roomEdit) return null;
+  const type = roomEdit.move ? roomEdit.move.item.type : roomEdit.place?.type;
+  if (!type) return null;
+  const f = FURNITURE[type];
+  const g = { type, x: roomEdit.cur[0], y: roomEdit.cur[1], w: f.w, h: f.h, flat: !!f.flat };
+  g.ok = !roomPlaceProblem(g);
+  return g;
+}
+function roomPlaceProblem(g) {
+  const others = room.items.filter((it) => !(roomEdit?.move && it === roomEdit.move.item));
+  for (let y = g.y; y < g.y + g.h; y++) for (let x = g.x; x < g.x + g.w; x++) {
+    if (!inRoom(x, y)) return 'へやから はみだすよ';
+    if (!g.flat && isDoor(x, y)) return 'でいりぐちには おけないよ';
+    const hit = roomItemsAt(x, y, others).find((it) => !!FURNITURE[it.type].flat === g.flat);
+    if (hit) return `${FURNITURE[hit.type].name}と かさなるよ`;
+    if (!g.flat && x === player.x && y === player.y) return 'じぶんの いる ところには おけないよ';
+  }
+  if (g.flat) return null;
+  // でいりぐちから、しらべる かぐと 主人公の ところへ いけるか
+  const items = [...others, { type: g.type, x: g.x, y: g.y }];
+  const solid = (x, y) => roomItemsAt(x, y, items).some((it) => !FURNITURE[it.type].flat);
+  const seen = new Set(), q = [];
+  for (const [x, y] of ROOM.door) if (!solid(x, y)) { seen.add(`${x},${y}`); q.push([x, y]); }
+  while (q.length) {
+    const [x, y] = q.shift();
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = x + dx, ny = y + dy, k = `${nx},${ny}`;
+      if (inRoom(nx, ny) && !seen.has(k) && !solid(nx, ny)) { seen.add(k); q.push([nx, ny]); }
+    }
+  }
+  if (!seen.has(`${player.x},${player.y}`)) return 'そこに おくと、でぐちへ いけなく なるよ';
+  for (const it of items) {
+    if (!FURNITURE[it.type].act) continue;
+    const f = fsize(it); let ok = false;
+    for (let y = it.y - 1; y <= it.y + f.h && !ok; y++) for (let x = it.x - 1; x <= it.x + f.w && !ok; x++) if (seen.has(`${x},${y}`)) ok = true;
+    if (!ok) return `そこに おくと、${FURNITURE[it.type].name}に いけなく なるよ`;
+  }
+  return null;
+}
+let roomFlash = null;
+function roomEditSelect() {
+  const g = roomGhost();
+  if (g) {
+    const why = roomPlaceProblem(g);
+    if (why) { flashEdit(why); return; }
+    if (roomEdit.move) { roomEdit.move.item.x = g.x; roomEdit.move.item.y = g.y; roomEdit.move = null; }
+    else { room.items.push({ id: 'r' + Date.now().toString(36), type: g.type, x: g.x, y: g.y }); room.storage[g.type] = Math.max(0, (room.storage[g.type] || 1) - 1); roomEdit.place = null; }
+    saveRoom(); roomEditBar();
+    return;
+  }
+  const it = roomItemAt(roomEdit.cur[0], roomEdit.cur[1]);
+  if (!it) return;
+  const f = FURNITURE[it.type];
+  openModal((m) => {
+    m.className = 'modal menu2';
+    m.append(h('h2', {}, f.name),
+      h('button', { class: 'btn', 'data-act': 'move', 'data-default': '', onclick: () => { closeModal(); roomEdit.move = { item: it, from: [it.x, it.y] }; roomEdit.cur = [it.x, it.y]; roomEditBar(); } }, '✋ うごかす'),
+      f.act === 'desk' || f.act === 'shelf' ? h('p', { class: 'body small' }, 'この かぐは だいじなので しまえないよ。') :
+        h('button', { class: 'btn', 'data-act': 'store', onclick: () => { closeModal(); room.items = room.items.filter((x) => x !== it); room.storage[it.type] = (room.storage[it.type] || 0) + 1; saveRoom(); } }, '📦 しまう'),
+      h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', onclick: closeModal }, 'やめる')));
+  });
+}
+function roomEditKey(e) {
+  const k = e.key;
+  const d = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0], w: [0, -1], s: [0, 1], a: [-1, 0], d: [1, 0] }[k];
+  if (k === 'Escape') {
+    e.preventDefault();
+    if (roomEdit.move) { roomEdit.move.item.x = roomEdit.move.from[0]; roomEdit.move.item.y = roomEdit.move.from[1]; roomEdit.move = null; roomEditBar(); }
+    else if (roomEdit.place) { roomEdit.place = null; roomEditBar(); }
+    else endRoomEdit();
+    return;
+  }
+  if (d) {
+    e.preventDefault();
+    const c = [Math.max(0, Math.min(ROOM.cols - 1, roomEdit.cur[0] + d[0])), Math.max(0, Math.min(ROOM.rows - 1, roomEdit.cur[1] + d[1]))];
+    roomEdit.cur = c;
+    return;
+  }
+  if ((k === 'Enter' || k === ' ') && !e.repeat) { e.preventDefault(); roomEditSelect(); }
+}
+
+// ------------------------------------------------------------------ 自分の家（へやの なかが できるまでの 入口）・かざりだな・まなびの きろく
+function openHouseMenu() {
+  openModal((m) => {
+    m.className = 'modal menu2';
+    m.append(h('h2', {}, '🏠 じぶんの いえ'),
+      h('p', { class: 'body small' }, `${book.name}さんの いえだよ。へやの なかは じゅんびちゅう。`),
+      h('button', { class: 'btn', 'data-act': 'shelf', onclick: openShelf }, '🏆 かざりだな'),
+      h('button', { class: 'btn', 'data-act': 'desk', onclick: openDesk }, '📚 まなびの きろく'),
+      h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', onclick: closeModal }, 'とじる')));
+  });
+}
+
+const SUBJECT_ORDER = ['math', 'kokugo', 'rika', 'shakai', 'eigo'];
+const subjectName = (s) => SUBJECT_LABELS[s] || s;
+const subjectIcon = (s) => (ISLANDS.find((i) => i.subject === s && i.id !== 'test') || {}).icon || '📘';
+
+async function openShelf() {
+  const list = (await store.get(`${book.id}/collection`, [])) || [];
+  openModal((m) => {
+    m.className = 'modal build shelf';
+    m.append(h('h2', {}, '🏆 かざりだな'));
+    if (!list.length) {
+      m.append(h('p', { class: 'body' }, 'まだ なにも ないよ。\nしまで がんばると、バッジや トロフィーが ここに ならぶよ。'));
+    } else {
+      const box = h('div', { class: 'shelf-box', 'data-scroll': '1' });
+      for (const s of [...SUBJECT_ORDER, ...new Set(list.map((x) => x.subject))].filter((v, i, a) => a.indexOf(v) === i)) {
+        const items = list.filter((x) => x.subject === s);
+        if (!items.length) continue;
+        box.append(h('div', { class: 'xlabel' }, `${subjectIcon(s)} ${subjectName(s)}（${items.length}）`),
+          h('div', { class: 'shelf-row' }, ...items.map((x) => h('figure', { class: 'shelf-item' + (x.kind === 'trophy' ? ' trophy' : ''), title: x.name },
+            x.img ? h('img', { src: new URL(x.img, new URL('../', import.meta.url)).href, alt: '', onerror: (e) => { e.target.replaceWith(h('span', { class: 'shelf-ph' }, x.kind === 'trophy' ? '🏆' : '🏅')); } })
+              : h('span', { class: 'shelf-ph' }, x.kind === 'trophy' ? '🏆' : '🏅'),
+            h('figcaption', {}, x.name)))));
+      }
+      m.append(box);
+    }
+    m.append(h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', 'data-default': '', onclick: closeModal }, 'とじる')));
+  });
+}
+
+async function learningSummary() {
+  const keys = await store.list(`${book.id}/learning/`);
+  const sessions = [];
+  for (const k of keys) { const L = await store.get(k); if (L && Array.isArray(L.sessions)) sessions.push(...L.sessions); }
+  const pkeys = await store.list(`${book.id}/progress/`);
+  const units = [];
+  for (const k of pkeys) { const m = await store.get(k, {}); for (const [id, u] of Object.entries(m || {})) units.push({ id, ...u }); }
+  const day = (iso) => { const d = new Date(iso); return isNaN(d) ? null : `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
+  const days = new Set(sessions.map((x) => day(x.at)).filter(Boolean));
+  const weekAgo = Date.now() - 7 * 86400000;
+  const weekDays = new Set(sessions.filter((x) => new Date(x.at) >= weekAgo).map((x) => day(x.at)).filter(Boolean));
+  const bySub = {};
+  const sub = (s) => (bySub[s] = bySub[s] || { minutes: 0, sessions: 0, star1: 0, star2: 0, units: [] });
+  for (const x of sessions) { const b = sub(x.subject || 'math'); b.sessions++; b.minutes += Number(x.minutes) || 0; }
+  for (const u of units) { const b = sub(u.subject || 'math'); if (u.star >= 1) b.star1++; if (u.star >= 2) b.star2++; b.units.push(u); }
+  for (const b of Object.values(bySub)) b.units.sort((a, c) => String(c.at).localeCompare(String(a.at)));
+  return { days: days.size, weekDays: weekDays.size, bySub };
+}
+
+async function openDesk() {
+  const L = await learningSummary();
+  openModal((m) => {
+    m.className = 'modal build desk';
+    m.append(h('h2', {}, '📚 まなびの きろく'),
+      h('p', { class: 'body' }, L.days ? `これまでに ${L.days}にち がくしゅうしたよ。この 1しゅうかんでは ${L.weekDays}にち。` : 'まだ きろくが ないよ。しまで がくしゅうすると ここに のこるよ。'));
+    const box = h('div', { class: 'desk-box', 'data-scroll': '1' });
+    const subs = [...SUBJECT_ORDER, ...Object.keys(L.bySub)].filter((v, i, a) => a.indexOf(v) === i && L.bySub[v]);
+    for (const s of subs) {
+      const b = L.bySub[s];
+      box.append(h('div', { class: 'desk-card' },
+        h('h3', {}, `${subjectIcon(s)} ${subjectName(s)}`),
+        h('p', { class: 'desk-stars' }, `☆ クリア ${b.star1}　★ ていちゃく ${b.star2}`),
+        h('p', { class: 'body small' }, `${b.sessions}かい・${b.minutes}ぷん とりくんだよ`),
+        b.units.length ? h('ul', { class: 'desk-units' }, ...b.units.slice(0, 3).map((u) => h('li', {}, `${u.star >= 2 ? '★' : u.star >= 1 ? '☆' : '・'} ${u.name}`))) : null));
+    }
+    if (subs.length) m.append(box);
+    m.append(h('p', { class: 'body small' }, '★は、☆に なったあと べつの日に もういちど できた しるしだよ。じぶんの ペースで ふやしていこう。'),
+      h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', 'data-default': '', onclick: closeModal }, 'とじる')));
+  });
+}
+
 // ------------------------------------------------------------------ やることボード（自分の家の前。自分だけの やること。先生には 送らない）
 const TODO_MAX = 10;
 const TODO_PRESETS = [['📚', 'しゅくだい'], ['✏️', 'れんしゅう'], ['🎒', 'もちもの'], ['🧹', 'おてつだい']];
 const todayKey = (d = new Date()) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+// いつまで：'YYYY-MM-DD'（日づけの文字）か null（いつでも）
+const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const dayOffset = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return ymd(d); };
+function dueDiff(due) { // きょうから 何日あとか（すぎていれば マイナス）
+  if (!due) return null;
+  const [y, m, d] = due.split('-').map(Number), t = new Date(); t.setHours(0, 0, 0, 0);
+  return Math.round((new Date(y, m - 1, d) - t) / 86400000);
+}
+function dueLabel(due) {
+  const n = dueDiff(due);
+  if (n === null) return { text: 'いつでも', cls: 'due-any' };
+  if (n < 0) return { text: 'すぎたよ', cls: 'due-late' };
+  if (n === 0) return { text: 'きょうまで', cls: 'due-today' };
+  if (n === 1) return { text: 'あしたまで', cls: 'due-soon' };
+  const [, m, d] = due.split('-').map(Number);
+  return { text: `${m}/${d}まで`, cls: 'due-later' };
+}
+function todoSort(items) { // まだの ものを いつまでの はやい じゅんに、いつでもは そのあと、おわった ものは さいご
+  const key = (it) => [it.done ? 1 : 0, it.due ? 0 : 1, it.due || '', it.at || 0];
+  return [...items].sort((a, b) => { const x = key(a), y = key(b); for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return x[i] < y[i] ? -1 : 1; return 0; });
+}
 async function loadTodo() {
   // おわった ものは、つぎの日に 片づける（さいた はなは のこる）
   return store.update(`${book.id}/todo`, (t) => {
@@ -1147,34 +1643,53 @@ async function loadTodo() {
   }, { fallback: null });
 }
 function openTodo() {
-  let mode = 'list'; // 'list' | 'write'
+  let mode = 'list'; // 'list' | 'write' | 'due'
+  let pending = null; // いつまでを えらんでいる やること（新しい ものは {icon,text}、すでに ある ものは {id}）
   openModal(async (m) => {
     m.className = 'modal build todo';
     let t = await loadTodo();
     const save = async (fn) => { t = await store.update(`${book.id}/todo`, (x) => { x = x || { items: [], flowers: 0 }; fn(x); return x; }, { fallback: null }); paint(); };
-    const add = (icon, text) => save((x) => {
-      if (x.items.length >= TODO_MAX) return;
-      x.items.push({ id: Math.random().toString(36).slice(2, 9), icon, text: String(text).slice(0, 20), done: false, at: Date.now() });
-    });
+    const askDue = (p) => { pending = p; mode = 'due'; paint(); };
+    const setDue = (due) => {
+      const p = pending; pending = null; mode = 'list';
+      if (p.id) return save((x) => { const y = x.items.find((z) => z.id === p.id); if (y) y.due = due; });
+      return save((x) => {
+        if (x.items.length >= TODO_MAX) return;
+        x.items.push({ id: Math.random().toString(36).slice(2, 9), icon: p.icon, text: String(p.text).slice(0, 20), due, done: false, at: Date.now() });
+      });
+    };
+    const head = () => [h('h2', {}, '📝 やることボード'),
+      h('p', { class: 'body small' }, `${book.name}さんの やること。ここに かいたことは、この たんまつの なかだけに のこるよ。`)];
     const paint = () => {
       const today = todayKey();
-      const doneToday = t.items.filter((it) => it.done && it.doneOn === today).length;
-      const kids = [h('h2', {}, '📝 やることボード'),
-        h('p', { class: 'body small' }, `${book.name}さんの やること。ここに かいたことは、この たんまつの なかだけに のこるよ。`)];
       if (mode === 'write') {
         const inp = h('input', { class: 'todo-input', type: 'text', maxlength: '20', placeholder: 'やることを かいてね（20もじまで）', 'aria-label': 'やること' });
-        const ok = () => { const v = inp.value.trim(); if (!v) return; mode = 'list'; add('⭐', v); };
+        const ok = () => { const v = inp.value.trim(); if (v) askDue({ icon: '⭐', text: v }); };
         inp.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); ok(); } });
-        kids.push(inp, h('div', { class: 'row end' },
+        m.replaceChildren(...head(), inp, h('div', { class: 'row end' },
           h('button', { class: 'btn', 'data-act': 'back', onclick: () => { mode = 'list'; paint(); } }, 'もどる'),
-          h('button', { class: 'btn go', 'data-act': 'write-ok', onclick: ok }, 'いれる')));
-        m.replaceChildren(...kids);
+          h('button', { class: 'btn go', 'data-act': 'write-ok', onclick: ok }, 'つぎへ')));
         requestAnimationFrame(() => inp.focus());
         return;
       }
+      if (mode === 'due') {
+        const name = pending.id ? (t.items.find((z) => z.id === pending.id) || {}).text : pending.text;
+        const pick = h('input', { class: 'todo-input todo-date', type: 'date', min: dayOffset(0), 'aria-label': 'ひにちを えらぶ' });
+        pick.addEventListener('change', () => { if (pick.value) setDue(pick.value); });
+        m.replaceChildren(...head(), h('h3', { class: 'todo-ask' }, `「${name}」は いつまで？`),
+          h('div', { class: 'hopts' },
+            h('button', { class: 'btn xmat', 'data-due': 'today', onclick: () => setDue(dayOffset(0)) }, '🔴 きょう'),
+            h('button', { class: 'btn xmat', 'data-due': 'tomorrow', onclick: () => setDue(dayOffset(1)) }, '🟠 あした'),
+            h('button', { class: 'btn xmat', 'data-due': 'any', onclick: () => setDue(null) }, '⚪ いつでも')),
+          h('div', { class: 'xlabel' }, 'ひにちを えらぶ'), pick,
+          h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'back', onclick: () => { pending = null; mode = 'list'; paint(); } }, 'もどる')));
+        return;
+      }
+      const doneToday = t.items.filter((it) => it.done && it.doneOn === today).length;
       const list = h('div', { class: 'todo-list', 'data-scroll': '1' });
       if (!t.items.length) list.append(h('p', { class: 'body small' }, 'まだ なにも ないよ。したの ボタンで いれてみよう。'));
-      for (const it of t.items) {
+      for (const it of todoSort(t.items)) {
+        const dl = dueLabel(it.due);
         list.append(h('div', { class: 'todo-row' + (it.done ? ' done' : '') },
           h('button', { class: 'btn todo-check', 'data-todo': it.id, 'aria-label': (it.done ? 'おわった：' : 'まだ：') + it.text, onclick: () => save((x) => {
             const y = x.items.find((z) => z.id === it.id); if (!y) return;
@@ -1182,18 +1697,18 @@ function openTodo() {
             x.flowers = Math.max(0, (x.flowers || 0) + (y.done ? 1 : -1));
           }) }, it.done ? '✅' : '⬜'),
           h('span', { class: 'todo-text' }, `${it.icon || ''} ${it.text}`),
+          it.done ? null : h('button', { class: 'btn todo-due ' + dl.cls, 'data-duefor': it.id, 'aria-label': `いつまで：${dl.text}（かえる）`, onclick: () => askDue({ id: it.id }) }, dl.text),
           h('button', { class: 'btn todo-del', 'data-del': it.id, 'aria-label': 'けす：' + it.text, onclick: () => save((x) => { x.items = x.items.filter((z) => z.id !== it.id); }) }, '🗑')));
       }
       const full = t.items.length >= TODO_MAX;
       const presets = h('div', { class: 'hopts' }, ...TODO_PRESETS.map(([ic, tx]) =>
-        h('button', { class: 'btn xmat', 'data-preset': tx, disabled: full ? '' : null, onclick: () => add(ic, tx) }, `${ic} ${tx}`)),
+        h('button', { class: 'btn xmat', 'data-preset': tx, disabled: full ? '' : null, onclick: () => askDue({ icon: ic, text: tx }) }, `${ic} ${tx}`)),
         h('button', { class: 'btn xmat', 'data-act': 'write', disabled: full ? '' : null, onclick: () => { mode = 'write'; paint(); } }, '✍️ じぶんで かく'));
       const garden = h('p', { class: 'body small todo-garden' },
         doneToday ? `きょう おわった こと：${doneToday}　${'🌸'.repeat(Math.min(doneToday, 10))}` : 'おわったら ⬜ を おしてね。はなが さくよ。',
         h('br'), `これまでに さいた はな：🌷 ${t.flowers || 0}`);
-      kids.push(list, garden, h('div', { class: 'xlabel' }, full ? `いっぱいだよ（${TODO_MAX}こ まで）` : 'やることを いれる'), presets,
+      m.replaceChildren(...head(), list, garden, h('div', { class: 'xlabel' }, full ? `いっぱいだよ（${TODO_MAX}こ まで）` : 'やることを いれる'), presets,
         h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', onclick: closeModal }, 'とじる')));
-      m.replaceChildren(...kids);
     };
     paint();
   });
@@ -1346,6 +1861,11 @@ function openSettings() {
           settings = await store.update(`${book.id}/settings`, (st) => ({ ...(st || {}), furigana: on }), { fallback: {} }) || { ...(settings || {}), furigana: on };
           closeModal(); openSettings();
         } }, `ふりがな：${settings?.furigana !== false ? 'つける' : 'ならった かんじには つけない'}（かえる）`),
+        h('button', { class: 'btn', 'data-act': 'autodoor', onclick: async () => {
+          const on = !settings?.autoDoor;
+          settings = await store.update(`${book.id}/settings`, (st) => ({ ...(st || {}), autoDoor: on }), { fallback: {} }) || { ...(settings || {}), autoDoor: on };
+          closeModal(); openSettings();
+        } }, `いえに はいる：${settings?.autoDoor ? 'とびらに ふれたら はいる' : 'しらべて はいる'}（かえる）`),
         h('button', { class: 'btn', 'data-act': 'class', onclick: openClassInfo }, cls ? `クラス：${cls.className || cls.code}（${cls.number}ばん）` : 'クラス：はいっていない'),
         h('button', { class: 'btn', 'data-act': 'grade', onclick: () => openGrade(false) }, profile?.grade ? `がくねん：${profile.grade}ねんせい（かえる）` : 'がくねんを えらぶ'),
         h('button', { class: 'btn', 'data-act': 'switch', onclick: async () => { closeModal(); await showPicker({ mode: 'manage' }); location.reload(); } }, 'ぼうけんの しょを かえる・つくる'),
@@ -1390,6 +1910,7 @@ function bindControls() {
     if (document.querySelector('.gi-picker')) return; // 冒険の書の画面が自分で受け取る
     if (modalOpen) { heldDir = null; down.clear(); modalKey(e); return; }
     if (editMode) { heldDir = null; editKey(e); return; }
+    if (roomEdit) { heldDir = null; roomEditKey(e); return; }
     if (keyDir[e.key]) {
       e.preventDefault(); down.add(e.key); heldDir = keyDir[e.key];
       if (!player.moving && !e.repeat) { pathQueue = []; pendingInteract = null; tryStep(heldDir); } // 短く押しても1マス進む
@@ -1405,7 +1926,9 @@ function bindControls() {
   document.querySelectorAll('[data-dir]').forEach((b) => {
     const start = (e) => {
       e.preventDefault();
-      if (editMode) { editKey({ key: { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' }[b.dataset.dir], preventDefault() {} }); return; }
+      const ek = { key: { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' }[b.dataset.dir], preventDefault() {} };
+      if (editMode) { editKey(ek); return; }
+      if (roomEdit) { roomEditKey(ek); return; }
       heldDir = b.dataset.dir; b.setPointerCapture?.(e.pointerId);
       if (!player.moving) { pathQueue = []; pendingInteract = null; tryStep(heldDir); } // 短くタップしても1マス進む
     };
@@ -1413,18 +1936,22 @@ function bindControls() {
     b.addEventListener('pointerdown', start);
     b.addEventListener('pointerup', stop); b.addEventListener('pointercancel', stop); b.addEventListener('lostpointercapture', stop);
   });
-  document.getElementById('check').addEventListener('click', () => (editMode ? editKey({ key: 'Enter', preventDefault() {} }) : doCheck()));
+  document.getElementById('check').addEventListener('click', () => (editMode ? editKey({ key: 'Enter', preventDefault() {} }) : roomEdit ? roomEditKey({ key: 'Enter', preventDefault() {} }) : doCheck()));
   document.getElementById('btn-build').addEventListener('click', openIslandMenu);
-  document.getElementById('editdone').addEventListener('click', () => endEdit());
+  document.getElementById('editdone').addEventListener('click', () => (roomEdit ? endRoomEdit() : endEdit()));
+  document.getElementById('btn-room').addEventListener('click', openRoomMenu);
+  document.getElementById('btn-out').addEventListener('click', exitRoom);
   document.getElementById('btn-balloon').addEventListener('click', openIslands);
   document.getElementById('btn-settings').addEventListener('click', openSettings);
   // 地面や建物をタップ
   canvas.addEventListener('pointerdown', (e) => {
     if (modalOpen) return;
+    if (scene === 'room') { roomTap(e); return; }
     const [cx, cy] = camera();
     const tx = Math.floor((e.clientX + cx) / T), ty = Math.floor((e.clientY + cy) / T);
     if (editMode) { editTap(tx, ty); return; }
-    const o = objectAt(tx, ty);
+    let o = objectAt(tx, ty);
+    if (o && OBJECT_TYPES[o.type].ground) o = null; // ひろばは 地面と同じ
     if (o && OBJECT_TYPES[o.type].deco) return; // 飾りをタップしても動かない
     if (o) {
       const f = frontOf(o);
@@ -1438,7 +1965,7 @@ function bindControls() {
 function doCheck() {
   if (modalOpen || player.moving) return;
   const o = facingObject();
-  if (o) interact(o);
+  if (o) (scene === 'room' ? roomInteract(o) : interact(o));
 }
 
 async function loadHero() {
@@ -1450,7 +1977,7 @@ function heroGender() { return profile?.hero?.gender === 'girl' ? 'girl' : 'boy'
 
 // ------------------------------------------------------------------ タイトル画面
 // ブラウザを開いて最初の1回だけ出す（島から戻ったときや、同じタブで開き直したときは出さない）
-const LOGO_SRC = 'assets/home/logo.webp?v=0.10.0';
+const LOGO_SRC = 'assets/home/logo.webp?v=0.11.0';
 function titleShownThisSession() { try { return sessionStorage.getItem('hatenaria-title') === '1'; } catch { return false; } }
 function markTitleShown() { try { sessionStorage.setItem('hatenaria-title', '1'); } catch { /* 使えなくても動く */ } }
 function showTitle(curBook) {
@@ -1537,6 +2064,6 @@ async function start() {
   classroom.refresh(book.id).then((c) => { if (c) cls = c; });
   classroom.flush(book.id);
   // テスト用
-  window.__home = { player, get home() { return home; }, get T() { return T; }, camera, version: HOME_VERSION, get editMode() { return editMode; }, expandCandidates };
+  window.__home = { player, get home() { return home; }, get T() { return T; }, camera, version: HOME_VERSION, get editMode() { return editMode; }, expandCandidates, get scene() { return scene; }, get room() { return room; }, get roomEdit() { return roomEdit; }, enterRoom, exitRoom, roomPt, roomTileAt };
 }
 start();
