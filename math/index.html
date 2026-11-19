@@ -382,7 +382,7 @@ body.kb .mcard:focus{outline:4px solid #ff7a2a;outline-offset:2px}
   <div id="coin" class="pill">🪙 0</div>
   <div id="timeLeft" class="pill"></div>
   <div id="tr"><button id="furi" class="pill" type="button">ふりがな</button><button id="tts" class="pill" type="button">🔊 よみあげ</button><button id="btnSet" class="pill" type="button">⚙ せってい</button></div>
-  <div id="proto">試作：さんすう アイランド v0.13.0</div>
+  <div id="proto">試作：さんすう アイランド v0.13.3</div>
   <button id="act" class="off" type="button">しらべる</button>
   <button id="guide" class="pill" type="button">🧭 つぎの いしへ</button>
   <button id="wide" class="pill" type="button">🔍 ぜんたいを みる</button>
@@ -498,6 +498,7 @@ body.kb .mcard:focus{outline:4px solid #ff7a2a;outline-offset:2px}
     <h3>学習の記録</h3><div id="tRep"></div>
     <div id="tSolo">
       <h3>単独で試すときの学年（ホームアイランドとつながっているときは、冒険の書の学年を使います）</h3>
+      <div>コースの クリア：<select id="tRule"><option value="h4">ヒントなし 5問中4問</option><option value="all">ヒントなし 全問</option></select></div>
       <div>学年：<select id="tGrade"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div>
       <h3>データのバックアップ（単独で使うときの非常用）</h3>
       <div><button class="tb" id="tExport" type="button">書き出す</button> <button class="tb" id="tCopy" type="button">コピー</button></div>
@@ -526,7 +527,7 @@ body.kb .mcard:focus{outline:4px solid #ff7a2a;outline-offset:2px}
 
 <script>
 // =====================================================================
-// ハテナリア つなぎ口（island-link.js） 版 0.1.4
+// ハテナリア つなぎ口（island-link.js） 版 0.1.5
 // ---------------------------------------------------------------------
 // このかたまりを、各アプリの HTML の <script> の中にそのまま貼り付けて使う。
 // ・島のフォルダに置いたとき … 共通部品を読み込み「連携モード」になる
@@ -558,6 +559,7 @@ const Island = (() => {
     record: async () => null,
     collect: async () => false,  // 0.1.4
     progress: async () => false, // 0.1.4
+    material: async () => null,  // 0.1.5
     wallet: async () => null,
     isUnitOpen: async () => true,
     loadState: async () => undefined,
@@ -785,7 +787,7 @@ function drawVeil(c){c.fillStyle='#120c1e';for(let y=0;y<map.h;y++)for(let x=0;x
     c.fillStyle='rgba(255,255,255,.55)';c.font=`bold ${Math.max(16,T*0.5)}px sans-serif`;c.textAlign='center';c.fillText('？',sx(r.x)+r.w*T/2,sy(r.y)+r.h*T/2+T*0.15);}}
 function drawTiles(c){if(!map.tiles)return;const all=map.tileNext>=map.tiles.length;
   for(const tl of map.tiles){const X=sx(tl.x)+T/2,Y=sy(tl.y)+T*0.55,lit=tl.lit||all;
-    const pim=lit?IMG.tile_plate_lit:IMG.tile_plate;if(pim)c.drawImage(pim,X-T*0.62,Y-T*0.5,T*1.24,T*0.83);else{
+    const pim=(map.dg&&IMG['dg_'+map.area+'_tile'+(lit?'_lit':'')])||(lit?IMG.tile_plate_lit:IMG.tile_plate);if(pim)c.drawImage(pim,X-T*0.62,Y-T*0.5,T*1.24,T*0.83);else{
     c.fillStyle=lit?'#ffe28a':'#cfc6dc';c.beginPath();c.ellipse(X,Y,T*0.46,T*0.3,0,0,7);c.fill();
     c.fillStyle=lit?'#f6b938':'#a89cbc';c.beginPath();c.ellipse(X,Y-T*0.04,T*0.38,T*0.22,0,0,7);c.fill();}
     c.fillStyle=lit?'#7a4a10':'#3a2a5a';c.font=`bold ${Math.max(11,T*0.22)}px sans-serif`;c.textAlign='center';c.textBaseline='middle';c.fillText(tl.label,X,Y-T*0.03);c.textBaseline='alphabetic';}}
@@ -797,7 +799,7 @@ function dgStep(){const m=map;if(!m.dg)return;dgReveal(m);const r=m.dgRooms.find
   else{m.tiles.forEach(q=>q.lit=false);m.tileNext=0;tone([220,196],0.2);toast(`${tl.label}＝${tl.n}。こたえの ちいさい ゆかから じゅんに ふもう！`);}}
 const DG_FLOORS=5;
 function dgRun(){const d=dayKey();if(!S.dgRun||S.dgRun.d!==d)S.dgRun={d,floor:0,done:false};return S.dgRun;}
-function dgFinish(a){const R=dgRun();R.done=true;try{if(typeof Island.collect==='function')Island.collect({id:'fushigi-kakera',name:'ふしぎの かけら',kind:'material',img:'math/assets/island/item_shard.webp'});}catch(e){}S.shards=(S.shards||0)+3;S.coins=coins()+2;S.dgClears=(S.dgClears||0)+1;saveSoon();tone([523,659,784,1047,1319],0.5);
+function dgFinish(a){const R=dgRun();R.done=true;try{if(typeof Island.material==='function')Island.material({id:'fushigi-kakera',count:1});}catch(e){}S.shards=(S.shards||0)+3;S.coins=coins()+2;S.dgClears=(S.dgClears||0)+1;saveSoon();tone([523,659,784,1047,1319],0.5);
   startDialog([{n:'ふしぎの あな',t:`ちか${DG_FLOORS}かいの おくまで たどりついた！ きょうの たんけん クリア！`},{n:'ごほうび',t:`すいしょうの かけら ×3（ぜんぶで ${S.shards}こ）\nひらめきコイン ×2\nたんけん クリア ${S.dgClears}かいめ`},{n:'ふしぎの あな',t:'つぎの たんけんは あした。またね！'}]);}
 function dgEnter(door){const a=door.area,dep=typeof door.dg==='number'?door.dg:1;
   if(map.dg&&map.solved>0&&map.theme){const k=addStamp(map.theme);if(k)setTimeout(()=>toast(k>=10?'👑 れんしゅう スタンプ 10こ！':`📮 れんしゅう スタンプ ${k} / 10`),1200);}
@@ -1387,11 +1389,11 @@ function drawGround(c){
   if(map.id==='island'){c.strokeStyle='rgba(255,255,255,.7)';c.lineWidth=4;c.strokeRect(OX-2,OY-2,map.w*T+4,map.h*T+4);}
 }
 /* どうくつの 地面：階ごとの 床と かべ。床に面した かべは「がけの 正面」を かく */
-function floorTile(c,x,y,X,Y){const A=AREAS[map.area],n=(map.vis!=null?map.vis+1:(map.floor||1)),tex=map.floor?IMG[TH(map.area).tex[n-1]]:(map.area==='keisan'?IMG.tex_cave:null);
+function floorTile(c,x,y,X,Y){const A=AREAS[map.area],n=(map.vis!=null?map.vis+1:(map.floor||1)),tex=(map.dg&&IMG['dg_'+map.area+'_floor'])||(map.floor?IMG[TH(map.area).tex[n-1]]:(map.area==='keisan'?IMG.tex_cave:null));
   c.fillStyle=(x+y)%2?A.floor:A.floor2;c.fillRect(X,Y,T+1,T+1);
   if(tex)c.drawImage(tex,(x%2)*128,(y%2)*128,128,128,X,Y,T+1,T+1);}
 function wallTile(c,x,y,X,Y){const A=AREAS[map.area],n=(map.vis!=null?map.vis+1:(map.floor||1));c.fillStyle=A.wall;c.fillRect(X,Y,T+1,T+1);
-  const th=TH(map.area),below=y+1<map.h&&map.g[y+1][x]!=='W'&&map.g[y+1][x]!=='D',face=map.floor?IMG[th.face[n-1]]:null,top=map.floor?IMG[th.wall[n-1]]:(map.area==='keisan'?IMG.tex_cave_wall:null);
+  const th=TH(map.area),below=y+1<map.h&&map.g[y+1][x]!=='W'&&map.g[y+1][x]!=='D',face=map.floor?IMG[th.face[n-1]]:null,top=(map.dg&&IMG['dg_'+map.area+'_wall'])||(map.floor?IMG[th.wall[n-1]]:(map.area==='keisan'?IMG.tex_cave_wall:null));
   if(below&&!face&&map.floor){const g=c.createLinearGradient(0,Y,0,Y+T);g.addColorStop(0,'rgba(255,255,255,.12)');g.addColorStop(1,'rgba(0,0,0,.28)');c.fillStyle=g;c.fillRect(X,Y,T+1,T+1);return;}
   if(below&&face)c.drawImage(face,(x%2)*128,0,128,128,X,Y,T+1,T+1);
   else if(top){c.drawImage(top,(x%2)*128,(y%2)*128,128,128,X,Y,T+1,T+1);c.fillStyle=`rgba(24,12,48,${n===1?0.22:0.4})`;c.fillRect(X,Y,T+1,T+1);}}
@@ -1406,7 +1408,7 @@ function drawStairs(c,x,y,X,Y){
   if(map.hub||map.dg)LQ&&LQ.push([c,map.hub?'ふしぎの あな':'したへの かいだん',X+T/2,Y+T*1.25,Math.max(11,Math.round(T*0.22))]);
   if(map.hub&&IMG.fushigi_ana){const gl=dgTheme(map.area)&&IMG.fushigi_ana_glow;c.save();if(gl){c.globalAlpha=0.35+0.2*Math.sin(time*2.5);c.fillStyle='#b9a6ff';c.beginPath();c.ellipse(X+T/2,Y+T*0.55,T*0.9,T*0.62,0,0,7);c.fill();}c.restore();
     c.drawImage(gl||IMG.fushigi_ana,X-T*0.25,Y-T*0.2,T*1.5,T*1.5);return;}
-  if(map.dg&&IMG.stairs_hole_down){drawImgFoot(c,IMG.stairs_hole_down,X+T/2,Y+T*1.04,T*1.15);
+  if(map.dg&&(IMG['dg_'+map.area+'_stairs']||IMG.stairs_hole_down)){drawImgFoot(c,IMG['dg_'+map.area+'_stairs']||IMG.stairs_hole_down,X+T/2,Y+T*1.04,T*1.15);
     if(map.sealed){c.save();c.globalAlpha=0.55+0.2*Math.sin(time*3);c.strokeStyle='#c9a6ff';c.lineWidth=T*0.08;c.beginPath();c.arc(X+T/2,Y+T*0.5,T*0.42,0,7);c.stroke();c.beginPath();c.moveTo(X+T*0.15,Y+T*0.15);c.lineTo(X+T*0.85,Y+T*0.85);c.moveTo(X+T*0.85,Y+T*0.15);c.lineTo(X+T*0.15,Y+T*0.85);c.stroke();c.restore();
       label(c,'ふういん',X+T/2,Y+T*1.2,Math.max(11,Math.round(T*0.22)));}return;}
   const th=TH(map.area);if(IMG[th.next])drawImgFoot(c,IMG[th.next],X+T/2,Y+T*1.04,T*1.12);
@@ -1453,7 +1455,7 @@ function drawObj(c,o){
   if(o.k==='treasure'){drawTreasure(c,o);return;}
   if(o.k==='G'){const gi=IMG[TH(map.area).gate]||IMG.rock_gate;if(gi)drawImgFoot(c,gi,cx,by+T*0.04,T*1.1);else{c.fillStyle='#8a8078';rr(c,lx+T*0.08,by-T*1.05,T*0.84,T,T*0.3);c.fill();}
     label(c,o.puz==='seq'?'じゅんばんの とびら':'なぞの とびら',cx,by+T*0.15,Math.max(11,Math.round(T*0.2)));return;}
-  if(o.k==='B'){const op=chestOpened(o),img=o.dg?(op?IMG.chest_dg_open||IMG.chest_open:IMG.chest_dg_closed||IMG.chest_closed):op?IMG.chest_open:IMG.chest_closed,ready=!op&&S.cleared.length>0;
+  if(o.k==='B'){const op=chestOpened(o),img=o.dg?(IMG['dg_'+map.area+'_chest_'+(op?'open':'closed')]||(op?IMG.chest_dg_open||IMG.chest_open:IMG.chest_dg_closed||IMG.chest_closed)):op?IMG.chest_open:IMG.chest_closed,ready=!op&&S.cleared.length>0;
     if(ready){c.save();c.globalAlpha=0.35+0.25*Math.sin(time*4);c.fillStyle='#ffe28a';c.beginPath();c.ellipse(cx,by-T*0.35,T*0.55,T*0.45,0,0,7);c.fill();c.restore();}
     if(img)drawImgFoot(c,img,cx,by+T*0.03,T*0.88);return;}
   if(IMG[o.img]){drawImgFoot(c,IMG[o.img],cx,by+(o.sw?T*0.04:0),o.k==='tree'?T*1.3:ww*(o.sw||1.12));return;}
@@ -1552,7 +1554,7 @@ function render(){
     const lab=map.objs.find(o=>o.k==='lab');label(c,'あんないじょ',sx(lab.x)+lab.w*T/2,sy(lab.y)+T*0.05,Math.max(13,Math.round(T*0.28)));
     label(c,'ききゅうはま',sx(8)+T,sy(12)+T*0.75,Math.max(12,Math.round(T*0.24)));
     for(const o of map.objs)if(o.k==='lm'){const ws=(worldsOf(o.area)||[]).filter(w=>S.cleared.includes(w.boss.id));ws.forEach((w,i)=>{const X=sx(o.x)+o.w*T/2+(i-(ws.length-1)/2)*T*0.5,Y=sy(o.y)+(o.area==='tower'?T*0.1:T*0.35)-T*0.62,r=T*0.24,u=unitNo(w),gold=w.all.every(x=>S.mastered.includes(x.id));
-      c.save();c.beginPath();for(let j=0;j<10;j++){const rr=j%2?r*0.48:r,an=-Math.PI/2+j*Math.PI/5;c.lineTo(X+Math.cos(an)*rr,Y+Math.sin(an)*rr);}c.closePath();c.fillStyle=gold?'#f2b200':'#ffe28a';c.fill();c.lineWidth=2;c.strokeStyle='#8a5a1c';c.stroke();
+      c.save();if(IMG.am_star_badge){c.globalAlpha=gold?1:0.75;c.drawImage(IMG.am_star_badge,X-r*1.25,Y-r*1.25,r*2.5,r*2.5);c.globalAlpha=1;}else{c.beginPath();for(let j=0;j<10;j++){const rr=j%2?r*0.48:r,an=-Math.PI/2+j*Math.PI/5;c.lineTo(X+Math.cos(an)*rr,Y+Math.sin(an)*rr);}c.closePath();c.fillStyle=gold?'#f2b200':'#ffe28a';c.fill();c.lineWidth=2;c.strokeStyle='#8a5a1c';c.stroke();}
       c.fillStyle='#5a3a10';c.font=`bold ${Math.round(r*0.85)}px sans-serif`;c.textAlign='center';c.textBaseline='middle';c.fillText(u,X,Y+r*0.08);c.textBaseline='alphabetic';c.restore();});}
     label(c,'けいさん スタジアム',sx(4)+T/2,sy(8)+T*0.1,Math.max(12,Math.round(T*0.26)));
   }
@@ -1925,7 +1927,7 @@ function startLesson(skill,stage,opt){opt=opt||{};
 function buildPadFor(p){const pad=$('#pad'),D=SKILLS[p.skill];pad.classList.toggle('chs',!!p.choices);pad.classList.toggle('dig',!!(p.digits||D.digits));
   $('#kbTip').textContent=p.choices?'キーボードでも こたえられるよ（← → で えらんで エンター）':(p.digits||D.digits)?'キーボードでも こたえられるよ（すうじを うって エンター）':'キーボードでも こたえられるよ（すうじを うつ）';L.sel=null;
   if(p.choices){pad.innerHTML='';p.choices.forEach((c,i)=>{const b=document.createElement('button');b.type='button';b.className='num ch';b.innerHTML=c.label;
-      b.addEventListener('pointerdown',e=>{e.preventDefault();answer(c.v);});b.addEventListener('click',e=>{if(e.detail===0)answer(c.v);});pad.appendChild(b);});pad.dataset.k='';return;}
+      b.addEventListener('pointerdown',e=>{e.preventDefault();answer(c.v);});b.addEventListener('click',e=>{if(e.detail===0)answer(c.v);});pad.appendChild(b);});pad.dataset.k='';if(L){L.sel=0;pad.firstChild&&pad.firstChild.classList.add('sel');}return;}
   if(p.digits||D.digits){{const dk='dig'+(D.dec||p.dec?'d':'');if(pad.dataset.k===dk)return;pad.dataset.k=dk;}pad.innerHTML='';
     [...'1234567890'+(D.dec||p.dec?'.':'')].forEach(d=>{const b=document.createElement('button');b.type='button';b.className='num';b.textContent=d;b.addEventListener('pointerdown',e=>{e.preventDefault();digIn(d);});pad.appendChild(b);});
     for(const [t,f] of [['けす',()=>{L.buf='';setBox('');}],['OK',()=>{if(L.buf)answer(+L.buf);}]]){const b=document.createElement('button');b.type='button';b.className='num wide';b.textContent=t;b.addEventListener('pointerdown',e=>{e.preventDefault();if(!L.lock)f();});pad.appendChild(b);}return;}
@@ -1996,9 +1998,10 @@ let quitT=0;
 function quitArm(on){const b=$('#lQuit');b.classList.toggle('warn',on);b.textContent=on?'ほんとうに やめる？':'やめる';clearTimeout(quitT);if(on)quitT=setTimeout(()=>quitArm(false),3000);}
 $('#lQuit').addEventListener('click',()=>{if(!$('#lQuit').classList.contains('warn')){quitArm(true);return;}
   quitArm(false);if('speechSynthesis' in window)speechSynthesis.cancel();$('#learn').classList.remove('on');L=null;backToField([]);});
+function clearNeed(n){return S.clearRule==='all'?n:Math.min(n,4);}
 async function showResult(){
   $('#learn').classList.remove('on');const R=L;
-  $('#resList').innerHTML=R.res.map(r=>`<div class="resitem"><div class="mark">${MARK[r.status]}</div>${r.p.html.replace('<span class="box"></span>',`<b>${r.p.ans}</b>`)}</div>`).join('');
+  $('#resList').innerHTML=R.res.map(r=>`<div class="resitem"><div class="mark">${MARK[r.status]}</div>${r.p.html.replace('<span class="box"></span>',`<b>${r.p.choices?((r.p.choices.find(c=>c.v===r.p.ans)||{}).label||r.p.ans):r.p.ans}</b>`)}</div>`).join('');
   $('#resGain').innerHTML='';$('#lres').classList.add('on');$('#resBack').focus({preventScroll:true});
   const lines=[];
   // ☆：この5問で 4問いじょう 自分で。★：☆の日と ちがう日に もういちど 4問いじょう 自分で
@@ -2006,10 +2009,10 @@ async function showResult(){
   if(R.mode==='chest'){(S.chests=S.chests||{})[R.chest]=today;got='chest';lines.push('たからばこが ひらいた！ ふくしゅう できたね');}
   else if(R.mode==='seal'){got=selfN+(R.res.filter(r=>r.status==='hint').length)>=2?'seal':'sealfail';lines.push(got==='seal'?'🔓 ふういんが とけた！ かいだんを おりられるよ':'ふういんは まだ かたい…。もう いちど ちょうせんしよう');}
   else if(R.mode==='note'){got='note';lines.push(`📒 チャレンジ ノートの れんしゅう おわり！ ${selfN}もん じぶんで できたね`);}
-  else if(selfN>=4){
+  else if(selfN>=clearNeed(R.res.length)){
     if(!S.cleared.includes(sid)){S.cleared.push(sid);S.clearDay[sid]=today;got='clear';lines.push(`☆ 「${nm}」を クリア！ べつの ひにも できたら ★に なるよ`);}
     else if(!S.mastered.includes(sid)&&S.clearDay[sid]!==today){S.mastered.push(sid);got='mastered';lines.push(`★ 「${nm}」が ていちゃく！`);}
-  }else if(!S.cleared.includes(sid))lines.push(`あと すこし！ 5もん中 4もん じぶんで できたら ☆だよ`);
+  }else if(!S.cleared.includes(sid))lines.push(`あと すこし！ ${R.res.length}もん中 ${clearNeed(R.res.length)}もん ヒントなしで できたら ☆だよ`);
   for(const k of R.noteNew||[]){const [sk,tg]=k.split(':');lines.push(`📒 チャレンジ ノートに「${ERR_NOTE[tg]}」を かいたよ。せきばんから れんしゅう できるよ`);}
   for(const n of R.noteDone||[])lines.push(`🎉 チャレンジ ノートの「${ERR_NOTE[n.tag]}」を こえた！`);
   if(stn&&R.mode!=='chest'){const F2=(S.fails=S.fails||{});if(got)F2[stn.id]=0;else if(!S.cleared.includes(stn.id)){F2[stn.id]=(F2[stn.id]||0)+1;const pq=PREREQ[R.skill],pw=pq&&WORLDS_BY_SKILL(pq);
@@ -2026,7 +2029,7 @@ async function showResult(){
   speak(`${R.res.length}もん がんばったね！ `+lines.join('。').replace(/[☆★🪙🔷]/g,''));
   R.got=got;L=R;
 }
-$('#resBack').addEventListener('click',()=>{const R=L;$('#lres').classList.remove('on');L=null;backToField(R&&R.got?R:null);});
+$('#resBack').addEventListener('click',()=>{const R=L;$('#lres').classList.remove('on');L=null;backToField(R&&R.got?R:null);if(map&&map.hub&&R&&R.stone&&R.stone.world&&!['chest','seal','note'].includes(R.mode))setTimeout(()=>{if(!dlg)openAreaMap(map.area);else{const w=()=>{if(dlg)setTimeout(w,300);else openAreaMap(map.area);};w();}},350);});
 function backToField(R){busy=false;$('#hud').classList.add('on');if(!R)return;
   if(R.got==='chest'&&DG_CHEST&&map.dg){const o=DG_CHEST;DG_CHEST=null;o.done=true;map.solved++;const sh=Math.random()<0.5;if(sh)S.shards=(S.shards||0)+1;else S.coins=coins()+1;saveSoon();tone([523,659,784,1047],0.35);
     startDialog([{n:'たからばこ',t:`パカッ！ たからばこが ひらいた。\n${sh?`すいしょうの かけらを 1こ てにいれた！（${S.shards}こ）`:`ひらめきコインを 1まい てにいれた！（${coins()}まい）`}`}]);return;}
@@ -2388,7 +2391,7 @@ function openAreaMap(a,pg){const all=worldsOf(a)||[],PER=3,pages=Math.ceil(all.l
   if(pg==null){const cur=all.findIndex(w=>w.all.some(x=>stageState(x)==='open'));pg=Math.max(0,Math.floor((cur<0?0:cur)/PER));}
   const ws=all.slice(pg*PER,pg*PER+PER),nodes=[];ws.forEach((w,wi)=>{const u=unitNo(w);w.all.forEach((x,k)=>nodes.push({x,w,wi,u,lab:x.boss?'まとめ':`${u}-${x.k}`}));});
   const n=nodes.length,per=Math.min(7,Math.max(4,Math.ceil(n/3))),rows=Math.ceil(n/per),W=1600,H=1000;
-  nodes.forEach((d,i)=>{const r=Math.floor(i/per),c=i%per,cc=r%2?per-1-c:c;d.px=170+cc*((W-340)/Math.max(1,per-1))+Math.sin(i*1.7)*30;d.py=H-150-r*((H-300)/Math.max(1,rows-1||1))+Math.cos(i*1.3)*26;});
+  nodes.forEach((d,i)=>{const r=Math.floor(i/per),c=i%per,cc=r%2?per-1-c:c;d.px=330+cc*((W-500)/Math.max(1,per-1))+Math.sin(i*1.7)*24;d.py=860-r*((860-330)/Math.max(1,rows-1||1))+Math.cos(i*1.3)*20;});
   const dgDone=dgRun().done;nodes.filter(d=>d.x&&d.x.boss&&S.cleared.includes(d.x.id)).forEach(b=>{const up=b.py>H/2;nodes.push({sp:'dg',w:b.w,u:b.u,bx:b.px,by:b.py,px:Math.min(W-110,Math.max(110,b.px+(b.px>W/2?-120:120))),py:b.py+(up?-170:170),lab:`${b.u}-あな`,st:dgDone?'clear':'open'});});
   AM={a,nodes,pg,pages,sel:Math.max(0,nodes.findIndex(d=>d.x&&stageState(d.x)==='open'))};
   $('#amPrev').style.visibility=pg>0?'visible':'hidden';$('#amNext').style.visibility=pg<pages-1?'visible':'hidden';$('#amPage').textContent=pages>1?`${pg+1} / ${pages}`:'';
@@ -2399,15 +2402,15 @@ function openAreaMap(a,pg){const all=worldsOf(a)||[],PER=3,pages=Math.ceil(all.l
 function drawAreaMap(){const {nodes}=AM,W=1600,H=1000;let g='';
   const path=nodes.filter(d=>!d.sp).map((d,i)=>`${i?'L':'M'}${d.px} ${d.py}`).join(' ');
   g+=`<path d="${path}" fill="none" stroke="#f4e2b8" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" opacity=".92"/><path d="${path}" fill="none" stroke="#c9a46a" stroke-width="5" stroke-dasharray="4 16" stroke-linecap="round"/>`;
-    let lastW=-1;nodes.forEach((d,i)=>{if(d.sp)return;if(d.wi!==lastW){lastW=d.wi;const open=worldOpen(d.w);g+=`<g><rect x="${d.px-120}" y="${d.py-118}" width="240" height="44" rx="12" fill="${open?'#fff8e6':'#d8d0c8'}" stroke="#8a5a3c" stroke-width="4"/><text x="${d.px}" y="${d.py-88}" text-anchor="middle" font-size="24" font-weight="bold" fill="#5a3a22">${d.u}. ${d.w.name.length>9?d.w.name.slice(0,9)+'…':d.w.name}</text></g>`;}});
+    let lastW=-1;nodes.forEach((d,i)=>{if(d.sp)return;if(d.wi!==lastW){lastW=d.wi;const open=worldOpen(d.w);g+=`<g opacity="${open?1:.7}">${IMG.am_signboard?`<image href="${IMG.am_signboard.src}" x="${d.px-150}" y="${d.py-290}" width="300" height="300"/>`:`<rect x="${d.px-120}" y="${d.py-118}" width="240" height="44" rx="12" fill="#fff8e6" stroke="#8a5a3c" stroke-width="4"/>`}<text x="${d.px}" y="${d.py-(IMG.am_signboard?132:88)}" text-anchor="middle" font-size="${d.w.name.length>9?19:24}" font-weight="bold" fill="#5a3a22">${d.u}. ${d.w.name}</text></g>`;}});
   nodes.forEach((d,i)=>{if(!d.sp)return;const im=IMG.fushigi_ana;
     g+=`<path d="M${d.bx} ${d.by}L${d.px} ${d.py}" stroke="#c9b4f0" stroke-width="18" stroke-linecap="round" stroke-dasharray="2 26" opacity=".9"/>`;g+=`<g class="amn ${i===AM.sel?'sel':''}" data-i="${i}" opacity="${d.st==='locked'?.55:1}"><circle class="ring" cx="${d.px}" cy="${d.py}" r="54" fill="#3a2e52" stroke="#f4e2b8" stroke-width="6"/>${im?`<image href="${im.src}" x="${d.px-46}" y="${d.py-46}" width="92" height="92"/>`:''}<rect x="${d.px-80}" y="${d.py+58}" width="160" height="44" rx="12" fill="#fff8e6" stroke="#8a5a3c" stroke-width="4"/><text x="${d.px}" y="${d.py+89}" text-anchor="middle" font-size="26" font-weight="bold" fill="#5a3a22">${d.lab}</text>${d.sp==='dg'&&d.st==='clear'?`<text x="${d.px}" y="${d.py+128}" text-anchor="middle" font-size="22" fill="#fff">きょうは クリア</text>`:''}</g>`;});
   nodes.forEach((d,i)=>{if(d.sp)return;const st=stageState(d.x),boss=d.x.boss,R=boss?46:36,col=st==='mastered'?'#e2a500':st==='clear'?'#f2c94c':st==='open'?'#ff8a5a':'#9a9088';
     g+=`<g class="amn ${i===AM.sel?'sel':''}" data-i="${i}">${st==='open'?`<circle cx="${d.px}" cy="${d.py}" r="${R+12}" fill="#fff" opacity=".45"><animate attributeName="r" values="${R+6};${R+16};${R+6}" dur="1.6s" repeatCount="indefinite"/></circle>`:''}
-      <circle class="ring" cx="${d.px}" cy="${d.py}" r="${R}" fill="${col}" stroke="#5a3a22" stroke-width="5"/>
+      ${(()=>{const im=st==='locked'?IMG.am_node_lock:boss?IMG.am_node_boss:IMG.am_node_stone;return im?`<image href="${im.src}" x="${d.px-R*1.5}" y="${d.py-R*1.35}" width="${R*3}" height="${R*3}"/>${st==='open'||st==='clear'||st==='mastered'?`<circle class="ring" cx="${d.px}" cy="${d.py}" r="${R*0.9}" fill="${col}" opacity=".92"/>`:'<circle class="ring" cx="0" cy="0" r="0"/>'}`:`<circle class="ring" cx="${d.px}" cy="${d.py}" r="${R}" fill="${col}" stroke="#5a3a22" stroke-width="5"/>`;})()}
       ${boss&&IMG.crown?`<image href="${IMG.crown.src}" x="${d.px-26}" y="${d.py-30}" width="52" height="52"/>`:`<text x="${d.px}" y="${d.py+10}" text-anchor="middle" font-size="${boss?26:28}" font-weight="bold" fill="#fff">${boss?'ぬし':d.lab}</text>`}
-      ${st==='locked'?`<text x="${d.px+R-6}" y="${d.py-R+12}" font-size="26">🔒</text>`:st==='mastered'?`<text x="${d.px}" y="${d.py+R+30}" text-anchor="middle" font-size="28" fill="#e2a500">★</text>`:st==='clear'?`<text x="${d.px}" y="${d.py+R+30}" text-anchor="middle" font-size="28" fill="#fff">☆</text>`:''}</g>`;});
-  const h=nodes[AM.sel];if(h&&!h.sp)g+=`<g pointer-events="none"><polygon points="${h.px-18},${h.py-(h.x.boss?66:56)} ${h.px+18},${h.py-(h.x.boss?66:56)} ${h.px},${h.py-(h.x.boss?44:34)}" fill="#fff" stroke="#5a3a22" stroke-width="4"><animateTransform attributeName="transform" type="translate" values="0 0;0 -8;0 0" dur="1s" repeatCount="indefinite"/></polygon></g>`;
+      ${st==='locked'&&!IMG.am_node_lock?`<text x="${d.px+R-6}" y="${d.py-R+12}" font-size="26">🔒</text>`:st==='mastered'?`<text x="${d.px}" y="${d.py+R+30}" text-anchor="middle" font-size="28" fill="#e2a500">★</text>`:st==='clear'?`<text x="${d.px}" y="${d.py+R+30}" text-anchor="middle" font-size="28" fill="#fff">☆</text>`:''}</g>`;});
+  const h=nodes[AM.sel];if(h&&IMG.am_cursor){const yy=h.py-(h.x&&h.x.boss?118:100);g+=`<g pointer-events="none"><image href="${IMG.am_cursor.src}" x="${h.px-25}" y="${yy}" width="50" height="50"><animateTransform attributeName="transform" type="translate" values="0 0;0 -8;0 0" dur="1s" repeatCount="indefinite"/></image></g>`;}else if(h&&!h.sp)g+=`<g pointer-events="none"><polygon points="${h.px-18},${h.py-(h.x.boss?66:56)} ${h.px+18},${h.py-(h.x.boss?66:56)} ${h.px},${h.py-(h.x.boss?44:34)}" fill="#fff" stroke="#5a3a22" stroke-width="4"><animateTransform attributeName="transform" type="translate" values="0 0;0 -8;0 0" dur="1s" repeatCount="indefinite"/></polygon></g>`;
   $('#amSvg').innerHTML=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${g}</svg>`;
   $('#amSvg').querySelectorAll('.amn').forEach(el=>el.addEventListener('click',()=>{const i=+el.dataset.i;if(AM.sel===i)amGo();else{AM.sel=i;drawAreaMap();}}));amInfo();}
 function amInfo(){const d=AM.nodes[AM.sel];if(!d)return;if(d.sp){$('#amInfo').textContent=d.st==='clear'?'ふしぎの あな — きょうの たんけんは おわり。また あした！':`${d.u}-あな「${d.w.name}」の ふしぎの あな — 1日 1かい、ちか${DG_FLOORS}かいまで`;return;}const st=stageState(d.x);$('#amInfo').textContent=`${d.w.name}　${d.x.boss?'ぬしの まとめ':d.x.name}　${st==='locked'?'（まだ ひらいていない）':'— エンター／もう いちど タップで はじめる'}`;}
@@ -2626,7 +2629,7 @@ $('#tLong').addEventListener('pointerdown',e=>{e.preventDefault();$('#tLong').cl
 $('#tLong').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.repeat){e.preventDefault();$('#tLong').classList.add('hold');longT=setTimeout(openTeacher,1500);}});
 $('#tLong').addEventListener('keyup',e=>{if(e.key==='Enter'){clearTimeout(longT);$('#tLong').classList.remove('hold');}});
 function openTeacher(){$('#tLong').classList.remove('hold');$('#tRep').innerHTML=teacherHTML();$('#tSolo').style.display=Island.connected?'none':'';
-  $('#tGrade').value=String(S.soloGrade||1);$('#tBook').value=S.textbook||'tosho';$('#tBook').disabled=!!TB_LOCK;$('#tBook').title=TB_LOCK?'ホームの 先生用ページで えらんだ 教科書を つかっています':'';fillNowSel();$('#tLimit').value=String(S.limitMin);$('#tMode').value=S.limitMode;updUse();$('#tArea').classList.add('on');}
+  $('#tGrade').value=String(S.soloGrade||1);$('#tRule').value=S.clearRule==='all'?'all':'h4';$('#tBook').value=S.textbook||'tosho';$('#tBook').disabled=!!TB_LOCK;$('#tBook').title=TB_LOCK?'ホームの 先生用ページで えらんだ 教科書を つかっています':'';fillNowSel();$('#tLimit').value=String(S.limitMin);$('#tMode').value=S.limitMode;updUse();$('#tArea').classList.add('on');}
 function teacherHTML(){
   const per=days=>{let ms=0,n=0,self=0;for(const d of days){const x=REC.daily[d];if(!x)continue;ms+=x.ms;n+=x.n;for(const k in x.s)self+=x.s[k].self;}
     return `<td>${(ms/60000).toFixed(1)}分</td><td>${n}</td><td>${n?Math.round(self/n*100)+'%':'―'}</td>`;};
@@ -2638,6 +2641,7 @@ function teacherHTML(){
     モード：${Island.connected?(MODE==='school'?'学校（先生が開けた単元だけ）':'自習（☆で次の石が開く）'):'単独（☆で次の石が開く）'}　学年：${GRADE}年
     　保存先：${Island.connected?'ハテナリア共通（冒険の書 '+Island.book.id+'）':(idb?'この端末（sansu-quest）':'一時保存のみ')}　読み上げの声：${jaVoice?jaVoice.name:'端末の標準'}　版：${APP_VERSION}`;
 }
+$('#tRule').addEventListener('change',e=>{S.clearRule=e.target.value;saveSoon();$('#tMsg').textContent='コースの クリアの きじゅんを かえました。';});
 $('#tGrade').addEventListener('change',e=>{S.soloGrade=+e.target.value;GRADE=S.soloGrade;buildMaps();map=MAPS.island;P.x=P.tx=8;P.y=P.ty=11;fit();saveSoon();$('#tRep').innerHTML=teacherHTML();$('#tMsg').textContent=`${GRADE}年生の島にしました（2〜6年は けいさんどうくつ だけ）。`;});
 $('#tLimit').addEventListener('change',e=>{S.limitMin=+e.target.value;saveSoon();updUse();});
 function fillNowSel(){const sel=$('#tNow'),ns=roadNodes();sel.innerHTML='<option value="">（きめない：☆で じゅんに すすむ）</option>'+ns.map((n,i)=>`<option value="${n.ids[0]}">${i+1}. ${n.name}${n.soon?'（じゅんびちゅう）':''}</option>`).join('');sel.value=S.nowUnit||'';}
@@ -2784,7 +2788,7 @@ Object.assign(WORLDS,{
 (()=>{const mk=g=>{const L=WORLDS[g].keisan.map(w=>[w.id.replace(`math.g${g}.`,''),w.name,'keisan']);return {tosho:L,gakuto:L};};for(const g of [2,3,4,5,6])ROAD[g]=mk(g);})();
 
 })();
-window.__sq={get g(){return GRADE},set g(v){GRADE=v},startLesson,worldsOf,genStageSet,roadNodes,unitNo,AREA_ORDER};
+window.__sq={get g(){return GRADE},set g(v){GRADE=v},get S(){return S},goTo,floorId,get MAPS(){return MAPS},startLesson,worldsOf,genStageSet,roadNodes,unitNo,AREA_ORDER};
 (async()=>{
   resize();requestAnimationFrame(loop);
   await Island.init({appId:APP_ID,subject:'math'});
