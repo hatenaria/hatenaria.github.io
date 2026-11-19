@@ -382,7 +382,7 @@ body.kb .mcard:focus{outline:4px solid #ff7a2a;outline-offset:2px}
   <div id="coin" class="pill">🪙 0</div>
   <div id="timeLeft" class="pill"></div>
   <div id="tr"><button id="furi" class="pill" type="button">ふりがな</button><button id="tts" class="pill" type="button">🔊 よみあげ</button><button id="btnSet" class="pill" type="button">⚙ せってい</button></div>
-  <div id="proto">試作：さんすう アイランド v0.13.3</div>
+  <div id="proto">試作：さんすう アイランド v0.13.4</div>
   <button id="act" class="off" type="button">しらべる</button>
   <button id="guide" class="pill" type="button">🧭 つぎの いしへ</button>
   <button id="wide" class="pill" type="button">🔍 ぜんたいを みる</button>
@@ -2785,7 +2785,9 @@ Object.assign(WORLDS,{
   {id:'math.g6.A.fracdiv',name:'分数の わり算',st:[['れんしゅう','g6fdiv',null],['れんしゅう（2）','g6fdiv',null],['まとめて','g6fdiv',null]]},
   {id:'math.g6.A.mixcalc',name:'分数と 小数の 計算',st:[['れんしゅう','g6mix',null],['れんしゅう（2）','g6mix',null],['まとめて','g6mix',null]]}]}
 });
-(()=>{const mk=g=>{const L=WORLDS[g].keisan.map(w=>[w.id.replace(`math.g${g}.`,''),w.name,'keisan']);return {tosho:L,gakuto:L};};for(const g of [2,3,4,5,6])ROAD[g]=mk(g);})();
+(()=>{const O={4:{tosho:['div','rem','round','rule','frac','dec'],gakuto:['div','rem','round','rule','dec','frac']},5:{tosho:['decmul','decdiv','multiple','frac'],gakuto:['multiple','decmul','decdiv','frac']}};
+ const mk=g=>{const W=WORLDS[g].keisan,row=k=>{const w=W.find(x=>x.id===`math.g${g}.A.${k}`);return [w.id.replace(`math.g${g}.`,''),w.name,'keisan'];},L=W.map(w=>[w.id.replace(`math.g${g}.`,''),w.name,'keisan']);
+  return O[g]?{tosho:O[g].tosho.map(row),gakuto:O[g].gakuto.map(row)}:{tosho:L,gakuto:L};};for(const g of [2,3,4,5,6])ROAD[g]=mk(g);})();
 
 })();
 window.__sq={get g(){return GRADE},set g(v){GRADE=v},get S(){return S},goTo,floorId,get MAPS(){return MAPS},startLesson,worldsOf,genStageSet,roadNodes,unitNo,AREA_ORDER};
