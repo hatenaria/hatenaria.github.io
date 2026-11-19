@@ -1,14 +1,14 @@
 // ホームアイランド v0.2
 // 島を歩く・建物を調べる・掲示板・気球で島めぐり・島から戻ったときの「おかえり」
 
-import * as store from '../common/store.js?v=0.13.0';
-import * as books from '../common/books.js?v=0.13.0';
-import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.13.0';
-import * as classroom from '../common/classroom.js?v=0.13.0';
-import { showPicker } from '../common/book-picker.js?v=0.13.0';
-import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE } from './data.js?v=0.13.0';
+import * as store from '../common/store.js?v=0.14.0';
+import * as books from '../common/books.js?v=0.14.0';
+import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.14.0';
+import * as classroom from '../common/classroom.js?v=0.14.0';
+import { showPicker } from '../common/book-picker.js?v=0.14.0';
+import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE } from './data.js?v=0.14.0';
 
-export const HOME_VERSION = '0.13.0';
+export const HOME_VERSION = '0.14.0';
 const PREVIEW = !!window.GI_PREVIEW; // アーティファクトでの試作表示（島へは移動しない）
 
 // 主人公の画像（仕様書2-4の規格：1コマ 384×512、足元 x=192, y=488。縮小した画像でも同じ比率で扱う）
@@ -369,6 +369,7 @@ function drawBuilding(o, t, px, py, now) {
   drawLabel(t.name, px + W / 2, py + T * .05);
   if (t.soon) drawLabel('じゅんびちゅう', px + W / 2, py + H * .62, '#9a6a1c');
   if (o.type === 'school' && hwOpenCount() > 0) drawUnreadBadge(px + W / 2 + T * .9, py - T * .1, now);
+  if (o.type === 'todo' && missionReady()) drawUnreadBadge(px + W / 2 + T * .5, py - T * .1, now);
 }
 
 function drawBoard(o, px, py, now) {
@@ -1166,6 +1167,58 @@ function openClassInfo() {
 }
 
 
+// ------------------------------------------------------------------ ミッション（島で あつめた 王冠。仕様書10章）
+// 島は Island.progress({ id, name, crowns }) で 王冠を おくる。ホームは 王冠の 合計で ミッションを はんていする
+const MISSIONS = [
+  { n: 1, coin: 50, name: 'はじめての おうかん' },
+  { n: 3, coin: 100, name: 'おうかん 3こ' },
+  { n: 5, coin: 200, name: 'おうかん 5こ' },
+  { n: 10, coin: 500, name: 'おうかん 10こ' },
+];
+let crownTotal = 0, missionsClaimed = [];
+async function refreshCrowns() {
+  let n = 0;
+  for (const k of await store.list(`${book.id}/progress/`)) {
+    const m = await store.get(k, {});
+    for (const u of Object.values(m || {})) n += Math.max(0, Number(u?.crowns) || 0);
+  }
+  crownTotal = n;
+  missionsClaimed = ((await store.get(`${book.id}/missions`, {})) || {}).claimed || [];
+  return n;
+}
+const missionReady = () => MISSIONS.some((x) => crownTotal >= x.n && !missionsClaimed.includes(x.n));
+async function claimMission(ms) {
+  if (missionsClaimed.includes(ms.n) || crownTotal < ms.n) return;
+  const r = await store.update(`${book.id}/missions`, (x) => { x = x || { claimed: [] }; if (!x.claimed.includes(ms.n)) x.claimed.push(ms.n); return x; }, { fallback: { claimed: [] } });
+  missionsClaimed = r.claimed;
+  wallet = await store.update(`${book.id}/wallet`, (w) => { w = w || { coin: 0, materials: {} }; w.coin = (w.coin || 0) + ms.coin; return w; }, { fallback: { coin: 0, materials: {} } });
+  await store.update(`${book.id}/collection`, (list) => {
+    list = Array.isArray(list) ? list : [];
+    if (list.some((x) => x.appId === 'mission' && x.id === `crown-${ms.n}`)) return list;
+    return [...list, { appId: 'mission', subject: 'event', id: `crown-${ms.n}`, name: `👑 ${ms.name}`, img: '', kind: 'trophy', at: new Date().toISOString() }];
+  }, { fallback: [] });
+  renderHud();
+  message('👑 ミッション たっせい！', `${ms.name}\n🪙${ms.coin} もらったよ。かざりだなに きねんの トロフィーが ならんだよ。`);
+}
+async function openMissions() {
+  await refreshCrowns();
+  openModal((m) => {
+    m.className = 'modal build missions';
+    const next = MISSIONS.find((x) => crownTotal < x.n);
+    m.append(h('h2', {}, '👑 ミッション'),
+      h('p', { class: 'body' }, `しまで あつめた おうかん：${crownTotal}こ`),
+      h('p', { class: 'body small' }, next ? `つぎの ミッションまで あと ${next.n - crownTotal}こ。しまの ワールドで スタンプを 10こ あつめると、おうかんが もらえるよ。` : 'ぜんぶの ミッションを たっせい したよ！'),
+      h('div', { class: 'ms-list' }, ...MISSIONS.map((x) => {
+        const got = missionsClaimed.includes(x.n), ok = crownTotal >= x.n;
+        return h('div', { class: 'ms-row' + (got ? ' got' : ok ? ' ok' : ''), 'data-ms': String(x.n) },
+          h('span', { class: 'ms-name' }, `${got ? '✅' : ok ? '🎁' : '👑'} ${x.name}`),
+          h('span', { class: 'ms-bar' }, h('span', { style: `width:${Math.min(100, Math.round(crownTotal / x.n * 100))}%` })),
+          got ? h('span', { class: 'ms-tag' }, 'もらった') : ok ? h('button', { class: 'btn go', 'data-act': 'ms-claim', onclick: () => { closeModal(); claimMission(x); } }, `🪙${x.coin} もらう`) : h('span', { class: 'ms-tag' }, `${Math.min(crownTotal, x.n)} / ${x.n}`));
+      })),
+      h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', 'data-default': '', onclick: closeModal }, 'とじる')));
+  });
+}
+
 // ------------------------------------------------------------------ がっこう（しゅくだい・〇〇グランプリ。仕様書11-6）
 // しゅくだいの すすみは、この端末の 学習の きろく（learning/）から 数える。先生には 島から 送った 要約で つたわる
 let hwProg = {}; // id → 自分で 正解した 数
@@ -1253,7 +1306,7 @@ const isGate = (x, y) => { const g = gateTile(); if (g && g[0] === x && g[1] ===
 const GATE = { type: 'gate', gate: true };
 function unclaimedEvent() { return doneEvents().find((e) => !claimedEvents.includes(e.id)); }
 const eventImgs = {};
-for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.13.0'], ['t0', 'assets/home/xmas_tree0.webp?v=0.13.0'], ['t1', 'assets/home/xmas_tree1.webp?v=0.13.0'], ['t2', 'assets/home/xmas_tree2.webp?v=0.13.0'], ['t3', 'assets/home/xmas_tree3.webp?v=0.13.0']]) {
+for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.14.0'], ['t0', 'assets/home/xmas_tree0.webp?v=0.14.0'], ['t1', 'assets/home/xmas_tree1.webp?v=0.14.0'], ['t2', 'assets/home/xmas_tree2.webp?v=0.14.0'], ['t3', 'assets/home/xmas_tree3.webp?v=0.14.0']]) {
   const im = new Image(); im.onload = () => { eventImgs[k] = im; }; im.src = new URL('../' + src, import.meta.url).href;
 }
 function drawGate(now) {
@@ -1875,7 +1928,7 @@ function openTodo() {
         x.items.push({ id: Math.random().toString(36).slice(2, 9), icon: p.icon, text: String(p.text).slice(0, 20), due, done: false, at: Date.now() });
       });
     };
-    const head = () => [h('h2', {}, '📝 やることボード'),
+    const head = () => [h('div', { class: 'row', style: 'justify-content:space-between;align-items:center' }, h('h2', {}, '📝 やることボード'), h('button', { class: 'btn' + (missionReady() ? ' go' : ''), 'data-act': 'missions', onclick: () => { closeModal(); openMissions(); } }, missionReady() ? '👑 ミッション 🎁' : '👑 ミッション')),
       h('p', { class: 'body small' }, `${book.name}さんの やること。ここに かいたことは、この たんまつの なかだけに のこるよ。`)];
     const paint = () => {
       const today = todayKey();
@@ -2286,7 +2339,7 @@ function heroGender() { return profile?.hero?.gender === 'girl' ? 'girl' : 'boy'
 
 // ------------------------------------------------------------------ タイトル画面
 // ブラウザを開いて最初の1回だけ出す（島から戻ったときや、同じタブで開き直したときは出さない）
-const LOGO_SRC = 'assets/home/logo.webp?v=0.13.0';
+const LOGO_SRC = 'assets/home/logo.webp?v=0.14.0';
 function titleShownThisSession() { try { return sessionStorage.getItem('hatenaria-title') === '1'; } catch { return false; } }
 function markTitleShown() { try { sessionStorage.setItem('hatenaria-title', '1'); } catch { /* 使えなくても動く */ } }
 function showTitle(curBook) {
@@ -2349,6 +2402,7 @@ async function start() {
   claimedEvents = (await store.get(`${book.id}/eventsClaimed`, [])) || [];
   await loadWardrobe();
   await refreshHomework();
+  await refreshCrowns();
   Object.assign(player, home.player, { fx: home.player.x, fy: home.player.y });
   loadHero();
   for (const [type, t] of Object.entries(OBJECT_TYPES)) {
@@ -2377,6 +2431,6 @@ async function start() {
   classroom.refresh(book.id).then((c) => { if (c) { cls = c; refreshHomework(); } });
   classroom.flush(book.id);
   // テスト用
-  window.__home = { player, get home() { return home; }, get T() { return T; }, camera, version: HOME_VERSION, get editMode() { return editMode; }, expandCandidates, get scene() { return scene; }, get room() { return room; }, get roomEdit() { return roomEdit; }, enterRoom, exitRoom, roomPt, roomTileAt, walkable, openEvent, gateTile, treeTile, openKisekae, openSchool, refreshHomework, get hwProg() { return hwProg; }, get wardrobe() { return wardrobe; } };
+  window.__home = { player, get home() { return home; }, get T() { return T; }, camera, version: HOME_VERSION, get editMode() { return editMode; }, expandCandidates, get scene() { return scene; }, get room() { return room; }, get roomEdit() { return roomEdit; }, enterRoom, exitRoom, roomPt, roomTileAt, walkable, openEvent, gateTile, treeTile, openKisekae, openSchool, refreshHomework, openMissions, refreshCrowns, get crownTotal() { return crownTotal; }, get hwProg() { return hwProg; }, get wardrobe() { return wardrobe; } };
 }
 start();

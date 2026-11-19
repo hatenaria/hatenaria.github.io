@@ -2,11 +2,11 @@
 // 各アプリは直接これを読み込まず、つなぎ口（island-link.js の中身）から読み込む。
 // つなぎ口がこのファイルを読み込めたら「連携モード」になる。
 
-import * as store from './store.js?v=0.13.0';
-import * as classroom from './classroom.js?v=0.13.0';
-import * as books from './books.js?v=0.13.0';
+import * as store from './store.js?v=0.14.0';
+import * as classroom from './classroom.js?v=0.14.0';
+import * as books from './books.js?v=0.14.0';
 
-export const COMMON_VERSION = '0.3.0';
+export const COMMON_VERSION = '0.3.1';
 export const HOME_URL = new URL('../index.html', import.meta.url).href;
 
 const SESSIONS_MAX = 200; // 1件ごとの詳細を残す数（仕様書2-7）
@@ -173,7 +173,8 @@ export async function connect({ appId, subject }) {
       await store.update(`${p}/progress/${appId}`, (m) => {
         m = m && typeof m === 'object' ? m : {};
         const old = m[id];
-        m[id] = { name, area: String(unit.area || '').slice(0, 20), star: Math.max(star, old?.star || 0), subject, at: new Date().toISOString() };
+        const crowns = Math.max(0, Math.min(99, Math.floor(Number(unit.crowns) || 0))); // 王冠（へらない）
+        m[id] = { name, area: String(unit.area || '').slice(0, 20), star: Math.max(star, old?.star || 0), crowns: Math.max(crowns, old?.crowns || 0), subject, at: new Date().toISOString() };
         return m;
       }, { fallback: {} });
       return true;
