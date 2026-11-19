@@ -1,4 +1,4 @@
-// ハテナリア 共通部品：主人公の部品一覧（parts.js） 版 1.2.0（2026-11-18 からホームのチャットが管理）
+// ハテナリア 共通部品：主人公の部品一覧（parts.js） 版 1.2.2（2026-11-18 からホームのチャットが管理。1.2.2：はじめの服 Tシャツ・ワンピース。1.2.1：はじめの服を パーカーに）
 // ---------------------------------------------------------------------
 // 部品を増やすときは、画像を1枚このフォルダに置き、下の一覧に1行足すだけ。
 // プログラム（hero.js）は書き換えない（共通仕様書 2-4「追加の手順」）。
@@ -40,6 +40,8 @@ export const OUTFITS = {
   'adventurer-a': { name: 'たんけんの ベスト', src: 'outfit_adventurer_a.webp' }, // 第2便
   'adventurer-b': { name: 'たんけんの ジャケット', src: 'outfit_adventurer_b.webp' }, // 第2便
   'casual-c':     { name: 'ふんわり パーカー', src: 'outfit_casual_c.webp' },      // 第3便
+  'basic-d':      { name: 'ほしの Tシャツ', src: 'outfit_basic_d.webp' },          // 第4便
+  'dress-e':      { name: 'ミントの ワンピース', src: 'outfit_dress_e.webp' },      // 第4便
 };
 
 /** アクセサリー（上段の4コマだけ。歩くときは胸の動きに合わせて動く） */
@@ -52,6 +54,6 @@ export const DEFAULTS = {
   gender: 'boy',
   hair: { boy: 'boy-01', girl: 'girl-01' },
   hairColor: 'brown',
-  outfit: null,     // null のときは体（白い肌着）のまま描く
+  outfit: 'casual-c', // はじめの服（ただ）。肌着だけの すがたには しない
   accessory: null,
 };

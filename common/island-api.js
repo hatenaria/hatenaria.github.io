@@ -2,9 +2,9 @@
 // 各アプリは直接これを読み込まず、つなぎ口（island-link.js の中身）から読み込む。
 // つなぎ口がこのファイルを読み込めたら「連携モード」になる。
 
-import * as store from './store.js?v=0.12.0';
-import * as classroom from './classroom.js?v=0.12.0';
-import * as books from './books.js?v=0.12.0';
+import * as store from './store.js?v=0.13.0';
+import * as classroom from './classroom.js?v=0.13.0';
+import * as books from './books.js?v=0.13.0';
 
 export const COMMON_VERSION = '0.3.0';
 export const HOME_URL = new URL('../index.html', import.meta.url).href;
