@@ -1,14 +1,14 @@
 // ホームアイランド v0.2
 // 島を歩く・建物を調べる・掲示板・気球で島めぐり・島から戻ったときの「おかえり」
 
-import * as store from '../common/store.js?v=0.14.0';
-import * as books from '../common/books.js?v=0.14.0';
-import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.14.0';
-import * as classroom from '../common/classroom.js?v=0.14.0';
-import { showPicker } from '../common/book-picker.js?v=0.14.0';
-import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE } from './data.js?v=0.14.0';
+import * as store from '../common/store.js?v=0.14.1';
+import * as books from '../common/books.js?v=0.14.1';
+import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.14.1';
+import * as classroom from '../common/classroom.js?v=0.14.1';
+import { showPicker } from '../common/book-picker.js?v=0.14.1';
+import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE } from './data.js?v=0.14.1';
 
-export const HOME_VERSION = '0.14.0';
+export const HOME_VERSION = '0.14.1';
 const PREVIEW = !!window.GI_PREVIEW; // アーティファクトでの試作表示（島へは移動しない）
 
 // 主人公の画像（仕様書2-4の規格：1コマ 384×512、足元 x=192, y=488。縮小した画像でも同じ比率で扱う）
@@ -764,7 +764,7 @@ function drawBuildFx(now, cx, cy) {
 
 // こうかんじょ：ほかの素材3こ → ほしい素材1こ
 function openExchange(give = null, get = null) {
-  const mats = Object.keys(MATERIALS);
+  const mats = Object.keys(MATERIALS).filter((k) => !MATERIALS[k].rare); // めずらしい 素材は ふつうの こうかんに つかわない
   const have = (k) => wallet?.materials?.[k] || 0;
   openModal((m) => {
     m.className = 'modal build';
@@ -1306,7 +1306,7 @@ const isGate = (x, y) => { const g = gateTile(); if (g && g[0] === x && g[1] ===
 const GATE = { type: 'gate', gate: true };
 function unclaimedEvent() { return doneEvents().find((e) => !claimedEvents.includes(e.id)); }
 const eventImgs = {};
-for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.14.0'], ['t0', 'assets/home/xmas_tree0.webp?v=0.14.0'], ['t1', 'assets/home/xmas_tree1.webp?v=0.14.0'], ['t2', 'assets/home/xmas_tree2.webp?v=0.14.0'], ['t3', 'assets/home/xmas_tree3.webp?v=0.14.0']]) {
+for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.14.1'], ['t0', 'assets/home/xmas_tree0.webp?v=0.14.1'], ['t1', 'assets/home/xmas_tree1.webp?v=0.14.1'], ['t2', 'assets/home/xmas_tree2.webp?v=0.14.1'], ['t3', 'assets/home/xmas_tree3.webp?v=0.14.1']]) {
   const im = new Image(); im.onload = () => { eventImgs[k] = im; }; im.src = new URL('../' + src, import.meta.url).href;
 }
 function drawGate(now) {
@@ -2339,7 +2339,7 @@ function heroGender() { return profile?.hero?.gender === 'girl' ? 'girl' : 'boy'
 
 // ------------------------------------------------------------------ タイトル画面
 // ブラウザを開いて最初の1回だけ出す（島から戻ったときや、同じタブで開き直したときは出さない）
-const LOGO_SRC = 'assets/home/logo.webp?v=0.14.0';
+const LOGO_SRC = 'assets/home/logo.webp?v=0.14.1';
 function titleShownThisSession() { try { return sessionStorage.getItem('hatenaria-title') === '1'; } catch { return false; } }
 function markTitleShown() { try { sessionStorage.setItem('hatenaria-title', '1'); } catch { /* 使えなくても動く */ } }
 function showTitle(curBook) {

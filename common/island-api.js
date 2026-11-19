@@ -2,11 +2,14 @@
 // 各アプリは直接これを読み込まず、つなぎ口（island-link.js の中身）から読み込む。
 // つなぎ口がこのファイルを読み込めたら「連携モード」になる。
 
-import * as store from './store.js?v=0.14.0';
-import * as classroom from './classroom.js?v=0.14.0';
-import * as books from './books.js?v=0.14.0';
+import * as store from './store.js?v=0.14.1';
+import * as classroom from './classroom.js?v=0.14.1';
+import * as books from './books.js?v=0.14.1';
 
-export const COMMON_VERSION = '0.3.1';
+export const COMMON_VERSION = '0.3.2';
+/** 島から ふやせる めずらしい 素材（ホームの こうかんじょで つかう） */
+export const RARE_MATERIALS = { 'fushigi-kakera': 'ふしぎの かけら' };
+const RARE_DAILY_MAX = 5;
 export const HOME_URL = new URL('../index.html', import.meta.url).href;
 
 const SESSIONS_MAX = 200; // 1件ごとの詳細を残す数（仕様書2-7）
@@ -178,6 +181,31 @@ export async function connect({ appId, subject }) {
         return m;
       }, { fallback: {} });
       return true;
+    },
+
+    /**
+     * めずらしい 素材を ふやす（こうかんじょで つかう）。きめられた 素材だけ・1日に 1つの 素材ごと 5こまで
+     *   await Island.material({ id: 'fushigi-kakera', count: 1 })  // ふしぎの あなを クリアしたとき
+     * @returns {Promise<number|null>} いまの 数（ふやせなかったら null）
+     */
+    async material(item = {}) {
+      const id = String(item.id || '');
+      if (!RARE_MATERIALS[id]) return null;
+      const n = Math.max(1, Math.min(5, Math.floor(Number(item.count) || 1)));
+      const d = new Date(), today = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+      let ok = 0;
+      await store.update(`${p}/materialLog`, (L) => {
+        L = L && L.day === today ? L : { day: today, n: {} };
+        ok = Math.max(0, Math.min(n, RARE_DAILY_MAX - (L.n[id] || 0)));
+        L.n[id] = (L.n[id] || 0) + ok; return L;
+      }, { fallback: null });
+      if (!ok) return null;
+      let total = 0;
+      await store.update(`${p}/wallet`, (w) => {
+        w = w && typeof w === 'object' ? w : { coin: 0, materials: {} }; w.materials = w.materials || {};
+        total = w.materials[id] = (w.materials[id] || 0) + ok; return w;
+      }, { fallback: { coin: 0, materials: {} } });
+      return total;
     },
 
     /** このアプリ独自の状態（シール帳など）を冒険の書ごとに読み書きする */

@@ -1,5 +1,5 @@
 // =====================================================================
-// ハテナリア つなぎ口（island-link.js） 版 0.1.4
+// ハテナリア つなぎ口（island-link.js） 版 0.1.5
 // ---------------------------------------------------------------------
 // このかたまりを、各アプリの HTML の <script> の中にそのまま貼り付けて使う。
 // ・島のフォルダに置いたとき … 共通部品を読み込み「連携モード」になる
@@ -31,6 +31,7 @@ const Island = (() => {
     record: async () => null,
     collect: async () => false,  // 0.1.4
     progress: async () => false, // 0.1.4
+    material: async () => null,  // 0.1.5
     wallet: async () => null,
     isUnitOpen: async () => true,
     loadState: async () => undefined,
