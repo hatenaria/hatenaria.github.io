@@ -2,11 +2,11 @@
 // 各アプリは直接これを読み込まず、つなぎ口（island-link.js の中身）から読み込む。
 // つなぎ口がこのファイルを読み込めたら「連携モード」になる。
 
-import * as store from './store.js?v=0.14.1';
-import * as classroom from './classroom.js?v=0.14.1';
-import * as books from './books.js?v=0.14.1';
+import * as store from './store.js?v=0.14.2';
+import * as classroom from './classroom.js?v=0.14.2';
+import * as books from './books.js?v=0.14.2';
 
-export const COMMON_VERSION = '0.3.2';
+export const COMMON_VERSION = '0.3.3';
 /** 島から ふやせる めずらしい 素材（ホームの こうかんじょで つかう） */
 export const RARE_MATERIALS = { 'fushigi-kakera': 'ふしぎの かけら' };
 const RARE_DAILY_MAX = 5;
@@ -138,7 +138,9 @@ export async function connect({ appId, subject }) {
     async isUnitOpen(skillId) {
       const cls = await store.get(`${p}/class`);
       const closed = cls?.settings?.closedSkills || []; // 先生のシート「たんげん」で ✓を外した技能IDの はじめの部分
-      return !closed.some((prefix) => String(skillId).startsWith(prefix));
+      // math.g1.C.clock は clock2 を ふくまない（つぎの 文字が # か . の ときだけ）。math.g4. の ように . で おわる ものは 前方一致
+      const id = String(skillId || '');
+      return !closed.some((p) => { p = String(p); if (!p || !id.startsWith(p)) return false; if (id === p || /[.#]$/.test(p)) return true; const c = id.charAt(p.length); return c === '#' || c === '.'; });
     },
 
     /**
