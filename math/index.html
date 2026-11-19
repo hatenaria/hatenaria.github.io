@@ -797,7 +797,7 @@ function dgStep(){const m=map;if(!m.dg)return;dgReveal(m);const r=m.dgRooms.find
   else{m.tiles.forEach(q=>q.lit=false);m.tileNext=0;tone([220,196],0.2);toast(`${tl.label}＝${tl.n}。こたえの ちいさい ゆかから じゅんに ふもう！`);}}
 const DG_FLOORS=5;
 function dgRun(){const d=dayKey();if(!S.dgRun||S.dgRun.d!==d)S.dgRun={d,floor:0,done:false};return S.dgRun;}
-function dgFinish(a){const R=dgRun();R.done=true;try{if(typeof Island.collect==='function')Island.collect({id:'fushigi-kakera',name:'ふしぎの かけら',kind:'material'});}catch(e){}S.shards=(S.shards||0)+3;S.coins=coins()+2;S.dgClears=(S.dgClears||0)+1;saveSoon();tone([523,659,784,1047,1319],0.5);
+function dgFinish(a){const R=dgRun();R.done=true;try{if(typeof Island.collect==='function')Island.collect({id:'fushigi-kakera',name:'ふしぎの かけら',kind:'material',img:'math/assets/island/item_shard.webp'});}catch(e){}S.shards=(S.shards||0)+3;S.coins=coins()+2;S.dgClears=(S.dgClears||0)+1;saveSoon();tone([523,659,784,1047,1319],0.5);
   startDialog([{n:'ふしぎの あな',t:`ちか${DG_FLOORS}かいの おくまで たどりついた！ きょうの たんけん クリア！`},{n:'ごほうび',t:`すいしょうの かけら ×3（ぜんぶで ${S.shards}こ）\nひらめきコイン ×2\nたんけん クリア ${S.dgClears}かいめ`},{n:'ふしぎの あな',t:'つぎの たんけんは あした。またね！'}]);}
 function dgEnter(door){const a=door.area,dep=typeof door.dg==='number'?door.dg:1;
   if(map.dg&&map.solved>0&&map.theme){const k=addStamp(map.theme);if(k)setTimeout(()=>toast(k>=10?'👑 れんしゅう スタンプ 10こ！':`📮 れんしゅう スタンプ ${k} / 10`),1200);}
