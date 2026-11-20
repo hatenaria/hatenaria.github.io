@@ -383,7 +383,7 @@ body.kb .mcard:focus{outline:4px solid #ff7a2a;outline-offset:2px}
   <div id="coin" class="pill">🪙 0</div>
   <div id="timeLeft" class="pill"></div>
   <div id="tr"><button id="furi" class="pill" type="button">ふりがな</button><button id="tts" class="pill" type="button">🔊 よみあげ</button><button id="btnSet" class="pill" type="button">⚙ せってい</button></div>
-  <div id="proto">さんすう アイランド v0.13.19</div>
+  <div id="proto">さんすう アイランド v0.13.20</div>
   <button id="act" class="off" type="button">しらべる</button>
   <button id="guide" class="pill" type="button">🧭 つぎの いしへ</button>
   <button id="wide" class="pill" type="button">🔍 ぜんたいを みる</button>
@@ -850,8 +850,11 @@ const FLUENCY=new Set(['add','sub','addcarry','subborrow']);   // 1ぷんチャ�
 let _wcache={};
 function worldsOf(area){const ws=(WORLDS[GRADE]||{})[area];if(!ws)return null;const ck=GRADE+':'+area;if(_wcache[ck])return _wcache[ck];
   const out=ws.filter(w=>w.st.length).map(w0=>{const w={id:w0.id,name:w0.name,area,skill:w0.st[0][1],stages:[]};
-    w0.st.forEach(([nm,play,pred],k)=>w.stages.push({id:`${w.id}#${k+1}`,name:`${MARU[k]} ${nm}`,short:nm,play,pred,world:w,k:k+1,area}));
-    const preds=w.stages.map(x=>x.pred);
+    let st0=w0.st.map(x=>x.slice());const themed=st0.filter(x=>x[2]);if(themed.length>=3)st0=st0.filter(x=>x[0]!=='まぜて');
+    st0.forEach((x,k)=>{if(x[0]==='まぜて'&&themed.length){const last=themed[themed.length-1];x[0]=last[0]+'（2）';x[2]=last[2];x[3]={i:1,n:2};last[3]={i:0,n:2};}});
+    const nulls=st0.filter(x=>!x[2]);nulls.forEach((x,i)=>{x[3]={i,n:nulls.length};});
+    st0.forEach(([nm,play,pred,band],k)=>w.stages.push({id:`${w.id}#${k+1}`,name:`${MARU[k]} ${nm}`,short:nm,play,pred,band,world:w,k:k+1,area}));
+    const preds=w0.st.map(x=>x[2]);
     w.boss={id:`${w.id}#boss`,name:'まとめ',play:w.skill,pred:p=>preds.some(f=>!f||f(p)),world:w,k:0,boss:true,area};
     w.all=[...w.stages,w.boss];return w;});
   return _wcache[ck]=out;}
@@ -1895,15 +1898,17 @@ function mastery(skill){const at=REC.attempts.filter(a=>a.skill===skill),l5=at.s
 function level(skill){const st=mastery(skill).st;return st==='review'?'easy':st==='ok'?'hard':'normal';}
 /* ステージの 問題：その ステージの 条件に あう 問題 ぜんぶ から えらぶ。
    さいきん（3日いない）に でた 問題は あとまわし。たりなければ かさなっても よい（1年の けいさんは かずが すくない） */
-function poolOf(skill,pred){const D=SKILLS[skill];if(!D.all)return null;return D.all().filter(p=>!pred||pred(p)).map(p=>(p.skill=skill,p));}
-function genStageSet(skill,stone,n){const D=SKILLS[skill],pool=poolOf(skill,stone.pred);if(!pool||!pool.length)return null;
+function lvOf(p){if(p.lv!=null)return p.lv;const ns=String(p.key||'').match(/\d+/g)||[];let L=0;for(const n of ns)L+=n.length*10;const mx=Math.max(0,...ns.map(Number));return L+Math.min(9.9,Math.log10(mx+1)*3)+(typeof p.ans==='number'?Math.min(5,Math.abs(p.ans)/200):0);}
+function poolOf(skill,pred,band){const D=SKILLS[skill];if(!D.all)return null;let pool=D.all().filter(p=>!pred||pred(p)).map(p=>(p.skill=skill,p));
+  if(band&&band.n>1&&pool.length>=band.n*10){const seen=new Set();pool=pool.filter(p=>!seen.has(p.key)&&seen.add(p.key));pool.sort((a,b)=>lvOf(a)-lvOf(b));const m=pool.length,a=Math.floor(m*band.i/band.n),b=Math.floor(m*(band.i+1)/band.n);pool=pool.slice(a,b);}return pool;}
+function genStageSet(skill,stone,n){const D=SKILLS[skill],pool=poolOf(skill,stone.pred,stone.band);if(!pool||!pool.length)return null;
   const since=Date.now()-3*864e5,recent=new Set(REC.attempts.filter(a=>a.skill===skill&&a.ts>=since).map(a=>a.key)),set=[],used=new Set();
   const q=reviewQ(skill);for(let j=0;j<q.length&&set.length<2;j++){const p=q[j];if(stone.pred&&!stone.pred(p))continue;if(used.has(p.key))continue;q.splice(j--,1);used.add(p.key);set.push(Object.assign({},p,{isReview:true,skill}));}
   const fresh=pool.filter(p=>!recent.has(p.key)&&!used.has(p.key)),old=pool.filter(p=>recent.has(p.key)&&!used.has(p.key));
   const shuf=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
   for(const p of [...shuf(fresh),...shuf(old)]){if(set.length>=n)break;if(used.has(p.key))continue;set.push(p);used.add(p.key);}
   while(set.length<n)set.push(Object.assign({},pick(pool)));      // それでも たりないときは くりかえす
-  shuf(set);const st=mastery(skill).st;set.forEach((p,i)=>{p.pic=!!D.pic&&i<2&&st!=='ok'&&!stone.boss;});return set;}
+  if(stone.boss)shuf(set);else set.sort((a,b)=>lvOf(a)-lvOf(b));const st=mastery(skill).st;set.forEach((p,i)=>{p.pic=!!D.pic&&i<2&&st!=='ok'&&!stone.boss;});return set;}
 function genSet(skill){const D=SKILLS[skill];if(!D.gen){const pool=poolOf(skill,null)||[],q=reviewQ(skill).slice(0,1).map(p=>({...p,isReview:true,skill}));return [...q,...shuf(pool)].filter((p,i,a)=>a.findIndex(x=>x.key===p.key)===i).slice(0,8);}
   const lv=level(skill),set=[],used=new Set();let zero=false;const q=reviewQ(skill);
   const isZ=p=>D.zero?D.zero(p):false;
@@ -2717,7 +2722,7 @@ function frChoices(n,d,mixed,wrongs){const right=frLabel(n,d,mixed),seen=new Set
   let t=1;while(c.length<4&&t<20){const l=frLabel(n+t,d,mixed);if(!seen.has(l.k)){seen.add(l.k);c.push({v:l.k,label:l.html});}t++;}
   return {ans:right.k,choices:shuf(c)};}
 const Q=(kind,a,op,b,ans,ex)=>({kind,ans:R2(ans),key:`${a}${op}${b}`,html:`${a} ${op==='*'?'×':op==='/'?'÷':op==='+'?'＋':'－'} ${b} ＝ ${BOX}`,read:`${a} ${op==='*'?'かける':op==='/'?'わる':op==='+'?'たす':'ひく'} ${b}`,...(ex||{})});
-const GEN=(f,n)=>()=>{const o=[];for(let i=0;i<(n||60);i++){const q=f(i);if(q)o.push(q);}return o;};
+const GEN=(f,n)=>()=>{const o=[],seen=new Set();for(let i=0;i<(n||60)*4;i++){const q=f(i);if(q&&!seen.has(q.key)){seen.add(q.key);o.push(q);}}return o;};
 const HN=(...a)=>(p,st)=>a[Math.min(a.length-1,st-1)];
 const NOREV=()=> '';
 function remQ(kind,a,b){const q=Math.floor(a/b),r=a%b,lab=(x,y)=>y?`${x} あまり ${y}`:`${x}`,seen=new Set(),c=[];
@@ -2829,13 +2834,13 @@ Object.assign(SKILLS,{
    if(k===2){const b=R(3,9),q=R(11,30),r=R(1,b-1);return b*q+r<100?mk('d21r',b*q+r,b,1):null;}
    if(k===3){const b=R(2,4),q=R(101,299);return b*q<1000?mk('d31',b*q,b):null;}
    if(k===4){const b=R(4,9),q=R(12,99);return b*q>=100&&b*q<1000?mk('d32',b*q,b):null;}
-   const b=R(2,9),q=[R(1,9)*100+R(1,9),R(1,9)*10][R(0,1)],r=R(0,b-1);const a=b*q+r;return a>=100&&a<1000?mk('zero',a,b,1):null;},90),hint,reveal:()=>''},
+   const b=R(2,9),q=[R(1,9)*100+R(1,9),R(1,9)*10][R(0,1)],r=R(0,b-1);const a=b*q+r;return a>=100&&a<1000?mk('zero',a,b,1):null;},360),hint,reveal:()=>''},
  g4d2:{id:'math.g4.A.div2',name:'わり算の 筆算（2）',digits:true,all:gen(i=>{const k=i%5;
    if(k===0){const b=R(2,9)*10,q=R(2,9),r=R(0,9)*10%b;return mk('ten',b*q+r,b,1);}
    if(k===1){const b=R(12,39),q=R(2,7),r=R(0,b-1);const a=b*q+r;return a<100?mk('d22',a,b,1):null;}
    if(k===2){const b=R(21,89),q=R(2,9),r=R(0,b-1);const a=b*q+r;return a>=100&&a<1000&&Math.floor(a/10)<b?mk('d32a',a,b,1):null;}
    if(k===3){const b=R(14,19)+R(0,1)*10,q=R(3,8),r=R(0,b-1);const a=b*q+r;const mis=Math.floor(a/Math.round(b/10)/10);return a>=100&&a<1000&&Math.floor(a/10)<b&&mis!==q?mk('fix',a,b,1):null;}
-   const b=R(12,45),q=R(11,40),r=R(0,b-1);const a=b*q+r;return a>=100&&a<1000?mk('d32b',a,b,1):null;},90),hint,reveal:()=>''}
+   const b=R(12,45),q=R(11,40),r=R(0,b-1);const a=b*q+r;return a>=100&&a<1000?mk('d32b',a,b,1):null;},360),hint,reveal:()=>''}
 });
 const W4=WORLDS[4].keisan;const iDiv=W4.findIndex(w=>w.id==='math.g4.A.div'),iRem=W4.findIndex(w=>w.id==='math.g4.A.rem');
 W4[iDiv]={id:'math.g4.A.div',name:'わり算の 筆算（1）',st:[['何十・何百の わり算','g4d1',p=>p.kind==='tens'],['2けた÷1けた','g4d1',p=>p.kind==='d21'],['あまりの ある わり算','g4d1',p=>p.kind==='d21r'],['3けた÷1けた','g4d1',p=>p.kind==='d31'],['商が 2けたに なる','g4d1',p=>p.kind==='d32'],['商に 0が たつ','g4d1',p=>p.kind==='zero']]};
@@ -2847,7 +2852,7 @@ W4[iRem]={id:'math.g4.A.rem',name:'わり算の 筆算（2）',st:[['何十で �
   return O[g]?{tosho:O[g].tosho.map(row),gakuto:O[g].gakuto.map(row)}:{tosho:L,gakuto:L};};for(const g of [2,3,4,5,6])ROAD[g]=mk(g);})();
 
 })();
-window.__sq={get mapId(){return map&&map.id},get g(){return GRADE},set g(v){GRADE=v},get L(){return L},openAreaMap,amGo,get S(){return S},goTo,floorId,get MAPS(){return MAPS},startLesson,worldsOf,genStageSet,roadNodes,unitNo,AREA_ORDER};
+window.__sq={poolOf,lvOf,get mapId(){return map&&map.id},get g(){return GRADE},set g(v){GRADE=v},get L(){return L},openAreaMap,amGo,get S(){return S},goTo,floorId,get MAPS(){return MAPS},startLesson,worldsOf,genStageSet,roadNodes,unitNo,AREA_ORDER};
 (async()=>{
   resize();requestAnimationFrame(loop);
   await Island.init({appId:APP_ID,subject:'math'});
