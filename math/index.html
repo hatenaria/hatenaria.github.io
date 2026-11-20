@@ -383,7 +383,7 @@ body.kb .mcard:focus{outline:4px solid #ff7a2a;outline-offset:2px}
   <div id="coin" class="pill">🪙 0</div>
   <div id="timeLeft" class="pill"></div>
   <div id="tr"><button id="furi" class="pill" type="button">ふりがな</button><button id="tts" class="pill" type="button">🔊 よみあげ</button><button id="btnSet" class="pill" type="button">⚙ せってい</button></div>
-  <div id="proto">試作：さんすう アイランド v0.13.12</div>
+  <div id="proto">試作：さんすう アイランド v0.13.13</div>
   <button id="act" class="off" type="button">しらべる</button>
   <button id="guide" class="pill" type="button">🧭 つぎの いしへ</button>
   <button id="wide" class="pill" type="button">🔍 ぜんたいを みる</button>
@@ -1956,7 +1956,7 @@ function reveal(){const p=L.set[L.i];L.reveal=true;$('#hintBox').classList.add('
   const t=`こたえは ${txt}。${SKILLS[p.skill].reveal(p)}\n${p.choices?'それを':p.ans+'を'} おしてみよう。`;setHint(t);speak(t);}
 let fbTimer=0;
 function fb(msg,soft){const e=$('#fb');e.textContent=msg;e.className='on'+(soft?' soft':'');clearTimeout(fbTimer);fbTimer=setTimeout(()=>e.className='',msg.length>8?2400:soft?800:700);}
-function setBox(v){const b=$('#qText .box');if(b)b.textContent=v;}
+function setBox(v){const b=$('#qText .box');if(b)b.textContent=typeof v==='string'?v.replace(/(\d)r(\d)/,'$1 あまり $2'):v;}
 function answer(v){
   if(!L||L.lock)return;L.buf='';clearTimeout(L.kt);
   const p=L.set[L.i];setBox(v);
