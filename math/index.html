@@ -274,7 +274,7 @@ ruby rt{font-size:.45em}
 .num{width:clamp(60px,7.6vw,84px);height:clamp(60px,11vh,84px);font-size:clamp(28px,5vh,40px);font-weight:bold;border-radius:18px;border:4px solid #8a5a3c;
   background:#fff;color:#3a2a20;box-shadow:0 4px 0 #c9a77f;padding:0}
 .num:active{transform:translateY(3px);box-shadow:0 1px 0 #c9a77f}
-#fb{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%) scale(.8);font-size:58px;font-weight:bold;color:#e2704f;background:#fff;
+#fb{position:fixed;left:50%;top:13%;transform:translate(-50%,-50%) scale(.8);font-size:58px;font-weight:bold;color:#e2704f;background:#fff;
   border:6px solid #e2704f;border-radius:30px;padding:14px 44px;opacity:0;pointer-events:none;transition:all .15s;z-index:27;white-space:nowrap}
 #fb.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
 #fb.soft{color:#4a6a98;border-color:#9cc7f0;font-size:36px}
@@ -383,7 +383,7 @@ body.kb .mcard:focus{outline:4px solid #ff7a2a;outline-offset:2px}
   <div id="coin" class="pill">🪙 0</div>
   <div id="timeLeft" class="pill"></div>
   <div id="tr"><button id="furi" class="pill" type="button">ふりがな</button><button id="tts" class="pill" type="button">🔊 よみあげ</button><button id="btnSet" class="pill" type="button">⚙ せってい</button></div>
-  <div id="proto">さんすう アイランド v0.13.14</div>
+  <div id="proto">さんすう アイランド v0.13.15</div>
   <button id="act" class="off" type="button">しらべる</button>
   <button id="guide" class="pill" type="button">🧭 つぎの いしへ</button>
   <button id="wide" class="pill" type="button">🔍 ぜんたいを みる</button>
@@ -1955,7 +1955,7 @@ function reveal(){const p=L.set[L.i];L.reveal=true;$('#hintBox').classList.add('
   if(p.choices)document.querySelectorAll('#pad .ch').forEach((b,i)=>b.classList.toggle('glow',p.choices[i].v===p.ans));
   const t=`こたえは ${txt}。${SKILLS[p.skill].reveal(p)}\n${p.choices?'それを':p.ans+'を'} おしてみよう。`;setHint(t);speak(t);}
 let fbTimer=0;
-function fb(msg,soft){const e=$('#fb');e.textContent=msg;e.className='on'+(soft?' soft':'');clearTimeout(fbTimer);fbTimer=setTimeout(()=>e.className='',msg.length>8?2400:soft?800:700);}
+function fb(msg,soft){const e=$('#fb');e.textContent=msg;e.className='on'+(soft?' soft':'');clearTimeout(fbTimer);e.style.fontSize=msg.length>8?'30px':'';fbTimer=setTimeout(()=>e.className='',msg.length>8?1300:soft?800:700);}
 function setBox(v){const b=$('#qText .box');if(b)b.textContent=typeof v==='string'?v.replace(/(\d)r(\d)/,'$1 あまり $2'):v;}
 function answer(v){
   if(!L||L.lock)return;L.buf='';clearTimeout(L.kt);
