@@ -6,9 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ハテナリア">
 <title>ハテナリア</title>
-<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png?v=0.15.5">
-<link rel="apple-touch-icon" href="assets/icons/icon-180.png?v=0.15.5">
-<link rel="manifest" href="manifest.json?v=0.15.5">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png?v=0.15.6">
+<link rel="apple-touch-icon" href="assets/icons/icon-180.png?v=0.15.6">
+<link rel="manifest" href="manifest.json?v=0.15.6">
 <style>
   :root{--ink:#3a3226;--paper:#fffaf0;--gold:#ffd66b;--gold-d:#d9a93a;--green:#9be3a8;--green-d:#5fb06d}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -154,7 +154,8 @@
   .hw-head .todo-due{min-height:0;padding:3px 12px;border-radius:12px;font-size:14px;font-weight:bold}
   /* きせかえや */
   .kisekae .tabs{margin:6px 0}
-  .kisekae .wlist{max-height:30vh;overflow:auto;margin:4px 0}
+  .kisekae .wlist{max-height:30vh;overflow-y:auto;margin:4px 0;padding-bottom:6px;scrollbar-gutter:stable}
+  [data-scroll]{scrollbar-gutter:stable;padding-bottom:6px} /* おしたときに ボタンが 3px さがっても スクロールバーが でたり きえたり しない（ならびが ずれて おせなくなる）2026-11-19 */
   .kisekae .wtag{display:block;font-size:13px;opacity:.75;margin-top:2px}
   /* クラスイベント */
   .ev-card{background:linear-gradient(#fff,#fff5e2);border-radius:16px;padding:10px 16px;margin:4px 0 12px;box-shadow:inset 0 -5px 0 #f1dcb4}
@@ -241,6 +242,6 @@
 </div>
 <div id="hint"></div>
 <div id="layer"></div>
-<script type="module" src="home/main.js?v=0.15.5"></script>
+<script type="module" src="home/main.js?v=0.15.6"></script>
 </body>
 </html>
