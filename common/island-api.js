@@ -2,11 +2,12 @@
 // 各アプリは直接これを読み込まず、つなぎ口（island-link.js の中身）から読み込む。
 // つなぎ口がこのファイルを読み込めたら「連携モード」になる。
 
-import * as store from './store.js?v=0.16.1';
-import * as classroom from './classroom.js?v=0.16.1';
-import * as books from './books.js?v=0.16.1';
+import * as store from './store.js?v=0.16.2';
+import * as classroom from './classroom.js?v=0.16.2';
+import * as books from './books.js?v=0.16.2';
+import { readHatenariaCode, dayIndex } from './hatenaria-code.js?v=0.16.2';
 
-export const COMMON_VERSION = '0.3.5';
+export const COMMON_VERSION = '0.3.6';
 /** 島から ふやせる めずらしい 素材（ホームの こうかんじょで つかう） */
 export const RARE_MATERIALS = { 'fushigi-kakera': 'ふしぎの かけら', 'gacha-ticket': 'ガチャけん' };
 const RARE_DAILY = { 'gacha-ticket': 3 }; // 1日の 上限が ちがう もの（ガチャけんは 島の たからばこから 1日 3まい）
@@ -209,6 +210,35 @@ export async function connect({ appId, subject }) {
         total = w.materials[id] = (w.materials[id] || 0) + ok; return w;
       }, { fallback: { coin: 0, materials: {} } });
       return total;
+    },
+
+    /**
+     * ハテナリアコード（理科クエスト など ほかの アプリの がんばり）を うけとる（v0.3.6）。
+     * レベル×4 問ぶんの ごほうび（reward と おなじ ものさし）と、学習の きろく。発行から 3日・いちど つかった コードは 60日 つかえない
+     * @returns {Promise<{ok:boolean, why?:'bad'|'old'|'used'|'off', level?:number, gain?:object}>}
+     */
+    async redeemCode(code) {
+      const r = readHatenariaCode(code);
+      if (!r) return { ok: false, why: 'bad' };
+      const age = (dayIndex() - r.day + 4096) % 4096;
+      if (age > 3) return { ok: false, why: 'old' };
+      const cls = await store.get(`${p}/class`);
+      if (cls?.settings?.rqLink === false) return { ok: false, why: 'off' };
+      const now = dayIndex();
+      const used = (await store.get(`${p}/codesUsed`)) || {};
+      if (used[r.key] != null && (now - used[r.key] + 4096) % 4096 <= 60) return { ok: false, why: 'used' };
+      if (cls && cls.code) {
+        const res = await classroom.useCode(p, r.key);
+        if (res === 'used') return { ok: false, why: 'used' };
+        if (res === 'off') return { ok: false, why: 'off' };
+      }
+      await store.update(`${p}/codesUsed`, (u) => {
+        u = u || {}; for (const [k, d] of Object.entries(u)) if ((now - d + 4096) % 4096 > 60) delete u[k];
+        u[r.key] = now; return u;
+      }, { fallback: {} });
+      const gain = await this.reward(r.level * 4);
+      await this.record({ minutes: r.level * 2, source: 'hatenaria-code', level: r.level });
+      return { ok: true, level: r.level, gain };
     },
 
     /** このアプリ独自の状態（シール帳など）を冒険の書ごとに読み書きする */

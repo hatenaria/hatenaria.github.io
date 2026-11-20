@@ -1,7 +1,7 @@
 // 先生とのつながり（共通仕様書 4章）
 // 児童の端末 → 先生のGAS：参加の登録、学習の要約（片道）。先生のGAS → 端末：クラス設定とお知らせだけ。
 // 児童の記録は先生から返ってこない。実名は送らない（出席番号とハンドルネームだけ）。
-import * as store from './store.js?v=0.16.1';
+import * as store from './store.js?v=0.16.2';
 
 const REFRESH_MS = 2 * 60 * 1000;   // クラス設定（おしらせ・宿題など）はホームを開くたびに読む。続けて開いたときだけ2分あける
 const SEND_MAX = 50;                     // 1回に送る要約の数
@@ -141,4 +141,19 @@ export function buildAllowed(cls, now = new Date()) {
   const m = now.getHours() * 60 + now.getMinutes();
   const toMin = (s) => { const [h, mm] = s.split(':').map(Number); return h * 60 + (mm || 0); };
   return !(m >= toMin(a) && m < toMin(b));
+}
+
+/**
+ * ハテナリアコードを クラスで「つかった」ことに する（先生の シートで 60日 おぼえる）。
+ * @returns {Promise<'ok'|'used'|'off'|'offline'>}
+ */
+export async function useCode(bookId, key) {
+  const cls = await store.get(`${bookId}/class`);
+  if (!cls || !cls.url || cls.invalid) return 'offline';
+  try {
+    const res = await post(cls.url, { action: 'code', code: cls.code, number: cls.number, token: cls.token, key }, 15000);
+    if (!res) return 'offline';
+    if (res.ok) return 'ok';
+    return res.code === 'used' ? 'used' : res.code === 'off' ? 'off' : 'offline';
+  } catch { return 'offline'; }
 }

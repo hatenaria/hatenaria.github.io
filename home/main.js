@@ -1,14 +1,14 @@
 // ホームアイランド v0.2
 // 島を歩く・建物を調べる・掲示板・気球で島めぐり・島から戻ったときの「おかえり」
 
-import * as store from '../common/store.js?v=0.16.1';
-import * as books from '../common/books.js?v=0.16.1';
-import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.16.1';
-import * as classroom from '../common/classroom.js?v=0.16.1';
-import { showPicker } from '../common/book-picker.js?v=0.16.1';
-import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, RESERVED, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD, GACHA } from './data.js?v=0.16.1';
+import * as store from '../common/store.js?v=0.16.2';
+import * as books from '../common/books.js?v=0.16.2';
+import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.16.2';
+import * as classroom from '../common/classroom.js?v=0.16.2';
+import { showPicker } from '../common/book-picker.js?v=0.16.2';
+import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, RESERVED, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD, GACHA } from './data.js?v=0.16.2';
 
-export const HOME_VERSION = '0.16.1';
+export const HOME_VERSION = '0.16.2';
 const PREVIEW = !!window.GI_PREVIEW; // アーティファクトでの試作表示（島へは移動しない）
 
 // 主人公の画像（仕様書2-4の規格：1コマ 384×512、足元 x=192, y=488。縮小した画像でも同じ比率で扱う）
@@ -252,7 +252,7 @@ function resize() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const w = window.innerWidth, h = window.innerHeight;
   T = Math.max(56, Math.min(96, Math.floor(Math.min(w / 10, h / 7.5))));
-  if (zoomed && landBox && scene !== 'room') { // 🔍 しま ぜんたい（v0.16.1）
+  if (zoomed && landBox && scene !== 'room') { // 🔍 しま ぜんたい（v0.16.2）
     T = Math.max(16, Math.min(T, Math.floor(Math.min(w / (landBox.x1 - landBox.x0 + 3), (h - 60) / (landBox.y1 - landBox.y0 + 3)))));
   }
   canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
@@ -1340,7 +1340,7 @@ const isGate = (x, y) => { const g = gateTile(); if (g && g[0] === x && g[1] ===
 const GATE = { type: 'gate', gate: true };
 function unclaimedEvent() { return doneEvents().find((e) => !claimedEvents.includes(e.id)); }
 const eventImgs = {};
-for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.16.1'], ['t0', 'assets/home/xmas_tree0.webp?v=0.16.1'], ['t1', 'assets/home/xmas_tree1.webp?v=0.16.1'], ['t2', 'assets/home/xmas_tree2.webp?v=0.16.1'], ['t3', 'assets/home/xmas_tree3.webp?v=0.16.1']]) {
+for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.16.2'], ['t0', 'assets/home/xmas_tree0.webp?v=0.16.2'], ['t1', 'assets/home/xmas_tree1.webp?v=0.16.2'], ['t2', 'assets/home/xmas_tree2.webp?v=0.16.2'], ['t3', 'assets/home/xmas_tree3.webp?v=0.16.2']]) {
   const im = new Image(); im.onload = () => { eventImgs[k] = im; }; im.src = new URL('../' + src, import.meta.url).href;
 }
 function drawGate(now) {
@@ -2330,7 +2330,7 @@ function renderHud() {
   document.getElementById('coins').innerHTML = `<span class="coin">🪙 ${wallet?.coin || 0}</span>${mats}`;
 }
 
-// ------------------------------------------------------------------ ガチャ「ふしぎの たまご」（v0.16.1）
+// ------------------------------------------------------------------ ガチャ「ふしぎの たまご」（v0.16.2）
 const TICKET = 'gacha-ticket';
 const gDay = (d = new Date()) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 const tickets = () => wallet?.materials?.[TICKET] || 0;
@@ -2342,10 +2342,13 @@ async function grantDailyTickets() {
     const L = await store.get(k); if (L && Array.isArray(L.sessions) && L.sessions.some((x) => { const d = new Date(x.at); return !isNaN(d) && gDay(d) === today; })) { studied = true; break; }
   }
   const hwDoneNow = homeworks().filter(hwDone).map((hw) => hw.id);
+  const hwToday = homeworks().some((hw) => (dueDiff(hw.due) ?? -1) >= 0 && (!hw.start || (dueDiff(hw.start) ?? 0) <= 0));
   let got = []; let add = 0;
   await store.update(`${book.id}/gachaDaily`, (g) => {
     g = g && g.day === today ? g : { day: today, study: false, hw: false, hwSeen: g?.hwSeen || [] };
     if (studied && !g.study) { g.study = true; add += GACHA.daily.study; got.push('しまで がくしゅう'); }
+    // しゅくだいが ない日は、ログインボーナスで 1まい（2026-11-20）
+    if (!hwToday && !g.hw) { g.hw = true; add += GACHA.daily.homework; got.push('きょうの ログイン'); }
     const fresh = hwDoneNow.filter((id) => !g.hwSeen.includes(id));
     if (fresh.length) { g.hwSeen = [...g.hwSeen, ...fresh].slice(-200); if (!g.hw) { g.hw = true; add += GACHA.daily.homework; got.push('しゅくだいを おえた'); } }
     return g;
@@ -2411,7 +2414,7 @@ async function openGacha(view) {
       for (const r of GACHA.ranks) {
         const list = r.id === 'normal' ? ['🪙 20〜50', `${MATERIALS['fushigi-kakera'].icon} ${MATERIALS['fushigi-kakera'].name}`, '🎀 おみせの アクセサリー（もっていない もの）']
           : GACHA.pool[r.id].map((it) => (gachaOwned(it) ? '✅ ' : '❔ ') + gachaName(it));
-        m.append(h('div', { class: 'gx-rank gx-' + r.id }, h('b', {}, `${r.name}　${r.rate}%`), h('div', { class: 'small' }, list.join('　')),
+        m.append(h('div', { class: 'gx-rank gx-' + r.id }, h('b', {}, `${r.name}　${r.rate}%`), h('div', { class: 'small gx-items' }, ...list.map((x) => h('span', {}, x))),
           r.dup ? h('div', { class: 'small' }, `もっている ものが でたら 🪙${r.dup} に かわるよ`) : ''));
       }
       m.append(h('div', { class: 'row end' }, h('button', { class: 'btn', onclick: () => openGacha() }, 'もどる'), h('button', { class: 'btn', 'data-default': '', onclick: closeModal }, 'とじる')));
@@ -2421,7 +2424,7 @@ async function openGacha(view) {
     m.append(egg,
       h('p', { class: 'body' }, h('img', { class: 'micon', src: MATERIALS[TICKET].img, alt: '' }), ` ガチャけん ${tickets()}まい`),
       got.length ? h('p', { class: 'body small' }, `きょうの ごほうび：${got.join('・')}で ガチャけんを もらったよ！`) : '',
-      h('p', { class: 'body small' }, 'ガチャけんは、しまで がくしゅうした日・しゅくだいを おえた日に 1まいずつ もらえるよ。しまの たからばこから でることも あるよ。'),
+      h('p', { class: 'body small' }, 'ガチャけんは、しまで がくしゅうした日と、しゅくだいを おえた日（しゅくだいが ない日は ログインで）に 1まいずつ もらえるよ。しまの たからばこから でることも あるよ。'),
       h('div', { class: 'row end' },
         h('button', { class: 'btn', 'data-act': 'dex', onclick: () => openGacha('dex') }, '📖 ずかん'),
         h('button', { class: 'btn', 'data-act': 'pull', 'data-default': '', disabled: tickets() < 1 ? '' : null, onclick: (e) => playGacha(m, e.currentTarget) }, '🥚 ひく'),
@@ -2531,7 +2534,7 @@ function heroGender() { return profile?.hero?.gender === 'girl' ? 'girl' : 'boy'
 
 // ------------------------------------------------------------------ タイトル画面
 // ブラウザを開いて最初の1回だけ出す（島から戻ったときや、同じタブで開き直したときは出さない）
-const LOGO_SRC = 'assets/home/logo.webp?v=0.16.1';
+const LOGO_SRC = 'assets/home/logo.webp?v=0.16.2';
 function titleShownThisSession() { try { return sessionStorage.getItem('hatenaria-title') === '1'; } catch { return false; } }
 function markTitleShown() { try { sessionStorage.setItem('hatenaria-title', '1'); } catch { /* 使えなくても動く */ } }
 function showTitle(curBook) {
