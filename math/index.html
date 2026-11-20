@@ -383,7 +383,7 @@ body.kb .mcard:focus{outline:4px solid #ff7a2a;outline-offset:2px}
   <div id="coin" class="pill">🪙 0</div>
   <div id="timeLeft" class="pill"></div>
   <div id="tr"><button id="furi" class="pill" type="button">ふりがな</button><button id="tts" class="pill" type="button">🔊 よみあげ</button><button id="btnSet" class="pill" type="button">⚙ せってい</button></div>
-  <div id="proto">さんすう アイランド v0.13.15</div>
+  <div id="proto">さんすう アイランド v0.13.16</div>
   <button id="act" class="off" type="button">しらべる</button>
   <button id="guide" class="pill" type="button">🧭 つぎの いしへ</button>
   <button id="wide" class="pill" type="button">🔍 ぜんたいを みる</button>
@@ -2026,7 +2026,7 @@ async function showResult(){
   const cnt={self:0,hint:0,review:0};R.res.forEach(r=>cnt[r.status]++);
   try{await Island.record({minutes:+((performance.now()-R.t0)/60000).toFixed(1),skills:[{id:skillId(R.skill),...cnt}]});}catch(e){}
   let gain=null;try{gain=await Island.reward(R.res.length);}catch(e){}
-  if(gain){lines.push(`🪙 コイン ＋${gain.coin}　🔷 さんすうの そざい ＋${gain.material}${gain.bonus?'（きょう はじめての さんすうで 2ばい！）':''}`);updCoin();}
+  if(gain){lines.push(`🪙 コイン ＋${gain.coin}　🔷 さんすうの そざい ＋${gain.material}${gain.bonus?'（きょう はじめての さんすうで ＋2こ！）':''}`);updCoin();}
   $('#resGain').innerHTML=lines.join('<br>');
   speak(`${R.res.length}もん がんばったね！ `+lines.join('。').replace(/[☆★🪙🔷]/g,''));
   R.got=got;L=R;
