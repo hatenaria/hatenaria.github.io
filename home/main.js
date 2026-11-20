@@ -1,14 +1,14 @@
 // ホームアイランド v0.2
 // 島を歩く・建物を調べる・掲示板・気球で島めぐり・島から戻ったときの「おかえり」
 
-import * as store from '../common/store.js?v=0.15.3';
-import * as books from '../common/books.js?v=0.15.3';
-import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.15.3';
-import * as classroom from '../common/classroom.js?v=0.15.3';
-import { showPicker } from '../common/book-picker.js?v=0.15.3';
-import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD } from './data.js?v=0.15.3';
+import * as store from '../common/store.js?v=0.15.4';
+import * as books from '../common/books.js?v=0.15.4';
+import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.15.4';
+import * as classroom from '../common/classroom.js?v=0.15.4';
+import { showPicker } from '../common/book-picker.js?v=0.15.4';
+import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD } from './data.js?v=0.15.4';
 
-export const HOME_VERSION = '0.15.3';
+export const HOME_VERSION = '0.15.4';
 const PREVIEW = !!window.GI_PREVIEW; // アーティファクトでの試作表示（島へは移動しない）
 
 // 主人公の画像（仕様書2-4の規格：1コマ 384×512、足元 x=192, y=488。縮小した画像でも同じ比率で扱う）
@@ -1322,7 +1322,7 @@ const isGate = (x, y) => { const g = gateTile(); if (g && g[0] === x && g[1] ===
 const GATE = { type: 'gate', gate: true };
 function unclaimedEvent() { return doneEvents().find((e) => !claimedEvents.includes(e.id)); }
 const eventImgs = {};
-for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.15.3'], ['t0', 'assets/home/xmas_tree0.webp?v=0.15.3'], ['t1', 'assets/home/xmas_tree1.webp?v=0.15.3'], ['t2', 'assets/home/xmas_tree2.webp?v=0.15.3'], ['t3', 'assets/home/xmas_tree3.webp?v=0.15.3']]) {
+for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.15.4'], ['t0', 'assets/home/xmas_tree0.webp?v=0.15.4'], ['t1', 'assets/home/xmas_tree1.webp?v=0.15.4'], ['t2', 'assets/home/xmas_tree2.webp?v=0.15.4'], ['t3', 'assets/home/xmas_tree3.webp?v=0.15.4']]) {
   const im = new Image(); im.onload = () => { eventImgs[k] = im; }; im.src = new URL('../' + src, import.meta.url).href;
 }
 function drawGate(now) {
@@ -2057,7 +2057,7 @@ function openKisekae(state) {
     for (const [id, x] of items) {
       const on = (st.pick ? st.pick.id : worn[st.kind]) === id;
       // もっている ものは おすと すぐ きがえる。もっていない ものは みほんで きてみて「かう」
-      const tap = ownsPart(st.kind, id) ? () => { if (worn[st.kind] !== id) { profile = { ...(profile || {}), hero: { ...(profile?.hero || {}), [st.kind]: id } }; wearParts({ [st.kind]: id }).catch(() => {}); } openKisekae({ kind: st.kind, pick: null }); } : () => openKisekae({ kind: st.kind, pick: { id } });
+      const tap = ownsPart(st.kind, id) ? () => { if (worn[st.kind] !== id) { profile = { ...(profile || {}), hero: { ...(profile?.hero || {}), [st.kind]: id } }; wearParts({ [st.kind]: id }).catch((e) => logErr('wear ' + (e?.message || e))); } try { openKisekae({ kind: st.kind, pick: null }); } catch (e) { logErr('kisekae ' + (e?.stack || e)); throw e; } } : () => openKisekae({ kind: st.kind, pick: { id } });
       list.append(h('button', { class: 'btn xmat' + (on ? ' on' : ''), 'data-part': id, onclick: tap },
         (isNewPart(st.kind, id) && !ownsPart(st.kind, id) ? '🆕 ' : '') + x.name + (WARDROBE_SEASON[`${st.kind}:${id}`] && !ownsPart(st.kind, id) ? (seasonLeft(st.kind, id) ? `（あと ${seasonLeft(st.kind, id)}日）` : '（きかんげんてい）') : ''), h('span', { class: 'wtag' }, ownsPart(st.kind, id) ? (worn[st.kind] === id ? 'きている' : 'もっている') : costText(partCost(st.kind, id)))));
     }
@@ -2274,6 +2274,7 @@ function openSettings() {
         h('button', { class: 'btn', 'data-act': 'grade', onclick: () => openGrade(false) }, profile?.grade ? `がくねん：${profile.grade}ねんせい（かえる）` : 'がくねんを えらぶ'),
         h('button', { class: 'btn', 'data-act': 'switch', onclick: async () => { closeModal(); await showPicker({ mode: 'manage' }); location.reload(); } }, 'ぼうけんの しょを かえる・つくる'),
         PREVIEW ? null : h('button', { class: 'btn', 'data-act': 'backup', onclick: backup }, 'バックアップを ほぞん（せんせい・おうちの ひと よう）')),
+      ...(errLog.length ? [h('p', { class: 'small errlog', style: 'color:#b44;word-break:break-all;user-select:text' }, 'エラーの きろく（せんせい よう）：\n' + errLog.slice(-3).join('\n'))] : []),
       h('p', { class: 'small' }, `ハテナリア ホームアイランド ${HOME_VERSION}${store.isVolatile ? '　※この ブラウザでは きろくが のこりません' : ''}`),
       h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', onclick: closeModal }, 'とじる')));
   });
@@ -2378,12 +2379,17 @@ async function loadHero() {
   try { heroParts = await createHero(profile?.hero || {}); } catch { heroParts = null; }
 }
 let profile = null;
+// エラーの きろく（⚙ に 出す。ためしに あそんだ ときの 不具合を 見つけるため）
+const errLog = [];
+const logErr = (m) => { errLog.push(String(m).slice(0, 200)); if (errLog.length > 10) errLog.shift(); };
+window.addEventListener('error', (e) => logErr(`${e.message} @${(e.filename || '').split('/').pop()}:${e.lineno}`));
+window.addEventListener('unhandledrejection', (e) => logErr(`${e.reason?.message || e.reason} ${(e.reason?.stack || '').split('\n')[1] || ''}`));
 let settings = null; // 冒険の書の共通設定（ふりがな・読み上げ）
 function heroGender() { return profile?.hero?.gender === 'girl' ? 'girl' : 'boy'; }
 
 // ------------------------------------------------------------------ タイトル画面
 // ブラウザを開いて最初の1回だけ出す（島から戻ったときや、同じタブで開き直したときは出さない）
-const LOGO_SRC = 'assets/home/logo.webp?v=0.15.3';
+const LOGO_SRC = 'assets/home/logo.webp?v=0.15.4';
 function titleShownThisSession() { try { return sessionStorage.getItem('hatenaria-title') === '1'; } catch { return false; } }
 function markTitleShown() { try { sessionStorage.setItem('hatenaria-title', '1'); } catch { /* 使えなくても動く */ } }
 function showTitle(curBook) {
