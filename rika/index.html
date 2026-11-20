@@ -93,7 +93,7 @@ body.kb button:focus-visible,body.kb button:focus{outline:5px solid #2f6fd6;outl
   <div class="pill" id="place">りか アイランド</div>
   <div class="pill" id="wallet"><span>🪙 <b id="wCoin">0</b></span><span class="dr">💧 <b id="wMat">0</b></span></div>
   <div class="pill" id="hint">あんないじょを しらべてみよう</div>
-  <div id="ver">りか アイランド v0.1.0</div>
+  <div id="ver">りか アイランド v0.1.1</div>
   <button id="act" class="off" type="button">しらべる</button>
   <div id="dpad">
     <span></span><button class="dbtn" data-d="up" type="button" aria-label="うえ">▲</button><span></span>
@@ -105,7 +105,7 @@ body.kb button:focus-visible,body.kb button:focus{outline:5px solid #2f6fd6;outl
 
 <div id="annai" role="dialog" aria-modal="true" aria-labelledby="aTitle">
   <div class="panel" id="aPanel">
-    <img class="bld" src="assets/island/bld_annai.webp?v=0.1.0" alt="">
+    <img class="bld" src="assets/island/bld_annai.webp?v=0.1.1" alt="">
     <h2 id="aTitle">りかの あんないじょ</h2>
     <p>りかクエストで もらった<br><b>ハテナリアコード</b>を はってね。</p>
     <input id="code" placeholder="HQ-XXXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="24" aria-label="ハテナリアコード" inputmode="latin">
@@ -199,7 +199,7 @@ const Island = (() => {
 
 (()=>{
 'use strict';
-const APP_VERSION='0.1.0',APP_ID='rika-island';
+const APP_VERSION='0.1.1',APP_ID='rika-island';
 const $=s=>document.querySelector(s);
 const cv=$('#cv'),ctx=cv.getContext('2d');
 let W=0,H=0,DPR=1,T=56,OX=0,OY=0;
@@ -237,7 +237,7 @@ const MAP=(()=>{const w=18,h=13,g=[];
   g[7][11]='b';g[11][12]='b';
   const objs=PLACES.map(p=>({k:'place',...p}));
   objs.push({k:'pad',img:'balloon_pad',x:4,y:11,w:2,h:2,deco:true,flat:true});
-  for(const [x,y] of [[0,0],[4,0],[5,1],[0,6],[0,9],[1,10],[3,9],[5,9],[4,4],[6,5],[13,2],[17,4],[16,6],[17,10],[9,5],[0,1]])objs.push({k:'tree',img:'deco_tree',x,y,w:1,h:1});
+  for(const [x,y] of [[0,0],[4,0],[5,1],[0,6],[0,9],[1,10],[3,9],[5,9],[4,4],[6,5],[12,2],[17,4],[16,6],[17,10],[9,5],[0,1]])objs.push({k:'tree',img:'deco_tree',x,y,w:1,h:1});
   for(const [x,y] of [[6,2],[4,2],[13,9],[17,8],[1,12],[9,12],[16,12],[2,8]])objs.push({k:'bush',img:'deco_bush',x,y,w:1,h:1});
   const block=new Set();
   for(const o of objs){if(o.deco)continue;for(let yy=o.y;yy<o.y+o.h;yy++)for(let xx=o.x;xx<o.x+o.w;xx++)block.add(key(xx,yy));}
@@ -352,7 +352,7 @@ function drawObj(c,o){const lx=sx(o.x),by=sy(o.y+o.h),ww=o.w*T,cx=lx+ww/2,img=IM
   if(o.k==='tree'){if(img)drawImgFoot(c,img,cx,by,T*1.3);return;}
   if(o.k==='bush'){if(img)drawImgFoot(c,img,cx,by,T*1.05);return;}
   if(o.k==='pad'){if(img)drawImgFoot(c,img,cx,by-T*0.1,ww*1.05);return;}
-  if(img)drawImgFoot(c,img,cx,by,ww*(o.id==='annai'?1.12:1.08));}
+  if(img)drawImgFoot(c,img,cx,by,ww*(o.id==='annai'?1.12:o.id==='misaki'?0.82:1.08));}
 function drawFog(c,o){const lx=sx(o.x)-T*0.3,ty=sy(o.y)-T*0.9,ww=o.w*T+T*0.6,hh=(o.h+0.9)*T+T*0.3;
   if(IMG.block_fog){c.drawImage(IMG.block_fog,lx,ty,ww,hh);return;}
   c.fillStyle='rgba(250,250,255,.9)';for(let i=0;i<7;i++){const fx=lx+ww*(0.1+0.8*((i*37)%7)/6),fy=ty+hh*(0.2+0.6*((i*53)%5)/4);c.beginPath();c.arc(fx,fy,T*0.75,0,7);c.fill();}}
