@@ -383,7 +383,7 @@ body.kb .mcard:focus{outline:4px solid #ff7a2a;outline-offset:2px}
   <div id="coin" class="pill">🪙 0</div>
   <div id="timeLeft" class="pill"></div>
   <div id="tr"><button id="furi" class="pill" type="button">ふりがな</button><button id="tts" class="pill" type="button">🔊 よみあげ</button><button id="btnSet" class="pill" type="button">⚙ せってい</button></div>
-  <div id="proto">さんすう アイランド v0.13.21</div>
+  <div id="proto">さんすう アイランド v0.14.0</div>
   <button id="act" class="off" type="button">しらべる</button>
   <button id="guide" class="pill" type="button">🧭 つぎの いしへ</button>
   <button id="wide" class="pill" type="button">🔍 ぜんたいを みる</button>
@@ -2848,6 +2848,62 @@ Object.assign(SKILLS,{
 const W4=WORLDS[4].keisan;const iDiv=W4.findIndex(w=>w.id==='math.g4.A.div'),iRem=W4.findIndex(w=>w.id==='math.g4.A.rem');
 W4[iDiv]={id:'math.g4.A.div',name:'わり算の 筆算（1）',st:[['何十・何百の わり算','g4d1',p=>p.kind==='tens'],['2けた÷1けた','g4d1',p=>p.kind==='d21'],['あまりの ある わり算','g4d1',p=>p.kind==='d21r'],['3けた÷1けた','g4d1',p=>p.kind==='d31'],['商が 2けたに なる','g4d1',p=>p.kind==='d32'],['商に 0が たつ','g4d1',p=>p.kind==='zero']]};
 W4[iRem]={id:'math.g4.A.rem',name:'わり算の 筆算（2）',st:[['何十で わる','g4d2',p=>p.kind==='ten'],['2けた÷2けた','g4d2',p=>p.kind==='d22'],['3けた÷2けた','g4d2',p=>p.kind==='d32a'],['商を なおす','g4d2',p=>p.kind==='fix'],['商が 2けたに なる','g4d2',p=>p.kind==='d32b']]};
+})();
+
+/* ===== 2年 けいさん（学校図書の 小単元の 順） ===== */
+(()=>{
+const R=(a,b)=>a+Math.floor(Math.random()*(b-a+1)),BX='<span class="box"></span>';
+const Q=(kind,a,op,b,ans,lv)=>({kind,a,b,ans,lv,key:`${a}${op}${b}`,html:`${a} ${op==='*'?'×':op==='+'?'＋':'－'} ${b} ＝ ${BX}`,read:`${a} ${op==='*'?'かける':op==='+'?'たす':'ひく'} ${b}`});
+const T=(kind,key,html,read,ans,lv,ex)=>Object.assign({kind,key,html,read,ans,lv},ex||{});
+const GN=(f,n)=>()=>{const o=[],s=new Set();for(let i=0;i<n*6&&o.length<n;i++){const p=f(i);if(p&&!s.has(p.key)){s.add(p.key);o.push(p);}}return o;};
+const HN=(...a)=>(p,st)=>a[Math.min(a.length-1,st-1)];
+const cmpCh=(x,y)=>({choices:[{v:'>',label:'＞'},{v:'<',label:'＜'}],ans:x>y?'>':'<'});
+const S2={
+ g2a:{id:'math.g2.A.add',name:'たし算の ひっ算',digits:true,all:GN(i=>{const k=i%4;let a,b;
+   if(k===0){a=R(10,88);b=R(10,98-a);if(a%10+b%10>=10)return null;return Q('n22',a,'+',b,a+b);}
+   if(k===1){if(R(0,1)){a=R(10,89);b=R(1,9);}else{a=R(1,9);b=R(10,89);}if(a%10+b%10>=10||a+b>99)return null;return Q('n21',a,'+',b,a+b);}
+   if(k===2){a=R(11,79);b=R(11,89-a);if(a%10+b%10<10||a+b>99)return null;return Q('c22',a,'+',b,a+b);}
+   if(R(0,1)){a=R(11,89);b=R(2,9);}else{a=R(11,80);b=R(11,90-a);}if(a%10+b%10<10||a+b>99)return null;return Q('c2x',a,'+',b,a+b,(a+b)%10===0?50:0);},300),hint:HN('くらいを そろえて 書き、一の位から たそう。','一の位が 10を こえたら、十の位に 1 くりあげよう。'),reveal:()=>''},
+ g2s:{id:'math.g2.A.sub',name:'ひき算の ひっ算',digits:true,all:GN(i=>{const k=i%4;let a,b;
+   if(k===0){a=R(20,99);b=R(10,a-1);if(a%10<b%10)return null;return Q('n22',a,'-',b,a-b);}
+   if(k===1){a=R(11,99);b=R(1,9);if(a%10<b)return null;return Q('n21',a,'-',b,a-b);}
+   if(k===2){a=R(21,99);b=R(11,a-1);if(a%10>=b%10||a-b<10)return null;return Q('b22',a,'-',b,a-b);}
+   const m=R(0,2);if(m===0){a=R(2,9)*10;b=R(11,a-1);if(b%10===0)return null;}else if(m===1){a=R(21,99);b=R(a-9,a-1);if(a%10>=b%10||b<10)return null;}else{a=R(11,99);b=R(2,9);if(a%10>=b)return null;}return Q('b2x',a,'-',b,a-b);},300),hint:HN('くらいを そろえて 書き、一の位から ひこう。','一の位が ひけない ときは、十の位から 1 くりさげて 10を つくろう。'),reveal:()=>''},
+ g2n:{id:'math.g2.A.num1000',name:'1000までの 数',digits:true,all:GN(i=>{const k=i%5;
+   if(k===0){const h=R(1,9),t=R(1,9),o=R(1,9);return T('pl',`p${h}${t}${o}`,`100を ${h}こ、10を ${t}こ、1を ${o}こ あわせた 数は ${BX}`,`100を ${h}こ、10を ${t}こ、1を ${o}こ あわせた かずは`,h*100+t*10+o);}
+   if(k===1){const h=R(1,9),t=R(0,1)?0:R(1,9),o=t?0:R(0,9);return T('z',`z${h}${t}${o}`,`100を ${h}こ${t?`、10を ${t}こ`:''}${o?`、1を ${o}こ`:''} あわせた 数は ${BX}`,`100を ${h}こ${t?`、10を ${t}こ`:''}${o?`、1を ${o}こ`:''} あわせた かずは`,h*100+t*10+o);}
+   if(k===2){const n=R(11,99);return T('rel',`r${n}`,`10を ${n}こ あつめた 数は ${BX}`,`10を ${n}こ あつめた かずは`,n*10,n);}
+   if(k===3){const x=R(100,999),y=R(100,999);if(x===y)return null;return T('cmp',`c${x},${y}`,`${x} ${BX} ${y}`,`${x}と ${y}`,null,0,cmpCh(x,y));}
+   const t=R(0,1);const a=R(3,9)*10,b=R(3,9)*10;return t?Q('tt',a,'+',b,a+b):(a+b>=110?Q('tt',a+b,'-',b,a):null);},200),hint:HN('100の まとまり、10の まとまりで 考えよう。','10が 10こで 100だよ。'),reveal:()=>''},
+ g2b:{id:'math.g2.A.add3d',name:'大きい 数の たし算と ひき算',digits:true,all:GN(i=>{const k=i%7;let a,b;
+   if(k===0){a=R(20,99);b=R(20,99);if(a%10+b%10>=10||a+b<100||Math.floor(a/10)+Math.floor(b/10)<10)return null;return Q('c1',a,'+',b,a+b);}
+   if(k===1){a=R(15,99);b=R(15,99);if(a%10+b%10<10||a+b<100)return null;return Q('c2',a,'+',b,a+b);}
+   if(k===2){if(R(0,1)){a=R(1,9)*100;b=R(1,10-a/100)*100;return Q('h',a,'+',b,a+b,0);}a=R(101,989);b=R(2,99);if(a%10+b%10>=10||(a%100)+b>=100)return null;return Q('h31',a,'+',b,a+b,10);}
+   if(k===3){a=R(110,189);b=R(20,99);if(a%10<b%10||Math.floor(a/10)%10>=Math.floor(b/10)||a-b<10)return null;return Q('b1',a,'-',b,a-b);}
+   if(k===4){a=R(110,199);b=R(11,99);if(a%10>=b%10||a-b>=100||a-b<10)return null;const t=Math.floor(a/10)%10;if(t>Math.floor(b/10))return null;return Q('b2',a,'-',b,a-b);}
+   if(k===5){a=100+R(0,9);b=R(2,99);if(a-b<1||b<=a%10)return null;return Q('b0',a,'-',b,a-b);}
+   if(R(0,1)){a=R(2,10)*100;b=R(1,a/100-1)*100;return Q('hs',a,'-',b,a-b,0);}a=R(120,999);b=R(2,99);if(a%10<b%10||(a%100)<b)return null;return Q('hs31',a,'-',b,a-b,10);},300),hint:HN('くらいを そろえて、一の位から 計算しよう。','くりあがり・くりさがりが 2回 あるか 気を つけよう。'),reveal:()=>''},
+ g2k1:{id:'math.g2.A.kuku1',name:'かけ算（1）',digits:true,all(){const o=[];for(const a of [5,2,3,4])for(let b=1;b<=9;b++)o.push(Q('d'+a,a,'*',b,a*b,b));return o;},hint:HN('□の だんは、□ずつ ふえるよ。','1つ 前の 答えに だんの 数を たそう。'),reveal:()=>''},
+ g2k2:{id:'math.g2.A.kuku2',name:'かけ算（2）',digits:true,all(){const o=[];for(const a of [6,7,8,9,1])for(let b=1;b<=9;b++)o.push(Q('d'+a,a,'*',b,a*b,b));return o;},hint:HN('かける数が 1 ふえると、答えは かけられる数だけ ふえるよ。','かけ算は 入れかえても 答えが 同じだよ。'),reveal:()=>''},
+ g2k3:{id:'math.g2.A.kuku3',name:'かけ算（3）',digits:true,all(){const o=[];for(let a=2;a<=9;a++)for(let b=1;b<=9;b++){o.push(T('hy',`h${a}x${b}`,`${a} × ${BX} ＝ ${a*b}`,`${a} かける しかく は ${a*b}`,b,a));}for(let a=2;a<=9;a++)for(const b of [10,11,12])o.push(Q('ov',a,'*',b,a*b,b*10+a));return o;},hint:HN('かける数が 1 ふえると、答えは かけられる数だけ ふえるよ。','九九の ひょうを 思い出そう。'),reveal:()=>''},
+ g2m:{id:'math.g2.A.num10000',name:'10000までの 数',digits:true,all:GN(i=>{const k=i%4;
+   if(k===0){const a=R(1,9),b=R(1,9),c=R(1,9),d=R(1,9);return T('pl',`p${a}${b}${c}${d}`,`1000を ${a}こ、100を ${b}こ、10を ${c}こ、1を ${d}こ あわせた 数は ${BX}`,`1000を ${a}こ、100を ${b}こ、10を ${c}こ、1を ${d}こ あわせた かずは`,a*1000+b*100+c*10+d);}
+   if(k===1){const a=R(1,9),b=R(0,1)?0:R(1,9),c=R(0,1)?0:R(1,9),d=R(0,9);const parts=[`1000を ${a}こ`];if(b)parts.push(`100を ${b}こ`);if(c)parts.push(`10を ${c}こ`);if(d)parts.push(`1を ${d}こ`);if(b&&c)return null;return T('z',`z${a}${b}${c}${d}`,`${parts.join('、')} あわせた 数は ${BX}`,`${parts.join('、')} あわせた かずは`,a*1000+b*100+c*10+d);}
+   if(k===2){const n=R(11,99);return T('rel',`r${n}`,`100を ${n}こ あつめた 数は ${BX}`,`100を ${n}こ あつめた かずは`,n*100,n);}
+   const x=R(1000,9999),y=R(1000,9999);if(x===y)return null;return T('cmp',`c${x},${y}`,`${x} ${BX} ${y}`,`${x}と ${y}`,null,0,cmpCh(x,y));},200),hint:HN('千の位・百の位・十の位・一の位に 分けて 考えよう。','100が 10こで 1000、1000が 10こで 10000だよ。'),reveal:()=>''}
+};
+for(const k of ['g2n','g2m'])S2[k].pad=null;
+Object.assign(SKILLS,S2);
+WORLDS[2]={keisan:[
+ {id:'math.g2.A.add',name:'たし算の ひっ算',st:[['くりあがり なし','g2a',p=>p.kind==='n22'],['2けたと 1けた','g2a',p=>p.kind==='n21'],['くりあがり あり','g2a',p=>p.kind==='c22'],['いろいろな くりあがり','g2a',p=>p.kind==='c2x']]},
+ {id:'math.g2.A.sub',name:'ひき算の ひっ算',st:[['くりさがり なし','g2s',p=>p.kind==='n22'],['2けたー1けた','g2s',p=>p.kind==='n21'],['くりさがり あり','g2s',p=>p.kind==='b22'],['いろいろな くりさがり','g2s',p=>p.kind==='b2x']]},
+ {id:'math.g2.A.num1000',name:'1000までの 数',st:[['3けたの 数','g2n',p=>p.kind==='pl'],['0の ある 数','g2n',p=>p.kind==='z'],['10の いくつぶん','g2n',p=>p.kind==='rel'],['数の 大小','g2n',p=>p.kind==='cmp'],['何十の 計算','g2n',p=>p.kind==='tt']]},
+ {id:'math.g2.A.add3d',name:'大きい 数の たし算と ひき算',st:[['百の位に くりあがる','g2b',p=>p.kind==='c1'],['2回 くりあがる','g2b',p=>p.kind==='c2'],['3けたの たし算','g2b',p=>p.kind==='h'||p.kind==='h31'],['百の位から くりさがる','g2b',p=>p.kind==='b1'],['2回 くりさがる','g2b',p=>p.kind==='b2'],['百何から ひく','g2b',p=>p.kind==='b0'],['3けたの ひき算','g2b',p=>p.kind==='hs'||p.kind==='hs31']]},
+ {id:'math.g2.A.kuku1',name:'かけ算（1）',st:[['5の だん','g2k1',p=>p.kind==='d5'],['2の だん','g2k1',p=>p.kind==='d2'],['3の だん','g2k1',p=>p.kind==='d3'],['4の だん','g2k1',p=>p.kind==='d4']]},
+ {id:'math.g2.A.kuku2',name:'かけ算（2）',st:[['6の だん','g2k2',p=>p.kind==='d6'],['7の だん','g2k2',p=>p.kind==='d7'],['8の だん','g2k2',p=>p.kind==='d8'],['9の だん','g2k2',p=>p.kind==='d9'],['1の だん','g2k2',p=>p.kind==='d1']]},
+ {id:'math.g2.A.kuku3',name:'かけ算（3）',st:[['九九の ひょう','g2k3',p=>p.kind==='hy'],['九九を こえた かけ算','g2k3',p=>p.kind==='ov'],['九九の ひょう（2）','g2k3',p=>p.kind==='hy'&&p.lv>=6]]},
+ {id:'math.g2.A.num10000',name:'10000までの 数',st:[['4けたの 数','g2m',p=>p.kind==='pl'],['0の ある 数','g2m',p=>p.kind==='z'],['100の いくつぶん','g2m',p=>p.kind==='rel'],['数の 大小','g2m',p=>p.kind==='cmp']]}
+]};
 })();
 
 (()=>{const O={4:{tosho:['div','rem','round','rule','frac','dec'],gakuto:['div','rem','round','rule','dec','frac']},5:{tosho:['decmul','decdiv','multiple','frac'],gakuto:['multiple','decmul','decdiv','frac']}};
