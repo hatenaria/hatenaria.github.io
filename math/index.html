@@ -113,6 +113,7 @@ ruby rt{font-size:.45em}
 .mirror{font-size:clamp(28px,5vh,42px);font-weight:bold;padding:14px 30px;border-radius:50%;background:#e2f4fb;border:6px solid #8a8fa8}
 .cards{display:grid;grid-template-columns:repeat(4,auto);gap:10px}
 #tablet{align-items:center;justify-content:center;padding:10px;background:rgba(40,25,50,.55)}
+.ldiv{display:grid;font-size:28px;line-height:1.35;font-variant-numeric:tabular-nums;margin:6px auto;width:max-content}.ldiv>div{text-align:center}.ldiv .top{border-top:3px solid currentColor}.ldiv .br{font-weight:bold}.ldiv .ul{border-bottom:2px solid currentColor}.ldiv .hl{color:#e0663f;font-weight:bold}
 /*fr*/.fr{display:inline-flex;flex-direction:column;text-align:center;vertical-align:middle;line-height:1.05;margin:0 .1em}.fr>span:first-child{border-bottom:.08em solid currentColor;padding:0 .15em}.frw{vertical-align:middle}
 #amap{background:#2a2040;padding:10px;gap:8px;align-items:center}
 .amhead{display:flex;gap:10px;align-items:center;width:100%;max-width:1200px}#amTitle{flex:1;font-size:clamp(18px,3.2vh,26px);font-weight:bold;color:#fff}
@@ -382,7 +383,7 @@ body.kb .mcard:focus{outline:4px solid #ff7a2a;outline-offset:2px}
   <div id="coin" class="pill">🪙 0</div>
   <div id="timeLeft" class="pill"></div>
   <div id="tr"><button id="furi" class="pill" type="button">ふりがな</button><button id="tts" class="pill" type="button">🔊 よみあげ</button><button id="btnSet" class="pill" type="button">⚙ せってい</button></div>
-  <div id="proto">試作：さんすう アイランド v0.13.6</div>
+  <div id="proto">試作：さんすう アイランド v0.13.9</div>
   <button id="act" class="off" type="button">しらべる</button>
   <button id="guide" class="pill" type="button">🧭 つぎの いしへ</button>
   <button id="wide" class="pill" type="button">🔍 ぜんたいを みる</button>
@@ -1215,7 +1216,8 @@ function stepSwitch(){const m=map;if(!m.switches||!m.switches.length||!(m.objs.s
 /* ---------- ふくしゅうの たからばこ：もう ☆を とった 技能の 2もんで ひらく（1日1回） ---------- */
 const chestKey=o=>`${map.id}:${o.x},${o.y}`;
 const chestOpened=o=>o.dg?!!o.done:(S.chests||{})[chestKey(o)]===dayKey();
-function reviewSkill(){const ks=Object.keys(SKILLS).filter(k=>S.cleared.includes(skillId(k)));if(!ks.length)return null;
+function gradeSkills(){const o=new Set();for(const ar of AREA_ORDER)for(const w of worldsOf(ar)||[])for(const st of w.st||[])o.add(st[1]);return o;}
+function reviewSkill(){const gs=gradeSkills();const ks=Object.keys(SKILLS).filter(k=>gs.has(k)&&(S.cleared.includes(skillId(k))||S.cleared.some(c=>c.startsWith(skillId(k)))));if(!ks.length)return null;
   const due=ks.filter(k=>!S.mastered.includes(skillId(k))&&S.clearDay[skillId(k)]!==dayKey());return pick(due.length?due:ks);}
 function chestTalk(o){const N='ふくしゅうの たからばこ';
   if(o.dg){if(o.done){startDialog([{n:'たからばこ',t:'からっぽだ。'}]);return;}const th=map.theme,k=th&&Math.random()<0.65?th.skill:(reviewSkill()||(th&&th.skill));if(!k)return;
@@ -1239,7 +1241,7 @@ function goTo(door){
     else{map=MAPS[door.to];if(door.x!=null){P.x=P.tx=door.x;P.y=P.ty=door.y;P.dir=door.dir;}else if(map.door){P.x=P.tx=map.door[0];P.y=P.ty=map.door[1]+1;P.dir='down';}else{P.x=P.tx=5;P.y=P.ty=7;P.dir='up';}}
     if(door.down||door.up)tone(door.down?[392,330,262]:[262,330,392],0.18);
     if(map.floor)(S.lastFloor=S.lastFloor||{})[map.area]=map.floor;
-    P.moving=false;P.t=0;fit();setPlace();saveSoon();const amNow=map.hub&&from==='island';if(amNow)openAreaMap(map.area);$('#fade').style.opacity=0;
+    P.moving=false;P.t=0;fit();setPlace();saveSoon();const amNow=!!map.hub;if(amNow)openAreaMap(map.area);$('#fade').style.opacity=0;
     setTimeout(()=>{if(!amNow)busy=false;
       if(map.dg||map.hub){}
       else if(map.id!=='island'&&!S['seen_'+map.id]){S['seen_'+map.id]=1;toast(map.floor>1?`${fwOf(map.area,map.floor)}「${map.floorName}」に ついた！`:'ひかる いしに ちかづいて ちょうせんしよう');}
@@ -1881,7 +1883,7 @@ function similarP(p,avoid){const pool=poolOf(p.skill,null);if(!pool)return null;
   const same={addcarry:q=>Math.max(q.a,q.b)===Math.max(p.a,p.b),subborrow:q=>q.b===p.b,compose:q=>q.n===p.n}[p.skill]||(p.kind?(q=>q.kind===p.kind):(q=>q.ans===p.ans));
   const c=pool.filter(q=>q.key!==p.key&&same(q)&&!(avoid||[]).includes(q.key));return c.length?pick(c):null;}
 function noteKey(skill,tag){return `${skill}:${tag}`;}
-function activeNotes(){return Object.entries(S.cnote||{}).map(([k,v])=>{const [skill,tag]=k.split(':');return {k,skill,tag,...v};}).filter(n=>SKILLS[n.skill]&&ERR_NOTE[n.tag]);}
+function activeNotes(){return Object.entries(S.cnote||{}).map(([k,v])=>{const [skill,tag]=k.split(':');return {k,skill,tag,...v};}).filter(n=>SKILLS[n.skill]&&ERR_NOTE[n.tag]&&gradeSkills().has(n.skill));}
 /* 2しゅうかんで おなじ まちがいが 2かい → ノートに のる */
 function noteOnErr(skill,tag){if(!tag)return null;const k=noteKey(skill,tag),N=(S.cnote=S.cnote||{});if(N[k])return null;
   const since=Date.now()-14*864e5,n=REC.errs.filter(e=>e.skill===skill&&e.tag===tag&&e.ts>=since).length;if(n>=2){N[k]={streak:0,ts:Date.now()};return k;}return null;}
@@ -1925,14 +1927,14 @@ function startLesson(skill,stage,opt){opt=opt||{};
   $('#lSkill').textContent=stage&&stage.world?`${stage.world.name}　${stage.boss?'👑 まとめ':MARU[stage.k-1]}`:SKILLS[skill].name;$('#learn').classList.add('on');buildPad();showProblem();
 }
 function buildPadFor(p){const pad=$('#pad'),D=SKILLS[p.skill];pad.classList.toggle('chs',!!p.choices);pad.classList.toggle('dig',!!(p.digits||D.digits));
-  $('#kbTip').textContent=p.choices?'キーボードでも こたえられるよ（← → で えらんで エンター）':(p.digits||D.digits)?'キーボードでも こたえられるよ（すうじを うって エンター）':'キーボードでも こたえられるよ（すうじを うつ）';L.sel=null;
+  $('#kbTip').textContent=p.rem?'キーボードでも こたえられるよ（すうじ → スペースで「あまり」→ すうじ → エンター）':p.choices?'キーボードでも こたえられるよ（← → で えらんで エンター）':(p.digits||D.digits)?'キーボードでも こたえられるよ（すうじを うって エンター）':'キーボードでも こたえられるよ（すうじを うつ）';L.sel=null;
   if(p.choices){pad.innerHTML='';p.choices.forEach((c,i)=>{const b=document.createElement('button');b.type='button';b.className='num ch';b.innerHTML=c.label;
       b.addEventListener('pointerdown',e=>{e.preventDefault();answer(c.v);});b.addEventListener('click',e=>{if(e.detail===0)answer(c.v);});pad.appendChild(b);});pad.dataset.k='';if(L){L.sel=0;pad.firstChild&&pad.firstChild.classList.add('sel');}return;}
-  if(p.digits||D.digits){{const dk='dig'+(D.dec||p.dec?'d':'');if(pad.dataset.k===dk)return;pad.dataset.k=dk;}pad.innerHTML='';
-    [...'1234567890'+(D.dec||p.dec?'.':'')].forEach(d=>{const b=document.createElement('button');b.type='button';b.className='num';b.textContent=d;b.addEventListener('pointerdown',e=>{e.preventDefault();digIn(d);});pad.appendChild(b);});
-    for(const [t,f] of [['けす',()=>{L.buf='';setBox('');}],['OK',()=>{if(L.buf)answer(+L.buf);}]]){const b=document.createElement('button');b.type='button';b.className='num wide';b.textContent=t;b.addEventListener('pointerdown',e=>{e.preventDefault();if(!L.lock)f();});pad.appendChild(b);}return;}
+  if(p.digits||D.digits){{const dk='dig'+(D.dec||p.dec?'d':'')+(p.rem?'r':'');if(pad.dataset.k===dk)return;pad.dataset.k=dk;}pad.innerHTML='';
+    [...'1234567890'+(D.dec||p.dec?'.':'')+(p.rem?'r':'')].forEach(d=>{const b=document.createElement('button');b.type='button';b.className='num'+(d==='r'?' wide':'');b.textContent=d==='r'?'あまり':d;b.addEventListener('pointerdown',e=>{e.preventDefault();digIn(d);});pad.appendChild(b);});
+    for(const [t,f] of [['けす',()=>{L.buf='';setBox('');}],['OK',()=>{if(L.buf){const q=L.set&&L.set[L.i];answer(q&&q.rem?L.buf:+L.buf);}}]]){const b=document.createElement('button');b.type='button';b.className='num wide';b.textContent=t;b.addEventListener('pointerdown',e=>{e.preventDefault();if(!L.lock)f();});pad.appendChild(b);}return;}
   const pk=(D.pad||[0,10]).join('-');if(pad.dataset.k===pk)return;pad.dataset.k=pk;buildPad();}
-function digIn(d){if(!L||L.lock)return;if(d==='.'&&(L.buf.includes('.')||!L.buf))return;L.buf=(L.buf+d).slice(0,7);setBox(L.buf);}
+function digIn(d){if(!L||L.lock)return;if(d==='.'&&(L.buf.includes('.')||!L.buf))return;if(d==='r'&&(L.buf.includes('r')||!L.buf))return;L.buf=(L.buf+d).slice(0,8);setBox(L.buf.replace('r',' あまり '));}
 function buildPad(){const pad=$('#pad');pad.innerHTML='';const [lo,hi]=SKILLS[L.skill].pad||[0,10];pad.dataset.k=(SKILLS[L.skill].pad||[0,10]).join('-');
   for(let v=lo;v<=hi;v++){const b=document.createElement('button');b.type='button';b.className='num';b.textContent=v;
     b.addEventListener('pointerdown',e=>{e.preventDefault();answer(v);});b.addEventListener('click',e=>{if(e.detail===0)answer(v);});pad.appendChild(b);}}
@@ -1983,7 +1985,7 @@ function learnKey(e){
   const cp=L.set[L.i];if(cp&&cp.choices){const bs=[...document.querySelectorAll('#pad .ch')];
     if(/^Arrow/.test(e.key)){e.preventDefault();L.sel=((L.sel??-1)+(e.key==='ArrowLeft'||e.key==='ArrowUp'?-1:1)+bs.length)%bs.length;bs.forEach((b,i)=>b.classList.toggle('sel',i===L.sel));return;}
     if((e.key==='Enter'||e.key===' ')&&L.sel!=null&&bs[L.sel]){e.preventDefault();if(!L.lock)answer(cp.choices[L.sel].v);return;}if(/^[0-9]$/.test(e.key)){e.preventDefault();return;}}
-  if(cp&&(cp.digits||SKILLS[cp.skill].digits)){if(/^[0-9]$/.test(e.key)||(e.key==='.'&&(cp.dec||SKILLS[cp.skill].dec))){e.preventDefault();digIn(e.key);return;}if(e.key==='Enter'){e.preventDefault();if(L.buf&&!L.lock)answer(+L.buf);return;}}
+  if(cp&&(cp.digits||SKILLS[cp.skill].digits)){if(/^[0-9]$/.test(e.key)||(e.key==='.'&&(cp.dec||SKILLS[cp.skill].dec))){e.preventDefault();digIn(e.key);return;}if(cp.rem&&(e.key==='r'||e.key==='a'||e.key===' ')){e.preventDefault();digIn('r');return;}if(e.key==='Backspace'){e.preventDefault();L.buf=L.buf.slice(0,-1);setBox(L.buf.replace('r',' あまり '));return;}if(e.key==='Enter'){e.preventDefault();if(L.buf&&!L.lock)answer(cp.rem?L.buf:+L.buf);return;}}
   if(/^[0-9]$/.test(e.key)){e.preventDefault();if(L.lock)return;L.buf=(L.buf+e.key).slice(-2);setBox(L.buf);clearTimeout(L.kt);
     const hi=SKILLS[L.skill].pad[1];let n=+L.buf;
     if(n>hi){L.buf=e.key;n=+e.key;setBox(L.buf);}
@@ -2001,7 +2003,7 @@ $('#lQuit').addEventListener('click',()=>{if(!$('#lQuit').classList.contains('wa
 function clearNeed(n){return S.clearRule==='all'?n:Math.min(n,4);}
 async function showResult(){
   $('#learn').classList.remove('on');const R=L;
-  $('#resList').innerHTML=R.res.map(r=>`<div class="resitem"><div class="mark">${MARK[r.status]}</div>${r.p.html.replace('<span class="box"></span>',`<b>${r.p.choices?((r.p.choices.find(c=>c.v===r.p.ans)||{}).label||r.p.ans):r.p.ans}</b>`)}</div>`).join('');
+  $('#resList').innerHTML=R.res.map(r=>`<div class="resitem"><div class="mark">${MARK[r.status]}</div>${r.p.html.replace('<span class="box"></span>',`<b>${r.p.choices?((r.p.choices.find(c=>c.v===r.p.ans)||{}).label||r.p.ans):String(r.p.ans).replace('r',' あまり ')}</b>`)}</div>`).join('');
   $('#resGain').innerHTML='';$('#lres').classList.add('on');$('#resBack').focus({preventScroll:true});
   const lines=[];
   // ☆：この5問で 4問いじょう 自分で。★：☆の日と ちがう日に もういちど 4問いじょう 自分で
@@ -2419,13 +2421,14 @@ function drawAreaMap(){const {nodes}=AM,W=1600,H=1000;let g='';
 function amInfo(){const d=AM.nodes[AM.sel];if(!d)return;if(d.sp){$('#amInfo').textContent=d.st==='clear'?'ふしぎの あな — きょうの たんけんは おわり。また あした！':`${d.u}-あな「${d.w.name}」の ふしぎの あな — 1日 1かい、ちか${DG_FLOORS}かいまで`;return;}const st=stageState(d.x);$('#amInfo').textContent=`${d.w.name}　${d.x.boss?'ぬしの まとめ':d.x.name}　${st==='locked'?'（まだ ひらいていない）':'— エンター／もう いちど タップで はじめる'}`;}
 let AM_FROM=null;
 function amGo(){const d=AM.nodes[AM.sel];if(!d)return;if(d.sp==='dg'){const a=AM.a;(S.dgPick=S.dgPick||{})[a]=d.w.id;closeAreaMap();const H=MAPS[floorId(a,1)];if(map!==H){map=H;}P.x=P.tx=H.pit[0];P.y=P.ty=H.pit[1]+1;goTo({to:'dungeon',area:a,n:1,down:true,dg:1});return;}const st=stageState(d.x);if(st!=='locked')AM_FROM=AM.a;if(st==='locked'){toast(d.x.boss?'①から じゅんに ☆を とると ひらくよ':'まえの コースで ☆を とると ひらくよ');return;}
-  closeAreaMap();if(d.x.boss)nushiTalk({stage:d.x});else startLesson(d.x.play,d.x);}
+  closeAreaMap();if(d.x.boss)startLesson(d.x.world.skill,d.x);else startLesson(d.x.play,d.x);}
+function amLeave(){const a=AM.a;closeAreaMap();if(map&&map.hub)goTo({to:'island',...AREAS[a].back});}
 function closeAreaMap(){$('#amap').classList.remove('on');busy=false;$('#hud').classList.add('on');}
-$('#amHub').addEventListener('click',closeAreaMap);$('#amQuit').addEventListener('click',()=>{const a=AM.a;closeAreaMap();goTo({to:'island',...AREAS[a].back});});$('#amPrev').addEventListener('click',()=>openAreaMap(AM.a,AM.pg-1));$('#amNext').addEventListener('click',()=>openAreaMap(AM.a,AM.pg+1));$('#amNote').addEventListener('click',()=>{const a=AM.a;closeAreaMap();openTablet(a);});$('#amRoad').addEventListener('click',()=>{closeAreaMap();openRoad();});
+$('#amHub').style.display='none';$('#amQuit').addEventListener('click',amLeave);$('#amPrev').addEventListener('click',()=>openAreaMap(AM.a,AM.pg-1));$('#amNext').addEventListener('click',()=>openAreaMap(AM.a,AM.pg+1));$('#amNote').addEventListener('click',()=>{const a=AM.a;closeAreaMap();openTablet(a);});$('#amRoad').addEventListener('click',()=>{closeAreaMap();openRoad();});
 addEventListener('keydown',e=>{if(!$('#amap').classList.contains('on'))return;const k=e.key;
   if(k==='ArrowRight'||k==='ArrowDown'){e.preventDefault();if(AM.sel>=AM.nodes.length-1&&AM.pg<AM.pages-1){openAreaMap(AM.a,AM.pg+1);AM.sel=0;drawAreaMap();}else{AM.sel=Math.min(AM.nodes.length-1,AM.sel+1);drawAreaMap();}}
   else if(k==='ArrowLeft'||k==='ArrowUp'){e.preventDefault();if(AM.sel<=0&&AM.pg>0){openAreaMap(AM.a,AM.pg-1);AM.sel=AM.nodes.length-1;drawAreaMap();}else{AM.sel=Math.max(0,AM.sel-1);drawAreaMap();}}
-  else if(k==='Enter'||k===' '){e.preventDefault();amGo();}else if(k==='Escape'){closeAreaMap();}},true);
+  else if(k==='Enter'||k===' '){e.preventDefault();amGo();}else if(k==='Escape'){amLeave();}},true);
 function giveBadge(a){if(S.badges.includes(a))return;S.badges.push(a);saveSoon();tone([523,659,784,1047],0.4);
   const go=()=>{if(dlg){setTimeout(go,300);return;}startDialog([{n:HK,t:`${AREAS[a].name}の バッジを てにいれた！🏅\nいまある いしが ぜんぶ ★に なったのう。`}]);};go();}
 function openBadges(){busy=true;
@@ -2789,6 +2792,51 @@ Object.assign(WORLDS,{
   {id:'math.g6.A.fracdiv',name:'分数の わり算',st:[['れんしゅう','g6fdiv',null],['れんしゅう（2）','g6fdiv',null],['まとめて','g6fdiv',null]]},
   {id:'math.g6.A.mixcalc',name:'分数と 小数の 計算',st:[['れんしゅう','g6mix',null],['れんしゅう（2）','g6mix',null],['まとめて','g6mix',null]]}]}
 });
+/* ===== 4年 わり算の筆算（小単元・筆算ヒントつき） ===== */
+(()=>{
+const R=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const BX='<span class="box"></span>';
+function steps(a,b){const ds=String(a).split('').map(Number),out=[];let cur=0,started=false;
+  ds.forEach((d,i)=>{cur=cur*10+d;if(!started&&cur<b&&i<ds.length-1)return;started=true;const q=Math.floor(cur/b);out.push({i,cur,q,prod:q*b,rem:cur-q*b});cur=cur-q*b;});return out;}
+function fig(a,b,show,qmode){/* show=何段目まで書くか(0..), qmode: 'box'=立てる位に□, 'first'=最初の商だけ */
+  const A=String(a),n=A.length,st=steps(a,b),B=String(b).length,cols=B+1+n;
+  const g=document.createElement('div');g.className='ldiv';g.style.gridTemplateColumns=`repeat(${cols},1.25em)`;
+  const cell=(r,c,t,cls)=>{const e=document.createElement('div');e.textContent=t;e.style.gridRow=r;e.style.gridColumn=c;if(cls)e.className=cls;g.appendChild(e);};
+  st.forEach((s,k)=>{let t='';if(qmode==='box'&&k===0)t='□';else if(k<show||(qmode==='first'&&k===0))t=String(s.q);if(t)cell(1,B+2+s.i,t,k===0&&qmode?'hl':'');});
+  String(b).split('').forEach((d,j)=>cell(2,1+j,d));cell(2,B+1,')','br');A.split('').forEach((d,j)=>cell(2,B+2+j,d,'top'));
+  let row=3;for(let k=0;k<Math.min(show,st.length);k++){const s=st[k],P=String(s.prod);P.split('').forEach((d,j)=>cell(row,B+2+s.i-P.length+1+j,d,'ul'));row++;
+    const nx=st[k+1];let Rm=String(s.rem);if(nx){Rm=(s.rem?String(s.rem):'')+A[nx.i];if(!s.rem)Rm=A[nx.i];}
+    const end=nx?nx.i:s.i;Rm.split('').forEach((d,j)=>cell(row,B+2+end-Rm.length+1+j,d));row++;}
+  return g;}
+window.__ldfig=fig;
+function mk(kind,a,b,rem){const q=Math.floor(a/b),r=a%b;return {kind,a,b,ans:rem?(r?`${q}r${r}`:`${q}`):q,rem:!!rem,key:`${a}/${b}`,html:`${a} ÷ ${b} ＝ ${BX}`,read:`${a} わる ${b}`};}
+function gen(f,n){return ()=>{const o=[],seen=new Set();for(let t=0;t<n*8&&o.length<n;t++){const p=f(o.length);if(p&&!seen.has(p.key)){seen.add(p.key);o.push(p);}}return o;};}
+function hint(p,st){const s=steps(p.a,p.b);
+  if(st===1){hintShow(['商は どの 位から たつかな？'],0,fig(p.a,p.b,0,'box'));const k=s[0];return `${String(p.a).slice(0,k.i+1)}の 中に ${p.b}は いくつ？ 商は □の 位から たつよ。`;}
+  if(st===2){hintShow(['商は どの 位から たつかな？',`はじめの 商は ${s[0].q}`],1,fig(p.a,p.b,0,'first'));return `${s[0].cur}÷${p.b}で、はじめの 商は ${s[0].q}。\nかけて、ひいて、おろそう。`;}
+  hintShow(['商は どの 位から たつかな？',`はじめの 商は ${s[0].q}`,'たてる→かける→ひく→おろす'],2,fig(p.a,p.b,1,'first'));
+  return s.length>1?`のこりの ${s[1].cur}を ${p.b}で わろう。`:`あまりは ${s[0].rem}。わる数より 小さいか たしかめよう。`;}
+const REM='あまりは「あまり」ボタンで 入れよう。';
+Object.assign(SKILLS,{
+ g4d1:{id:'math.g4.A.div1',name:'わり算の 筆算（1）',digits:true,all:gen(i=>{const k=i%6;
+   if(k===0){const b=R(2,9),q=R(2,9)*(R(0,1)?10:100);return mk('tens',b*q,b);}
+   if(k===1){const b=R(2,9),q=R(11,49);return b*q<100?mk('d21',b*q,b):null;}
+   if(k===2){const b=R(3,9),q=R(11,30),r=R(1,b-1);return b*q+r<100?mk('d21r',b*q+r,b,1):null;}
+   if(k===3){const b=R(2,4),q=R(101,299);return b*q<1000?mk('d31',b*q,b):null;}
+   if(k===4){const b=R(4,9),q=R(12,99);return b*q>=100&&b*q<1000?mk('d32',b*q,b):null;}
+   const b=R(2,9),q=[R(1,9)*100+R(1,9),R(1,9)*10][R(0,1)],r=R(0,b-1);const a=b*q+r;return a>=100&&a<1000?mk('zero',a,b,1):null;},90),hint,reveal:()=>''},
+ g4d2:{id:'math.g4.A.div2',name:'わり算の 筆算（2）',digits:true,all:gen(i=>{const k=i%5;
+   if(k===0){const b=R(2,9)*10,q=R(2,9),r=R(0,9)*10%b;return mk('ten',b*q+r,b,1);}
+   if(k===1){const b=R(12,39),q=R(2,7),r=R(0,b-1);const a=b*q+r;return a<100?mk('d22',a,b,1):null;}
+   if(k===2){const b=R(21,89),q=R(2,9),r=R(0,b-1);const a=b*q+r;return a>=100&&a<1000&&Math.floor(a/10)<b?mk('d32a',a,b,1):null;}
+   if(k===3){const b=R(14,19)+R(0,1)*10,q=R(3,8),r=R(0,b-1);const a=b*q+r;const mis=Math.floor(a/Math.round(b/10)/10);return a>=100&&a<1000&&Math.floor(a/10)<b&&mis!==q?mk('fix',a,b,1):null;}
+   const b=R(12,45),q=R(11,40),r=R(0,b-1);const a=b*q+r;return a>=100&&a<1000?mk('d32b',a,b,1):null;},90),hint,reveal:()=>''}
+});
+const W4=WORLDS[4].keisan;const iDiv=W4.findIndex(w=>w.id==='math.g4.A.div'),iRem=W4.findIndex(w=>w.id==='math.g4.A.rem');
+W4[iDiv]={id:'math.g4.A.div',name:'わり算の 筆算（1）',st:[['何十・何百の わり算','g4d1',p=>p.kind==='tens'],['2けた÷1けた','g4d1',p=>p.kind==='d21'],['あまりの ある わり算','g4d1',p=>p.kind==='d21r'],['3けた÷1けた','g4d1',p=>p.kind==='d31'],['商が 2けたに なる','g4d1',p=>p.kind==='d32'],['商に 0が たつ','g4d1',p=>p.kind==='zero']]};
+W4[iRem]={id:'math.g4.A.rem',name:'わり算の 筆算（2）',st:[['何十で わる','g4d2',p=>p.kind==='ten'],['2けた÷2けた','g4d2',p=>p.kind==='d22'],['3けた÷2けた','g4d2',p=>p.kind==='d32a'],['商を なおす','g4d2',p=>p.kind==='fix'],['商が 2けたに なる','g4d2',p=>p.kind==='d32b']]};
+})();
+
 (()=>{const O={4:{tosho:['div','rem','round','rule','frac','dec'],gakuto:['div','rem','round','rule','dec','frac']},5:{tosho:['decmul','decdiv','multiple','frac'],gakuto:['multiple','decmul','decdiv','frac']}};
  const mk=g=>{const W=WORLDS[g].keisan,row=k=>{const w=W.find(x=>x.id===`math.g${g}.A.${k}`);return [w.id.replace(`math.g${g}.`,''),w.name,'keisan'];},L=W.map(w=>[w.id.replace(`math.g${g}.`,''),w.name,'keisan']);
   return O[g]?{tosho:O[g].tosho.map(row),gakuto:O[g].gakuto.map(row)}:{tosho:L,gakuto:L};};for(const g of [2,3,4,5,6])ROAD[g]=mk(g);})();
