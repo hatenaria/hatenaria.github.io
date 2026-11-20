@@ -113,7 +113,7 @@ ruby rt{font-size:.45em}
 .mirror{font-size:clamp(28px,5vh,42px);font-weight:bold;padding:14px 30px;border-radius:50%;background:#e2f4fb;border:6px solid #8a8fa8}
 .cards{display:grid;grid-template-columns:repeat(4,auto);gap:10px}
 #tablet{align-items:center;justify-content:center;padding:10px;background:rgba(40,25,50,.55)}
-.ldiv{display:grid;font-size:28px;line-height:1.35;font-variant-numeric:tabular-nums;margin:6px auto;width:max-content}.ldiv>div{text-align:center}.ldiv .top{border-top:3px solid currentColor}.ldiv .br{font-weight:bold}.ldiv .ul{border-bottom:2px solid currentColor}.ldiv .hl{color:#e0663f;font-weight:bold}
+.ldiv{display:grid;font-size:28px;line-height:1.35;font-variant-numeric:tabular-nums;margin:6px auto;width:max-content}.ldiv>div{text-align:center}.ldiv .bar{border-top:3px solid currentColor;align-self:start;height:0;margin-left:.62em}.ldiv .br svg{display:block;width:100%;height:1.35em}.ldiv .uline{border-bottom:2.5px solid currentColor;align-self:end;height:0}.ldiv .br{font-weight:bold}.ldiv .ul{border-bottom:2px solid currentColor}.ldiv .hl{color:#e0663f;font-weight:bold}
 /*fr*/.fr{display:inline-flex;flex-direction:column;text-align:center;vertical-align:middle;line-height:1.05;margin:0 .1em}.fr>span:first-child{border-bottom:.08em solid currentColor;padding:0 .15em}.frw{vertical-align:middle}
 #amap{background:#2a2040;padding:10px;gap:8px;align-items:center}
 .amhead{display:flex;gap:10px;align-items:center;width:100%;max-width:1200px}#amTitle{flex:1;font-size:clamp(18px,3.2vh,26px);font-weight:bold;color:#fff}
@@ -383,7 +383,7 @@ body.kb .mcard:focus{outline:4px solid #ff7a2a;outline-offset:2px}
   <div id="coin" class="pill">🪙 0</div>
   <div id="timeLeft" class="pill"></div>
   <div id="tr"><button id="furi" class="pill" type="button">ふりがな</button><button id="tts" class="pill" type="button">🔊 よみあげ</button><button id="btnSet" class="pill" type="button">⚙ せってい</button></div>
-  <div id="proto">試作：さんすう アイランド v0.13.9</div>
+  <div id="proto">試作：さんすう アイランド v0.13.11</div>
   <button id="act" class="off" type="button">しらべる</button>
   <button id="guide" class="pill" type="button">🧭 つぎの いしへ</button>
   <button id="wide" class="pill" type="button">🔍 ぜんたいを みる</button>
@@ -2803,8 +2803,8 @@ function fig(a,b,show,qmode){/* show=何段目まで書くか(0..), qmode: 'box'
   const g=document.createElement('div');g.className='ldiv';g.style.gridTemplateColumns=`repeat(${cols},1.25em)`;
   const cell=(r,c,t,cls)=>{const e=document.createElement('div');e.textContent=t;e.style.gridRow=r;e.style.gridColumn=c;if(cls)e.className=cls;g.appendChild(e);};
   st.forEach((s,k)=>{let t='';if(qmode==='box'&&k===0)t='□';else if(k<show||(qmode==='first'&&k===0))t=String(s.q);if(t)cell(1,B+2+s.i,t,k===0&&qmode?'hl':'');});
-  String(b).split('').forEach((d,j)=>cell(2,1+j,d));cell(2,B+1,')','br');A.split('').forEach((d,j)=>cell(2,B+2+j,d,'top'));
-  let row=3;for(let k=0;k<Math.min(show,st.length);k++){const s=st[k],P=String(s.prod);P.split('').forEach((d,j)=>cell(row,B+2+s.i-P.length+1+j,d,'ul'));row++;
+  String(b).split('').forEach((d,j)=>cell(2,1+j,d));{const e=document.createElement('div');e.className='br';e.style.gridRow=2;e.style.gridColumn=B+1;e.innerHTML='<svg viewBox="0 0 20 40" preserveAspectRatio="none"><path d="M10 1.5 Q 22 20 6 39" fill="none" stroke="currentColor" stroke-width="3"/></svg>';g.appendChild(e);}A.split('').forEach((d,j)=>cell(2,B+2+j,d));{const e=document.createElement('div');e.className='bar';e.style.gridRow=2;e.style.gridColumn=`${B+1} / ${cols+1}`;g.appendChild(e);}
+  let row=3;for(let k=0;k<Math.min(show,st.length);k++){const s=st[k],P=String(s.prod);P.split('').forEach((d,j)=>cell(row,B+2+s.i-P.length+1+j,d));{const e=document.createElement('div');e.className='uline';e.style.gridRow=row;e.style.gridColumn=`${B+2+s.i-P.length+1} / ${cols+1}`;g.appendChild(e);}row++;
     const nx=st[k+1];let Rm=String(s.rem);if(nx){Rm=(s.rem?String(s.rem):'')+A[nx.i];if(!s.rem)Rm=A[nx.i];}
     const end=nx?nx.i:s.i;Rm.split('').forEach((d,j)=>cell(row,B+2+end-Rm.length+1+j,d));row++;}
   return g;}
