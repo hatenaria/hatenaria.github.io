@@ -383,7 +383,7 @@ body.kb .mcard:focus{outline:4px solid #ff7a2a;outline-offset:2px}
   <div id="coin" class="pill">🪙 0</div>
   <div id="timeLeft" class="pill"></div>
   <div id="tr"><button id="furi" class="pill" type="button">ふりがな</button><button id="tts" class="pill" type="button">🔊 よみあげ</button><button id="btnSet" class="pill" type="button">⚙ せってい</button></div>
-  <div id="proto">試作：さんすう アイランド v0.13.11</div>
+  <div id="proto">試作：さんすう アイランド v0.13.12</div>
   <button id="act" class="off" type="button">しらべる</button>
   <button id="guide" class="pill" type="button">🧭 つぎの いしへ</button>
   <button id="wide" class="pill" type="button">🔍 ぜんたいを みる</button>
@@ -2842,7 +2842,7 @@ W4[iRem]={id:'math.g4.A.rem',name:'わり算の 筆算（2）',st:[['何十で �
   return O[g]?{tosho:O[g].tosho.map(row),gakuto:O[g].gakuto.map(row)}:{tosho:L,gakuto:L};};for(const g of [2,3,4,5,6])ROAD[g]=mk(g);})();
 
 })();
-window.__sq={get g(){return GRADE},set g(v){GRADE=v},get L(){return L},openAreaMap,amGo,get S(){return S},goTo,floorId,get MAPS(){return MAPS},startLesson,worldsOf,genStageSet,roadNodes,unitNo,AREA_ORDER};
+window.__sq={get mapId(){return map&&map.id},get g(){return GRADE},set g(v){GRADE=v},get L(){return L},openAreaMap,amGo,get S(){return S},goTo,floorId,get MAPS(){return MAPS},startLesson,worldsOf,genStageSet,roadNodes,unitNo,AREA_ORDER};
 (async()=>{
   resize();requestAnimationFrame(loop);
   await Island.init({appId:APP_ID,subject:'math'});
@@ -2862,6 +2862,7 @@ window.__sq={get g(){return GRADE},set g(v){GRADE=v},get L(){return L},openAreaM
   await loadUnitOpen();buildMaps();try{for(const g of [1,2,3,4,5,6]){const sv=GRADE;GRADE=g;for(const ar of AREA_ORDER)for(const w of worldsOf(ar)||[])if(hasCrown(w))sendCrown(w);GRADE=sv;}}catch(e){}
   const ps=S.pos;map=MAPS[ps&&MAPS[ps.map]?ps.map:'island'];
   if(ps&&MAPS[ps.map]&&walkable(ps.x,ps.y,false)){P.x=P.tx=ps.x;P.y=P.ty=ps.y;P.dir=ps.dir||'up';}else{map=MAPS.island;P.x=P.tx=8;P.y=P.ty=11;P.dir='up';}
+  if((map.hub||map.dg)&&AREAS[map.area]&&AREAS[map.area].back){const b=AREAS[map.area].back;map=MAPS.island;P.x=P.tx=b.x;P.y=P.ty=b.y;P.dir=b.dir||'down';}
   fit();updToggles();$('#btnStart').focus({preventScroll:true});
 })();
 })();
