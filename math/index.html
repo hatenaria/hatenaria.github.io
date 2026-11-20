@@ -383,7 +383,7 @@ body.kb .mcard:focus{outline:4px solid #ff7a2a;outline-offset:2px}
   <div id="coin" class="pill">🪙 0</div>
   <div id="timeLeft" class="pill"></div>
   <div id="tr"><button id="furi" class="pill" type="button">ふりがな</button><button id="tts" class="pill" type="button">🔊 よみあげ</button><button id="btnSet" class="pill" type="button">⚙ せってい</button></div>
-  <div id="proto">さんすう アイランド v0.13.18</div>
+  <div id="proto">さんすう アイランド v0.13.19</div>
   <button id="act" class="off" type="button">しらべる</button>
   <button id="guide" class="pill" type="button">🧭 つぎの いしへ</button>
   <button id="wide" class="pill" type="button">🔍 ぜんたいを みる</button>
@@ -798,7 +798,7 @@ function dgStep(){const m=map;if(!m.dg)return;dgReveal(m);const r=m.dgRooms.find
   if(ok){tl.lit=true;m.tileNext++;tone([523+tl.rank*90],0.12);
     if(m.tileNext===m.tiles.length){m.solved++;S.shards=(S.shards||0)+1;saveSoon();setTimeout(()=>startDialog([{n:'ふしぎな ゆか',t:`${m.tiles.map(q=>`${q.label}＝${q.n}`).join('\n')}\nこたえの ちいさい じゅんに ふめた！ すいしょうの かけらを 1こ てにいれた！（${S.shards}こ）`}]),250);}}
   else{m.tiles.forEach(q=>q.lit=false);m.tileNext=0;tone([220,196],0.2);toast(`${tl.label}＝${tl.n}。こたえの ちいさい ゆかから じゅんに ふもう！`);}}
-const DG_FLOORS=5;
+const DG_FLOORS=3;
 function dgRun(){const d=dayKey();if(!S.dgRun||S.dgRun.d!==d)S.dgRun={d,floor:0,done:false};return S.dgRun;}
 function dgFinish(a){const R=dgRun();R.done=true;try{if(typeof Island.material==='function')Island.material({id:'fushigi-kakera',count:1});}catch(e){}S.shards=(S.shards||0)+3;S.coins=coins()+2;S.dgClears=(S.dgClears||0)+1;saveSoon();tone([523,659,784,1047,1319],0.5);
   startDialog([{n:'ふしぎの あな',t:`ちか${DG_FLOORS}かいの おくまで たどりついた！ きょうの たんけん クリア！`},{n:'ごほうび',t:`すいしょうの かけら ×3（ぜんぶで ${S.shards}こ）\nひらめきコイン ×2\nたんけん クリア ${S.dgClears}かいめ`},{n:'ふしぎの あな',t:'つぎの たんけんは あした。またね！'}]);}
