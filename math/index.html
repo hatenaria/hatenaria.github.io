@@ -382,7 +382,7 @@ body.kb .mcard:focus{outline:4px solid #ff7a2a;outline-offset:2px}
   <div id="coin" class="pill">🪙 0</div>
   <div id="timeLeft" class="pill"></div>
   <div id="tr"><button id="furi" class="pill" type="button">ふりがな</button><button id="tts" class="pill" type="button">🔊 よみあげ</button><button id="btnSet" class="pill" type="button">⚙ せってい</button></div>
-  <div id="proto">試作：さんすう アイランド v0.13.4</div>
+  <div id="proto">試作：さんすう アイランド v0.13.6</div>
   <button id="act" class="off" type="button">しらべる</button>
   <button id="guide" class="pill" type="button">🧭 つぎの いしへ</button>
   <button id="wide" class="pill" type="button">🔍 ぜんたいを みる</button>
@@ -2029,7 +2029,10 @@ async function showResult(){
   speak(`${R.res.length}もん がんばったね！ `+lines.join('。').replace(/[☆★🪙🔷]/g,''));
   R.got=got;L=R;
 }
-$('#resBack').addEventListener('click',()=>{const R=L;$('#lres').classList.remove('on');L=null;backToField(R&&R.got?R:null);if(map&&map.hub&&R&&R.stone&&R.stone.world&&!['chest','seal','note'].includes(R.mode))setTimeout(()=>{if(!dlg)openAreaMap(map.area);else{const w=()=>{if(dlg)setTimeout(w,300);else openAreaMap(map.area);};w();}},350);});
+$('#resBack').addEventListener('click',()=>{const R=L;$('#lres').classList.remove('on');L=null;const fm=AM_FROM&&map&&map.hub&&R&&R.stone&&R.stone.world;AM_FROM=null;
+  if(fm){const msgs=[],sd=startDialog;startDialog=(ls)=>{(ls||[]).forEach(x=>msgs.push(x.t||''));};try{backToField(R&&R.got?R:null);}finally{startDialog=sd;}openAreaMap(map.area);return;}
+  backToField(R&&R.got?R:null);});
+
 function backToField(R){busy=false;$('#hud').classList.add('on');if(!R)return;
   if(R.got==='chest'&&DG_CHEST&&map.dg){const o=DG_CHEST;DG_CHEST=null;o.done=true;map.solved++;const sh=Math.random()<0.5;if(sh)S.shards=(S.shards||0)+1;else S.coins=coins()+1;saveSoon();tone([523,659,784,1047],0.35);
     startDialog([{n:'たからばこ',t:`パカッ！ たからばこが ひらいた。\n${sh?`すいしょうの かけらを 1こ てにいれた！（${S.shards}こ）`:`ひらめきコインを 1まい てにいれた！（${coins()}まい）`}`}]);return;}
@@ -2414,7 +2417,8 @@ function drawAreaMap(){const {nodes}=AM,W=1600,H=1000;let g='';
   $('#amSvg').innerHTML=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${g}</svg>`;
   $('#amSvg').querySelectorAll('.amn').forEach(el=>el.addEventListener('click',()=>{const i=+el.dataset.i;if(AM.sel===i)amGo();else{AM.sel=i;drawAreaMap();}}));amInfo();}
 function amInfo(){const d=AM.nodes[AM.sel];if(!d)return;if(d.sp){$('#amInfo').textContent=d.st==='clear'?'ふしぎの あな — きょうの たんけんは おわり。また あした！':`${d.u}-あな「${d.w.name}」の ふしぎの あな — 1日 1かい、ちか${DG_FLOORS}かいまで`;return;}const st=stageState(d.x);$('#amInfo').textContent=`${d.w.name}　${d.x.boss?'ぬしの まとめ':d.x.name}　${st==='locked'?'（まだ ひらいていない）':'— エンター／もう いちど タップで はじめる'}`;}
-function amGo(){const d=AM.nodes[AM.sel];if(!d)return;if(d.sp==='dg'){const a=AM.a;(S.dgPick=S.dgPick||{})[a]=d.w.id;closeAreaMap();const H=MAPS[floorId(a,1)];if(map!==H){map=H;}P.x=P.tx=H.pit[0];P.y=P.ty=H.pit[1]+1;goTo({to:'dungeon',area:a,n:1,down:true,dg:1});return;}const st=stageState(d.x);if(st==='locked'){toast(d.x.boss?'①から じゅんに ☆を とると ひらくよ':'まえの コースで ☆を とると ひらくよ');return;}
+let AM_FROM=null;
+function amGo(){const d=AM.nodes[AM.sel];if(!d)return;if(d.sp==='dg'){const a=AM.a;(S.dgPick=S.dgPick||{})[a]=d.w.id;closeAreaMap();const H=MAPS[floorId(a,1)];if(map!==H){map=H;}P.x=P.tx=H.pit[0];P.y=P.ty=H.pit[1]+1;goTo({to:'dungeon',area:a,n:1,down:true,dg:1});return;}const st=stageState(d.x);if(st!=='locked')AM_FROM=AM.a;if(st==='locked'){toast(d.x.boss?'①から じゅんに ☆を とると ひらくよ':'まえの コースで ☆を とると ひらくよ');return;}
   closeAreaMap();if(d.x.boss)nushiTalk({stage:d.x});else startLesson(d.x.play,d.x);}
 function closeAreaMap(){$('#amap').classList.remove('on');busy=false;$('#hud').classList.add('on');}
 $('#amHub').addEventListener('click',closeAreaMap);$('#amQuit').addEventListener('click',()=>{const a=AM.a;closeAreaMap();goTo({to:'island',...AREAS[a].back});});$('#amPrev').addEventListener('click',()=>openAreaMap(AM.a,AM.pg-1));$('#amNext').addEventListener('click',()=>openAreaMap(AM.a,AM.pg+1));$('#amNote').addEventListener('click',()=>{const a=AM.a;closeAreaMap();openTablet(a);});$('#amRoad').addEventListener('click',()=>{closeAreaMap();openRoad();});
@@ -2790,7 +2794,7 @@ Object.assign(WORLDS,{
   return O[g]?{tosho:O[g].tosho.map(row),gakuto:O[g].gakuto.map(row)}:{tosho:L,gakuto:L};};for(const g of [2,3,4,5,6])ROAD[g]=mk(g);})();
 
 })();
-window.__sq={get g(){return GRADE},set g(v){GRADE=v},get S(){return S},goTo,floorId,get MAPS(){return MAPS},startLesson,worldsOf,genStageSet,roadNodes,unitNo,AREA_ORDER};
+window.__sq={get g(){return GRADE},set g(v){GRADE=v},get L(){return L},openAreaMap,amGo,get S(){return S},goTo,floorId,get MAPS(){return MAPS},startLesson,worldsOf,genStageSet,roadNodes,unitNo,AREA_ORDER};
 (async()=>{
   resize();requestAnimationFrame(loop);
   await Island.init({appId:APP_ID,subject:'math'});
