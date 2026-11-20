@@ -2,13 +2,14 @@
 // 各アプリは直接これを読み込まず、つなぎ口（island-link.js の中身）から読み込む。
 // つなぎ口がこのファイルを読み込めたら「連携モード」になる。
 
-import * as store from './store.js?v=0.15.6';
-import * as classroom from './classroom.js?v=0.15.6';
-import * as books from './books.js?v=0.15.6';
+import * as store from './store.js?v=0.16.0';
+import * as classroom from './classroom.js?v=0.16.0';
+import * as books from './books.js?v=0.16.0';
 
-export const COMMON_VERSION = '0.3.3';
+export const COMMON_VERSION = '0.3.4';
 /** 島から ふやせる めずらしい 素材（ホームの こうかんじょで つかう） */
-export const RARE_MATERIALS = { 'fushigi-kakera': 'ふしぎの かけら' };
+export const RARE_MATERIALS = { 'fushigi-kakera': 'ふしぎの かけら', 'gacha-ticket': 'ガチャけん' };
+const RARE_DAILY = { 'gacha-ticket': 3 }; // 1日の 上限が ちがう もの（ガチャけんは 島の たからばこから 1日 3まい）
 const RARE_DAILY_MAX = 5;
 export const HOME_URL = new URL('../index.html', import.meta.url).href;
 
@@ -198,7 +199,7 @@ export async function connect({ appId, subject }) {
       let ok = 0;
       await store.update(`${p}/materialLog`, (L) => {
         L = L && L.day === today ? L : { day: today, n: {} };
-        ok = Math.max(0, Math.min(n, RARE_DAILY_MAX - (L.n[id] || 0)));
+        ok = Math.max(0, Math.min(n, (RARE_DAILY[id] || RARE_DAILY_MAX) - (L.n[id] || 0)));
         L.n[id] = (L.n[id] || 0) + ok; return L;
       }, { fallback: null });
       if (!ok) return null;

@@ -1,14 +1,14 @@
 // ホームアイランド v0.2
 // 島を歩く・建物を調べる・掲示板・気球で島めぐり・島から戻ったときの「おかえり」
 
-import * as store from '../common/store.js?v=0.15.6';
-import * as books from '../common/books.js?v=0.15.6';
-import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.15.6';
-import * as classroom from '../common/classroom.js?v=0.15.6';
-import { showPicker } from '../common/book-picker.js?v=0.15.6';
-import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD } from './data.js?v=0.15.6';
+import * as store from '../common/store.js?v=0.16.0';
+import * as books from '../common/books.js?v=0.16.0';
+import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.16.0';
+import * as classroom from '../common/classroom.js?v=0.16.0';
+import { showPicker } from '../common/book-picker.js?v=0.16.0';
+import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD, GACHA } from './data.js?v=0.16.0';
 
-export const HOME_VERSION = '0.15.6';
+export const HOME_VERSION = '0.16.0';
 const PREVIEW = !!window.GI_PREVIEW; // アーティファクトでの試作表示（島へは移動しない）
 
 // 主人公の画像（仕様書2-4の規格：1コマ 384×512、足元 x=192, y=488。縮小した画像でも同じ比率で扱う）
@@ -660,6 +660,7 @@ function interact(o) {
   if (o.type === 'kisekae') return openKisekae();
   if (o.type === 'lot') return openBuild(o);
   if (o.type === 'exchange') return openExchange();
+  if (o.type === 'gacha') return openGacha();
   if (t.built) return message(t.name, BUILDABLES.find((b) => b.type === o.type)?.desc || '');
   if (t.soon) return message(t.name, 'いま じゅんびちゅう だよ。もうすこし まってね。');
 }
@@ -808,7 +809,7 @@ const CHUNK = 3;                       // 3×3マスずつ ひろげる
 const MAX_EXPANSIONS = 12;
 const EXPAND_PAIRS = [['math', 'kokugo'], ['rika', 'shakai'], ['eigo', 'math'], ['kokugo', 'rika'], ['shakai', 'eigo']];
 const WORLD = { x0: -9, y0: -9, x1: 26, y1: 22 };  // ここより外には ひろげない
-const FIXED = new Set(['school', 'board', 'todo', 'plaza', 'house', 'balloon', 'exchange', 'kisekae']); // 大事な施設は うごかせない
+const FIXED = new Set(['school', 'board', 'todo', 'plaza', 'house', 'balloon', 'exchange', 'kisekae', 'gacha']); // 大事な施設は うごかせない
 const movable = (o) => !FIXED.has(o.type);
 
 function expandCost() {
@@ -1322,7 +1323,7 @@ const isGate = (x, y) => { const g = gateTile(); if (g && g[0] === x && g[1] ===
 const GATE = { type: 'gate', gate: true };
 function unclaimedEvent() { return doneEvents().find((e) => !claimedEvents.includes(e.id)); }
 const eventImgs = {};
-for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.15.6'], ['t0', 'assets/home/xmas_tree0.webp?v=0.15.6'], ['t1', 'assets/home/xmas_tree1.webp?v=0.15.6'], ['t2', 'assets/home/xmas_tree2.webp?v=0.15.6'], ['t3', 'assets/home/xmas_tree3.webp?v=0.15.6']]) {
+for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.16.0'], ['t0', 'assets/home/xmas_tree0.webp?v=0.16.0'], ['t1', 'assets/home/xmas_tree1.webp?v=0.16.0'], ['t2', 'assets/home/xmas_tree2.webp?v=0.16.0'], ['t3', 'assets/home/xmas_tree3.webp?v=0.16.0']]) {
   const im = new Image(); im.onload = () => { eventImgs[k] = im; }; im.src = new URL('../' + src, import.meta.url).href;
 }
 function drawGate(now) {
@@ -2312,6 +2313,124 @@ function renderHud() {
   document.getElementById('coins').innerHTML = `<span class="coin">🪙 ${wallet?.coin || 0}</span>${mats}`;
 }
 
+// ------------------------------------------------------------------ ガチャ「ふしぎの たまご」（v0.16.0）
+const TICKET = 'gacha-ticket';
+const gDay = (d = new Date()) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+const tickets = () => wallet?.materials?.[TICKET] || 0;
+async function addWallet(fn) { wallet = await store.update(`${book.id}/wallet`, (w) => { w = w && typeof w === 'object' ? w : { coin: 0, materials: {} }; w.materials = w.materials || {}; fn(w); return w; }, { fallback: { coin: 0, materials: {} } }); }
+// きょう 島で 学習した／しゅくだいを おえた → ガチャけん（それぞれ 1日 1まい）。ホームを ひらくたびに たしかめる
+async function grantDailyTickets() {
+  const today = gDay(); let studied = false;
+  for (const k of await store.list(`${book.id}/learning/`)) {
+    const L = await store.get(k); if (L && Array.isArray(L.sessions) && L.sessions.some((x) => { const d = new Date(x.at); return !isNaN(d) && gDay(d) === today; })) { studied = true; break; }
+  }
+  const hwDoneNow = homeworks().filter(hwDone).map((hw) => hw.id);
+  let got = []; let add = 0;
+  await store.update(`${book.id}/gachaDaily`, (g) => {
+    g = g && g.day === today ? g : { day: today, study: false, hw: false, hwSeen: g?.hwSeen || [] };
+    if (studied && !g.study) { g.study = true; add += GACHA.daily.study; got.push('しまで がくしゅう'); }
+    const fresh = hwDoneNow.filter((id) => !g.hwSeen.includes(id));
+    if (fresh.length) { g.hwSeen = [...g.hwSeen, ...fresh].slice(-200); if (!g.hw) { g.hw = true; add += GACHA.daily.homework; got.push('しゅくだいを おえた'); } }
+    return g;
+  }, { fallback: null });
+  if (add) { await addWallet((w) => { w.materials[TICKET] = (w.materials[TICKET] || 0) + add; }); renderHud(); }
+  return got;
+}
+const gachaOwned = (it) => it.kind === 'outfit' ? wardrobe.owned.includes(`outfit:${it.id}`)
+  : it.kind === 'furniture' ? (gachaLog.got || []).includes(`furniture:${it.id}`) : false;
+let gachaLog = { pulls: 0, got: [] };
+function gachaName(it) {
+  if (it.kind === 'outfit') return `👕 ${OUTFITS[it.id]?.name}`;
+  if (it.kind === 'accessory') return `🎀 ${ACCESSORIES[it.id]?.name}`;
+  if (it.kind === 'furniture') return `🛋️ ${FURNITURE[it.id]?.name}`;
+  if (it.kind === 'material') return `${MATERIALS[it.id]?.icon || ''} ${MATERIALS[it.id]?.name} ×${it.count}`;
+  return `🪙 ${it.coin}`;
+}
+function rollGacha() {
+  let r = Math.random() * 100, rank = GACHA.ranks[GACHA.ranks.length - 1];
+  for (const x of GACHA.ranks) { if (r < x.rate) { rank = x; break; } r -= x.rate; }
+  const pool = GACHA.pool[rank.id];
+  let it = { ...pool[Math.floor(Math.random() * pool.length)] };
+  if (it.kind === 'shop') { // 店の アクセサリーで まだ もっていない もの（なければ コイン）
+    const cand = Object.keys(ACCESSORIES).filter((id) => !ownsPart('accessory', id) && partVisible('accessory', id) && !WARDROBE_SEASON[`accessory:${id}`]);
+    it = cand.length ? { kind: 'accessory', id: cand[Math.floor(Math.random() * cand.length)] } : { kind: 'coin', min: 20, max: 50 };
+  }
+  if (it.kind === 'coin') it = { kind: 'coin', coin: Math.round((it.min + Math.random() * (it.max - it.min)) / 5) * 5 };
+  return { rank, it };
+}
+async function pullGacha() {
+  if (tickets() < 1) return null;
+  const { rank, it } = rollGacha();
+  const dup = gachaOwned(it);
+  await addWallet((w) => {
+    w.materials[TICKET] = Math.max(0, (w.materials[TICKET] || 0) - 1);
+    if (dup) w.coin = (w.coin || 0) + (rank.dup || 0);
+    else if (it.kind === 'coin') w.coin = (w.coin || 0) + it.coin;
+    else if (it.kind === 'material') w.materials[it.id] = (w.materials[it.id] || 0) + it.count;
+  });
+  if (!dup && (it.kind === 'outfit' || it.kind === 'accessory')) await grantParts([`${it.kind}:${it.id}`]);
+  if (!dup && it.kind === 'furniture') { if (!room) await loadRoom(); room.storage[it.id] = (room.storage[it.id] || 0) + 1; await saveRoom(); }
+  gachaLog = await store.update(`${book.id}/gacha`, (g) => {
+    g = g || { pulls: 0, got: [] }; g.pulls++;
+    if (it.kind !== 'coin' && it.kind !== 'material' && !g.got.includes(`${it.kind}:${it.id}`)) g.got.push(`${it.kind}:${it.id}`);
+    return g;
+  }, { fallback: { pulls: 0, got: [] } });
+  renderHud();
+  return { rank, it, dup };
+}
+async function grantParts(keys) {
+  wardrobe = await store.update(`${book.id}/wardrobe`, (w) => { const o = Array.isArray(w?.owned) ? w.owned : []; return { ...(w || {}), owned: [...o, ...keys.filter((k) => !o.includes(k))] }; }, { fallback: { owned: [] } });
+}
+const gachaImg = (n) => new URL(`../assets/gacha/${n}.webp?v=${HOME_VERSION}`, import.meta.url).href;
+async function openGacha(view) {
+  gachaLog = (await store.get(`${book.id}/gacha`)) || { pulls: 0, got: [] };
+  wallet = await store.get(`${book.id}/wallet`, { coin: 0, materials: {} }); renderHud();
+  const got = await grantDailyTickets();
+  openModal((m) => {
+    m.className = 'modal build gacha';
+    m.append(h('h2', {}, '🥚 ふしぎの たまごや'));
+    if (view === 'dex') {
+      m.append(h('p', { class: 'body small' }, 'でる ものと でる わりあい（100かい ひくと だいたい この かず）'));
+      for (const r of GACHA.ranks) {
+        const list = r.id === 'normal' ? ['🪙 20〜50', `${MATERIALS['fushigi-kakera'].icon} ${MATERIALS['fushigi-kakera'].name}`, '🎀 おみせの アクセサリー（もっていない もの）']
+          : GACHA.pool[r.id].map((it) => (gachaOwned(it) ? '✅ ' : '❔ ') + gachaName(it));
+        m.append(h('div', { class: 'gx-rank gx-' + r.id }, h('b', {}, `${r.name}　${r.rate}%`), h('div', { class: 'small' }, list.join('　')),
+          r.dup ? h('div', { class: 'small' }, `もっている ものが でたら 🪙${r.dup} に かわるよ`) : ''));
+      }
+      m.append(h('div', { class: 'row end' }, h('button', { class: 'btn', onclick: () => openGacha() }, 'もどる'), h('button', { class: 'btn', 'data-default': '', onclick: closeModal }, 'とじる')));
+      return;
+    }
+    const egg = h('div', { class: 'gx-stage' }, h('img', { class: 'gx-egg idle', src: gachaImg('egg_normal'), alt: '' }));
+    m.append(egg,
+      h('p', { class: 'body' }, h('img', { class: 'micon', src: MATERIALS[TICKET].img, alt: '' }), ` ガチャけん ${tickets()}まい`),
+      got.length ? h('p', { class: 'body small' }, `きょうの ごほうび：${got.join('・')}で ガチャけんを もらったよ！`) : '',
+      h('p', { class: 'body small' }, 'ガチャけんは、しまで がくしゅうした日・しゅくだいを おえた日に 1まいずつ もらえるよ。しまの たからばこから でることも あるよ。'),
+      h('div', { class: 'row end' },
+        h('button', { class: 'btn', 'data-act': 'dex', onclick: () => openGacha('dex') }, '📖 ずかん'),
+        h('button', { class: 'btn', 'data-act': 'pull', 'data-default': '', disabled: tickets() < 1 ? '' : null, onclick: (e) => playGacha(m, e.currentTarget) }, '🥚 ひく'),
+        h('button', { class: 'btn', 'data-act': 'close', onclick: closeModal }, 'とじる')));
+  });
+}
+async function playGacha(m, btn) {
+  m.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+  const res = await pullGacha(); if (!res) return openGacha();
+  const stage = m.querySelector('.gx-stage'), egg = stage.querySelector('.gx-egg');
+  const eggName = `egg_${res.rank.id}`;
+  egg.src = gachaImg(eggName); egg.className = 'gx-egg shake';
+  await new Promise((r) => setTimeout(r, res.rank.id === 'normal' ? 900 : 1500));
+  if (res.rank.id !== 'normal') stage.prepend(h('img', { class: 'gx-fx rays', src: gachaImg('fx_rays'), alt: '' }));
+  stage.prepend(h('img', { class: 'gx-fx sparkle', src: gachaImg('fx_sparkle'), alt: '' }));
+  egg.src = gachaImg(eggName + '_open'); egg.className = 'gx-egg open';
+  await new Promise((r) => setTimeout(r, 700));
+  const prize = res.dup ? `${gachaName(res.it)}\n（もう もっているので 🪙${res.rank.dup} に かわったよ）` : gachaName(res.it);
+  const where = res.dup ? '' : res.it.kind === 'furniture' ? '\n「しまってある かぐ」に とどいたよ。' : (res.it.kind === 'outfit' || res.it.kind === 'accessory') ? '\nきせかえやで きられるよ。' : '';
+  stage.after(h('div', { class: 'gx-prize gx-' + res.rank.id }, h('div', { class: 'small' }, res.rank.name), h('div', { class: 'gx-pname' }, prize + where)));
+  m.querySelectorAll('button').forEach((b) => { b.disabled = false; });
+  const pull = m.querySelector('[data-act=pull]'); pull.textContent = tickets() > 0 ? `🥚 もういちど（のこり ${tickets()}）` : '🥚 ひく'; pull.disabled = tickets() < 1;
+  pull.onclick = () => openGacha().then(() => { const b = document.querySelector('.gacha [data-act=pull]'); if (b && !b.disabled) b.click(); });
+  m.querySelector('.body').textContent = '';
+}
+
 // ------------------------------------------------------------------ 操作
 function bindControls() {
   const keyDir = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right' };
@@ -2394,7 +2513,7 @@ function heroGender() { return profile?.hero?.gender === 'girl' ? 'girl' : 'boy'
 
 // ------------------------------------------------------------------ タイトル画面
 // ブラウザを開いて最初の1回だけ出す（島から戻ったときや、同じタブで開き直したときは出さない）
-const LOGO_SRC = 'assets/home/logo.webp?v=0.15.6';
+const LOGO_SRC = 'assets/home/logo.webp?v=0.16.0';
 function titleShownThisSession() { try { return sessionStorage.getItem('hatenaria-title') === '1'; } catch { return false; } }
 function markTitleShown() { try { sessionStorage.setItem('hatenaria-title', '1'); } catch { /* 使えなくても動く */ } }
 function showTitle(curBook) {
@@ -2458,6 +2577,7 @@ async function start() {
   await loadWardrobe();
   await refreshHomework();
   await refreshCrowns();
+  await grantDailyTickets();
   Object.assign(player, home.player, { fx: home.player.x, fy: home.player.y });
   loadHero();
   for (const [type, t] of Object.entries(OBJECT_TYPES)) {
@@ -2486,6 +2606,6 @@ async function start() {
   classroom.refresh(book.id).then((c) => { if (c) { cls = c; refreshHomework(); } });
   classroom.flush(book.id);
   // テスト用
-  window.__home = { player, get home() { return home; }, get T() { return T; }, camera, version: HOME_VERSION, get editMode() { return editMode; }, expandCandidates, get scene() { return scene; }, get room() { return room; }, get roomEdit() { return roomEdit; }, enterRoom, exitRoom, roomPt, roomTileAt, walkable, openEvent, gateTile, treeTile, openKisekae, openSchool, refreshHomework, openMissions, refreshCrowns, get crownTotal() { return crownTotal; }, get hwProg() { return hwProg; }, get wardrobe() { return wardrobe; } };
+  window.__home = { player, get home() { return home; }, get T() { return T; }, camera, version: HOME_VERSION, get editMode() { return editMode; }, expandCandidates, get scene() { return scene; }, get room() { return room; }, get roomEdit() { return roomEdit; }, enterRoom, exitRoom, roomPt, roomTileAt, walkable, openEvent, gateTile, treeTile, openKisekae, openSchool, refreshHomework, openMissions, refreshCrowns, get crownTotal() { return crownTotal; }, get hwProg() { return hwProg; }, get wardrobe() { return wardrobe; }, openGacha, pullGacha, grantDailyTickets };
 }
 start();

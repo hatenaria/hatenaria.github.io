@@ -6,9 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ハテナリア">
 <title>ハテナリア</title>
-<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png?v=0.15.6">
-<link rel="apple-touch-icon" href="assets/icons/icon-180.png?v=0.15.6">
-<link rel="manifest" href="manifest.json?v=0.15.6">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png?v=0.16.0">
+<link rel="apple-touch-icon" href="assets/icons/icon-180.png?v=0.16.0">
+<link rel="manifest" href="manifest.json?v=0.16.0">
 <style>
   :root{--ink:#3a3226;--paper:#fffaf0;--gold:#ffd66b;--gold-d:#d9a93a;--green:#9be3a8;--green-d:#5fb06d}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -78,6 +78,22 @@
   .cloud::after{content:"";position:absolute;left:30px;top:-22px;width:64px;height:54px;background:inherit;border-radius:50%}
   .c1{top:24px;left:-160px}.c2{top:70px;left:-160px;animation-delay:-9s;transform:scale(.7)}
   .modal.lift{animation:lift .9s ease-in forwards}
+  .gacha .gx-stage{position:relative;height:200px;display:grid;place-items:center;overflow:hidden}
+  .gacha .gx-egg{width:150px;height:150px;position:relative;z-index:2}
+  .gacha .gx-egg.idle{animation:bob 2.4s ease-in-out infinite}
+  .gacha .gx-egg.shake{animation:gxshake .3s ease-in-out infinite}
+  .gacha .gx-egg.open{animation:gxpop .5s ease-out}
+  .gacha .gx-fx{position:absolute;width:260px;height:260px;left:50%;top:50%;margin:-130px 0 0 -130px;z-index:1;pointer-events:none}
+  .gacha .gx-fx.rays{animation:gxspin 6s linear infinite}.gacha .gx-fx.sparkle{animation:gxgrow .8s ease-out both}
+  .gacha .gx-prize{text-align:center;border-radius:14px;padding:8px;margin:4px 0;background:#fff7e0}
+  .gacha .gx-prize.gx-rare{background:#ece6ff}.gacha .gx-prize.gx-super{background:linear-gradient(90deg,#fff1b8,#ffd6f0,#d6f0ff);font-weight:bold}
+  .gacha .gx-pname{font-size:20px;font-weight:bold;white-space:pre-line}
+  .gacha .gx-rank{border-radius:12px;padding:6px 10px;margin:6px 0;background:#fff7e0}.gacha .gx-rank.gx-rare{background:#ece6ff}.gacha .gx-rank.gx-super{background:#fff1b8}
+  @keyframes gxshake{0%,100%{transform:rotate(0)}25%{transform:rotate(-12deg)}75%{transform:rotate(12deg)}}
+  @keyframes gxpop{0%{transform:scale(.8)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+  @keyframes gxspin{to{transform:rotate(360deg)}}
+  @keyframes gxgrow{0%{transform:scale(.3);opacity:0}100%{transform:scale(1);opacity:1}}
+  @media (prefers-reduced-motion:reduce){.gacha .gx-egg,.gacha .gx-fx{animation:none!important}}
   @keyframes bob{50%{transform:translateY(-8px)}}
   @keyframes drift{to{left:110%}}
   @keyframes lift{to{transform:translateY(-120vh)}}
@@ -242,6 +258,6 @@
 </div>
 <div id="hint"></div>
 <div id="layer"></div>
-<script type="module" src="home/main.js?v=0.15.6"></script>
+<script type="module" src="home/main.js?v=0.16.0"></script>
 </body>
 </html>
