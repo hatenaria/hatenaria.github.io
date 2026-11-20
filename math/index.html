@@ -383,7 +383,7 @@ body.kb .mcard:focus{outline:4px solid #ff7a2a;outline-offset:2px}
   <div id="coin" class="pill">🪙 0</div>
   <div id="timeLeft" class="pill"></div>
   <div id="tr"><button id="furi" class="pill" type="button">ふりがな</button><button id="tts" class="pill" type="button">🔊 よみあげ</button><button id="btnSet" class="pill" type="button">⚙ せってい</button></div>
-  <div id="proto">さんすう アイランド v0.13.20</div>
+  <div id="proto">さんすう アイランド v0.13.21</div>
   <button id="act" class="off" type="button">しらべる</button>
   <button id="guide" class="pill" type="button">🧭 つぎの いしへ</button>
   <button id="wide" class="pill" type="button">🔍 ぜんたいを みる</button>
@@ -763,7 +763,7 @@ function makeDungeon(a,depth){const A=AREAS[a],th=TH(a),W=32,H=22,g=[],id=`${a}@
   const free=r=>{for(let t=0;t<60;t++){const x=rnd(r.x+1,r.x+r.w-2),y=rnd(r.y+1,r.y+r.h-2),k=key(x,y);if(used.has(k)||g[y][x]!=='F')continue;
       if([[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>g[y+dy][x+dx]==='F'&&!(x+dx>=r.x&&x+dx<r.x+r.w&&y+dy>=r.y&&y+dy<r.y+r.h)))continue;used.add(k);return [x,y];}return null;};
   const objs=[],lights=[],others=rooms.filter(r=>r!==start);
-  for(const r of shuf(others).slice(0,3)){const p=free(r);if(p)objs.push({k:'B',x:p[0],y:p[1],w:1,h:1,dg:true});}
+  {let rr=Math.random()<0.6;for(const r of shuf(others).slice(0,3)){const p=free(r);if(p){objs.push({k:'B',x:p[0],y:p[1],w:1,h:1,dg:true,rare:rr});rr=false;}}}
   if(theme&&theme.skill==='addcarry'){const r=pick(others),p=free(r);if(p)objs.push({k:'Z',x:p[0],y:p[1],w:1,h:1,nz:pick([1,2,4,5])});}
   // あるいて とく しかけ：こたえの ちいさい じゅんに ゆかを ふむ（4まい）
   const tiles=[];if(theme){const r=pick(others.filter(q=>q!==far))||others[0],pool=(poolOf(theme.skill,null)||[]).filter(q=>!q.choices&&!q.digits&&!SKILLS[theme.skill].digits&&/^\d+[+\-]\d+([+\-]\d+)?$/.test(q.key));const seen=new Set();
@@ -1462,7 +1462,8 @@ function drawObj(c,o){
     label(c,o.puz==='seq'?'じゅんばんの とびら':'なぞの とびら',cx,by+T*0.15,Math.max(11,Math.round(T*0.2)));return;}
   if(o.k==='B'){const op=chestOpened(o),img=o.dg?(IMG['dg_'+map.area+'_chest_'+(op?'open':'closed')]||(op?IMG.chest_dg_open||IMG.chest_open:IMG.chest_dg_closed||IMG.chest_closed)):op?IMG.chest_open:IMG.chest_closed,ready=!op&&S.cleared.length>0;
     if(ready){c.save();c.globalAlpha=0.35+0.25*Math.sin(time*4);c.fillStyle='#ffe28a';c.beginPath();c.ellipse(cx,by-T*0.35,T*0.55,T*0.45,0,0,7);c.fill();c.restore();}
-    if(img)drawImgFoot(c,img,cx,by+T*0.03,T*0.88);return;}
+    if(o.rare&&!op){c.save();c.globalAlpha=0.45+0.3*Math.sin(time*5);c.fillStyle='#ffd23a';c.beginPath();c.ellipse(cx,by-T*0.35,T*0.62,T*0.5,0,0,7);c.fill();c.restore();}
+    if(img){if(o.rare){c.save();c.filter='sepia(1) saturate(5) hue-rotate(-8deg) brightness(1.15)';drawImgFoot(c,img,cx,by+T*0.03,T*0.95);c.restore();if(!op){c.save();c.fillStyle='#fff';c.globalAlpha=0.5+0.5*Math.sin(time*7);c.font=`${T*0.3}px sans-serif`;c.fillText('✦',cx+T*0.28,by-T*0.7);c.restore();}}else drawImgFoot(c,img,cx,by+T*0.03,T*0.88);}return;}
   if(IMG[o.img]){drawImgFoot(c,IMG[o.img],cx,by+(o.sw?T*0.04:0),o.k==='tree'?T*1.3:ww*(o.sw||1.12));return;}
   if(map.floor&&o.sw){c.fillStyle='rgba(255,255,255,.55)';c.beginPath();c.ellipse(cx,by-T*0.35*o.h,ww*0.36,T*0.32*o.h,0,0,7);c.fill();return;}
   c.lineWidth=Math.max(2,T/28);c.strokeStyle='#5a3a22';
@@ -2041,6 +2042,8 @@ $('#resBack').addEventListener('click',()=>{const R=L;$('#lres').classList.remov
   backToField(R&&R.got?R:null);});
 
 function backToField(R){busy=false;$('#hud').classList.add('on');if(!R)return;
+  if(R.got==='chest'&&DG_CHEST&&map.dg&&DG_CHEST.rare){const o=DG_CHEST;DG_CHEST=null;o.done=true;map.solved++;tone([523,659,784,1047,1319],0.4);(async()=>{let n='solo';try{if(typeof Island.material==='function'&&MODE!=='solo')n=await Island.material({id:'gacha-ticket',count:1});}catch(e){n=null;}
+    startDialog([{n:'レアな たからばこ',t:n==='solo'?'キラキラの たからばこ！\nホームから きたときは ここで ガチャけんが もらえるよ。':n==null?'キラキラの たからばこ！\nでも きょうの ガチャけんは もう いっぱいみたい。':`キラキラの たからばこ！\nガチャけんを 1まい てにいれた！（${n}まい）\nホームの ガチャで つかえるよ。`}]);})();return;}
   if(R.got==='chest'&&DG_CHEST&&map.dg){const o=DG_CHEST;DG_CHEST=null;o.done=true;map.solved++;const sh=Math.random()<0.5;if(sh)S.shards=(S.shards||0)+1;else S.coins=coins()+1;saveSoon();tone([523,659,784,1047],0.35);
     startDialog([{n:'たからばこ',t:`パカッ！ たからばこが ひらいた。\n${sh?`すいしょうの かけらを 1こ てにいれた！（${S.shards}こ）`:`ひらめきコインを 1まい てにいれた！（${coins()}まい）`}`}]);return;}
   DG_CHEST=null;
@@ -2852,7 +2855,7 @@ W4[iRem]={id:'math.g4.A.rem',name:'わり算の 筆算（2）',st:[['何十で �
   return O[g]?{tosho:O[g].tosho.map(row),gakuto:O[g].gakuto.map(row)}:{tosho:L,gakuto:L};};for(const g of [2,3,4,5,6])ROAD[g]=mk(g);})();
 
 })();
-window.__sq={poolOf,lvOf,get mapId(){return map&&map.id},get g(){return GRADE},set g(v){GRADE=v},get L(){return L},openAreaMap,amGo,get S(){return S},goTo,floorId,get MAPS(){return MAPS},startLesson,worldsOf,genStageSet,roadNodes,unitNo,AREA_ORDER};
+window.__sq={get P(){return P},poolOf,lvOf,get mapId(){return map&&map.id},get g(){return GRADE},set g(v){GRADE=v},get L(){return L},openAreaMap,amGo,get S(){return S},goTo,floorId,get MAPS(){return MAPS},startLesson,worldsOf,genStageSet,roadNodes,unitNo,AREA_ORDER};
 (async()=>{
   resize();requestAnimationFrame(loop);
   await Island.init({appId:APP_ID,subject:'math'});
