@@ -2,74 +2,437 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>りかの しま あんないじょ｜ハテナリア</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<title>りか アイランド｜ハテナリア</title>
 <style>
-  :root{--ink:#3a3226;--gold:#ffd66b;--gold-d:#d9a93a}
-  *{box-sizing:border-box}
-  body{margin:0;min-height:100vh;font-family:"Hiragino Maru Gothic ProN","BIZ UDPGothic",sans-serif;color:var(--ink);
-    background:radial-gradient(circle at 50% 30%,#e6f6ff 0,#bfe6fb 60%,#8fd0f2 100%);display:grid;place-items:center;padding:20px}
-  .card{background:#fffaf0;border-radius:24px;box-shadow:0 10px 30px rgba(0,60,100,.18);padding:24px 26px;width:min(560px,100%);text-align:center}
-  h1{margin:0 0 6px;font-size:28px}
-  .isle{width:220px;max-width:60%;margin:0 auto 4px;display:block}
-  p{font-size:18px;line-height:1.6;margin:8px 0}
-  .small{font-size:15px;color:#6b5f4c}
-  input{width:100%;font-size:28px;letter-spacing:.08em;text-align:center;padding:14px;border:3px solid #cbbd9f;border-radius:16px;margin:10px 0;text-transform:uppercase;font-family:ui-monospace,Menlo,monospace}
-  input:focus{outline:5px solid #3b82f6;outline-offset:2px}
-  .btn{min-height:64px;padding:0 26px;border:none;border-radius:18px;background:var(--gold);color:var(--ink);font-size:22px;font-weight:bold;
-    box-shadow:0 5px 0 var(--gold-d);cursor:pointer;touch-action:manipulation;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;margin:6px}
-  .btn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--gold-d)}
-  .btn:disabled{background:#e4ddd0;box-shadow:0 5px 0 #c6bdad;color:#9a907f}
-  .btn.sky{background:#bfe3ff;box-shadow:0 5px 0 #7fb6e0}
-  .res{border-radius:16px;padding:12px;margin:10px 0;font-size:19px;white-space:pre-line;display:none}
-  .res.ok{display:block;background:#e5f4e4}.res.ng{display:block;background:#fbebeb}
+html,body{margin:0;height:100%;overflow:hidden;background:#9fd0e8;
+  font-family:"Hiragino Maru Gothic ProN","BIZ UDPGothic","Hiragino Sans","Noto Sans JP",sans-serif;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+button{font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+button:focus,input:focus{outline:none}
+body.kb button:focus-visible,body.kb button:focus{outline:5px solid #2f6fd6;outline-offset:3px}
+#cv{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
+  background:linear-gradient(#bfe6ff,#e6f7ef);z-index:30;gap:26px;text-align:center;padding:16px;box-sizing:border-box}
+.screen.on{display:flex}
+.title{font-size:60px;font-weight:bold;color:#3f9fc9;letter-spacing:6px;text-shadow:0 4px 0 #fff,0 7px 0 rgba(40,90,120,.22)}
+.title img{display:block;width:min(420px,80vw);margin:0 auto 6px}
+.sub{font-size:22px;color:#4a6a88;font-weight:bold}
+.big{font-size:32px;font-weight:bold;padding:16px 52px;min-height:64px;border-radius:40px;border:4px solid #fff;
+  background:#4fb3d9;color:#fff;box-shadow:0 6px 0 #2f84a8}
+.big:active{transform:translateY(4px);box-shadow:0 2px 0 #2f84a8}
+#hud{position:fixed;inset:0;pointer-events:none;z-index:10;display:none}
+#hud.on{display:block}
+#hud button,#hud .pill{pointer-events:auto}
+.pill{position:fixed;top:calc(12px + env(safe-area-inset-top));padding:8px 18px;border-radius:24px;min-height:44px;box-sizing:border-box;
+  background:rgba(255,250,240,.94);border:3px solid #8a5a3c;color:#8a5a3c;font-size:21px;font-weight:bold;display:flex;align-items:center;gap:10px}
+#place{left:calc(14px + env(safe-area-inset-left))}
+#wallet{left:calc(14px + env(safe-area-inset-left));top:calc(64px + env(safe-area-inset-top));color:#a8700a;border-color:#d9a020;display:none}
+#wallet.on{display:flex}
+#wallet .dr{color:#2f84a8}
+#hint{left:50%;transform:translateX(-50%);background:#fff3d6;white-space:nowrap}
+#hint[hidden]{display:none}
+#ver{position:fixed;top:calc(16px + env(safe-area-inset-top));right:calc(16px + env(safe-area-inset-right));
+  font-size:12px;color:#fff;background:rgba(0,0,0,.35);padding:3px 10px;border-radius:10px;pointer-events:none}
+#dpad{position:fixed;right:calc(18px + env(safe-area-inset-right));bottom:calc(18px + env(safe-area-inset-bottom));
+  display:grid;grid-template-columns:repeat(3,72px);grid-template-rows:repeat(3,72px)}
+.dbtn{margin:3px;border-radius:18px;background:rgba(255,250,240,.9);border:4px solid #8a5a3c;color:#8a5a3c;
+  font-size:28px;display:flex;align-items:center;justify-content:center;padding:0;touch-action:none}
+.dbtn.on{background:#ffd27a}
+#act{position:fixed;right:calc(250px + env(safe-area-inset-right));bottom:calc(40px + env(safe-area-inset-bottom));
+  width:108px;height:108px;border-radius:50%;background:#4fb3d9;color:#fff;font-size:21px;font-weight:bold;
+  border:5px solid #fff;box-shadow:0 5px 0 #2f84a8}
+#act.off{opacity:.4}
+#act:active{transform:translateY(3px);box-shadow:0 2px 0 #2f84a8}
+#toast{position:fixed;left:50%;bottom:calc(150px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:20;
+  background:rgba(255,250,240,.97);border:3px solid #8a5a3c;color:#5a3a22;border-radius:20px;padding:14px 24px;
+  font-size:22px;font-weight:bold;max-width:min(560px,86vw);text-align:center;line-height:1.6;display:none;pointer-events:none;white-space:pre-line}
+#toast.on{display:block}
+/* あんないじょ */
+#annai{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;background:rgba(30,60,80,.45);padding:14px;box-sizing:border-box}
+#annai.on{display:flex}
+.panel{position:relative;background:#fffaf0;border-radius:26px;box-shadow:0 10px 0 rgba(40,70,90,.25);width:min(600px,100%);max-height:100%;overflow:auto;
+  padding:22px 26px 24px;box-sizing:border-box;color:#3a3226;text-align:center}
+.panel h2{margin:0 0 6px;font-size:28px;color:#2f84a8}
+.panel .bld{width:200px;max-width:50%;display:block;margin:0 auto}
+.panel p{font-size:20px;line-height:1.7;margin:8px 0}
+.panel .small{font-size:16px;color:#6b5f4c}
+#code{width:100%;box-sizing:border-box;font-size:30px;letter-spacing:.08em;text-align:center;padding:14px;border:4px solid #cbbd9f;border-radius:18px;
+  margin:8px 0 6px;text-transform:uppercase;font-family:ui-monospace,Menlo,Consolas,monospace;-webkit-user-select:text;user-select:text;background:#fff}
+#code:focus{border-color:#2f6fd6;outline:5px solid #2f6fd6;outline-offset:2px}
+.row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:6px}
+.btn{min-height:64px;padding:0 28px;border:none;border-radius:20px;background:#ffd66b;color:#3a3226;font-size:24px;font-weight:bold;
+  box-shadow:0 5px 0 #d9a93a;touch-action:manipulation}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 #d9a93a}
+.btn:disabled{background:#e4ddd0;box-shadow:0 5px 0 #c6bdad;color:#9a907f}
+.btn.sub2{background:#e3f1f8;box-shadow:0 5px 0 #9cc3d6}
+.res{border-radius:18px;padding:14px;margin:12px 0 4px;font-size:21px;line-height:1.7;white-space:pre-line;display:none;font-weight:bold}
+.res.ok{display:block;background:#e3f4e1;color:#2f6a2c;animation:pop .35s ease-out}
+.res.ng{display:block;background:#fbe9e7;color:#9a3a2a;animation:shake .3s}
+@keyframes pop{0%{transform:scale(.85)}70%{transform:scale(1.05)}100%{transform:scale(1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.spark{position:absolute;font-size:30px;pointer-events:none;animation:fly 1.1s ease-out forwards}
+@keyframes fly{0%{opacity:1;transform:translate(0,0) scale(.6)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(1.3)}}
+@media (max-width:700px),(max-height:520px){
+  .title{font-size:40px}#dpad{grid-template-columns:repeat(3,62px);grid-template-rows:repeat(3,62px)}
+  #act{width:92px;height:92px;right:calc(210px + env(safe-area-inset-right))}#hint{font-size:17px;top:calc(116px + env(safe-area-inset-top))}
+}
 </style>
 </head>
 <body>
-<main class="card">
-  <img class="isle" src="../assets/home/isle_rika.webp" alt="">
-  <h1>🔬 りかの しま あんないじょ</h1>
-  <p>りかの しまは いま じゅんびちゅう。<br>「りかクエスト」で もらった <b>ハテナリアコード</b>を ここに はってね。</p>
-  <input id="code" placeholder="HQ-XXXXX-XXXX" autocomplete="off" spellcheck="false" maxlength="20" aria-label="ハテナリアコード">
-  <div>
-    <button class="btn" id="go">🎁 うけとる</button>
-    <a class="btn sky" id="home" href="../index.html">🏝 ホームに かえる</a>
+<canvas id="cv"></canvas>
+
+<div id="sTitle" class="screen on">
+  <div class="title"><img src="../assets/home/isle_rika.webp?v=0.1.0" alt="">りか アイランド</div>
+  <div class="sub" id="tBook">キーボードでも できるよ</div>
+  <button class="big" id="tGo" type="button">しまに おりる</button>
+</div>
+
+<div id="hud">
+  <div class="pill" id="place">りか アイランド</div>
+  <div class="pill" id="wallet"><span>🪙 <b id="wCoin">0</b></span><span class="dr">💧 <b id="wMat">0</b></span></div>
+  <div class="pill" id="hint">あんないじょを しらべてみよう</div>
+  <div id="ver">りか アイランド v0.1.0</div>
+  <button id="act" class="off" type="button">しらべる</button>
+  <div id="dpad">
+    <span></span><button class="dbtn" data-d="up" type="button" aria-label="うえ">▲</button><span></span>
+    <button class="dbtn" data-d="left" type="button" aria-label="ひだり">◀</button><span></span><button class="dbtn" data-d="right" type="button" aria-label="みぎ">▶</button>
+    <span></span><button class="dbtn" data-d="down" type="button" aria-label="した">▼</button><span></span>
   </div>
-  <div class="res" id="res" role="status"></div>
-  <p class="small">コードは もらった日から 3日 つかえるよ。いちど つかった コードは もう つかえないよ。</p>
-</main>
-<script type="module">
-const V = '0.16.2';
-const $ = (id) => document.getElementById(id);
-let island = null;
-try {
-  const api = await import(`../common/island-api.js?v=${V}`);
-  island = await api.connect({ appId: 'rika-annai', subject: 'rika' });
-  if (island) $('home').href = island.homeUrl;
-} catch (e) { $('res').className = 'res ng'; $('res').textContent = 'よみこみに しっぱいしたよ。ホームから もういちど きてね。'; }
-const WHY = {
-  bad: 'コードが ちがうみたい。もういちど よく みて はってね。',
-  old: 'この コードは 3日 すぎて つかえなく なったよ。',
-  used: 'この コードは もう つかわれているよ。',
-  off: 'いまは コードが つかえないよ。（せんせいの せってい）',
-};
-async function go() {
-  if (!island) return;
-  const v = $('code').value.trim(); if (!v) { $('code').focus(); return; }
-  $('go').disabled = true;
-  try {
-    const r = await island.redeemCode(v);
-    if (r.ok) {
-      $('res').className = 'res ok';
-      $('res').textContent = `🎉 りかクエスト、がんばったね！（レベル ${r.level}）\n🪙 コイン ＋${r.gain?.coin || 0}　💧 りかの そざい ＋${r.gain?.material || 0}${r.gain?.bonus ? '（きょう はじめての りかで ＋2こ！）' : ''}`;
-      $('code').value = '';
-    } else { $('res').className = 'res ng'; $('res').textContent = WHY[r.why] || 'うまく いかなかったよ。'; }
-  } catch { $('res').className = 'res ng'; $('res').textContent = 'うまく いかなかったよ。もういちど ためしてね。'; }
-  $('go').disabled = false;
+</div>
+<div id="toast" role="status"></div>
+
+<div id="annai" role="dialog" aria-modal="true" aria-labelledby="aTitle">
+  <div class="panel" id="aPanel">
+    <img class="bld" src="assets/island/bld_annai.webp?v=0.1.0" alt="">
+    <h2 id="aTitle">りかの あんないじょ</h2>
+    <p>りかクエストで もらった<br><b>ハテナリアコード</b>を はってね。</p>
+    <input id="code" placeholder="HQ-XXXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="24" aria-label="ハテナリアコード" inputmode="latin">
+    <div class="row">
+      <button class="btn" id="aGo" type="button">🎁 うけとる</button>
+      <button class="btn sub2" id="aClose" type="button">とじる</button>
+    </div>
+    <div class="res" id="aRes" role="status"></div>
+    <p class="small">コードは もらった 日から 3日 つかえるよ。<br>いちど つかった コードは もう つかえないよ。</p>
+  </div>
+</div>
+
+<script>
+// =====================================================================
+// ハテナリア つなぎ口（island-link.js） 版 0.1.6
+// ---------------------------------------------------------------------
+// このかたまりを、各アプリの HTML の <script> の中にそのまま貼り付けて使う。
+// ・島のフォルダに置いたとき … 共通部品を読み込み「連携モード」になる
+// ・単独で開いたとき（Claudeのリンク、別のサイト、ファイルを直接開く）
+//                              … 共通部品がないので「単独モード」になり、何もしない
+//
+// 使い方（例）
+//   const island = await Island.init({ appId: 'keisan-1min', subject: 'math' });
+//   if (island.connected) { ... 島につながっているときだけの処理 ... }
+//   await Island.reward(3);                 // ひと区切りごとにコイン・素材
+//   await Island.record({ minutes: 5 });    // 学習の要約
+//   await Island.collect({ id: 'badge-keisan', name: 'けいさん バッジ', img: 'math/assets/island/badge_keisan.webp' }); // かざりだなへ
+//   await Island.progress({ id: 'g1-add', name: 'たしざん', star: 1 }); // ☆＝1、★＝2（まなびの きろくへ）
+//   const r = await Island.redeemCode('HQ-XXXXX-XXXX'); // ハテナリアコード（0.1.6）→ {ok, why, level, gain}
+//
+// 単独モードでは reward / record は何もせず null を返し、isUnitOpen は常に true。
+// loadState は undefined を返すので、アプリは今までどおり自分の保存を使う。
+// =====================================================================
+const Island = (() => {
+  const I = {
+    connected: false,
+    book: null,
+    profile: null,
+    homeUrl: null,
+    mode: null,   // 連携モードでは 'school'（クラスに入っている）か 'home'（自習）。単独モードでは null
+    grade: null,  // 連携モードでは その冒険の書の学年（1〜6）。単独モードでは null（アプリが自分で決める）
+    settings: null, // 連携モードでは 冒険の書の共通設定（読み上げ・ふりがな など）
+    furigana: null, // 連携モードでは true／false（習った漢字にも ふりがなを付けるか）。単独モードでは null
+    reward: async () => null,
+    record: async () => null,
+    collect: async () => false,  // 0.1.4
+    progress: async () => false, // 0.1.4
+    material: async () => null,  // 0.1.5
+    redeemCode: async () => ({ ok: false, why: 'offline' }), // 0.1.6 ハテナリアコード（理科クエスト など）
+    wallet: async () => null,
+    isUnitOpen: async () => true,
+    loadState: async () => undefined,
+    saveState: async () => false,
+  };
+
+  /**
+   * @param {object} opt
+   * @param {string} opt.appId     アプリの名前（半角英小文字・数字・ハイフン）
+   * @param {string} opt.subject   教科（math, rika, kokugo, shakai, eigo など）
+   * @param {string} [opt.commonPath='../common/']  このアプリから見た共通部品の場所
+   * @param {boolean} [opt.homeButton=true]        連携モードで「ホームに かえる」ボタンを出す
+   */
+  I.init = async ({ appId, subject, commonPath = '../common/', homeButton = true } = {}) => {
+    if (!/^https?:$/.test(location.protocol)) { console.info('[学習アイランド] 単独モード'); return I; }
+    try {
+      const api = await import(new URL(commonPath + 'island-api.js', location.href).href);
+      const c = await api.connect({ appId, subject });
+      if (!c) return I; // ホームへ移動中
+      Object.assign(I, c, { connected: true });
+      if (homeButton) {
+        const b = document.createElement('a');
+        b.href = c.homeUrl;
+        b.textContent = '🏝 ホームに かえる';
+        b.setAttribute('data-island', 'home');
+        b.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:9000;min-height:60px;display:flex;align-items:center;'
+          + 'padding:0 18px;border-radius:16px;background:#ffd66b;color:#3a3226;font-size:20px;font-weight:bold;'
+          + 'text-decoration:none;box-shadow:0 4px 0 #d9a93a;font-family:inherit;touch-action:manipulation';
+        b.addEventListener('focus', () => { b.style.outline = '5px solid #3b82f6'; b.style.outlineOffset = '4px'; });
+        b.addEventListener('blur', () => { b.style.outline = 'none'; });
+        document.body.append(b);
+      }
+      console.info(`[学習アイランド] 連携モード（冒険の書 ${c.book.id}、共通部品 ${c.version}）`);
+    } catch (e) {
+      console.info('[学習アイランド] 単独モード', e && e.message ? `（${e.message}）` : '');
+    }
+    return I;
+  };
+  return I;
+})();
+
+
+(()=>{
+'use strict';
+const APP_VERSION='0.1.0',APP_ID='rika-island';
+const $=s=>document.querySelector(s);
+const cv=$('#cv'),ctx=cv.getContext('2d');
+let W=0,H=0,DPR=1,T=56,OX=0,OY=0;
+const TOP=66;
+function resize(){DPR=Math.min(window.devicePixelRatio||1,2);W=innerWidth;H=innerHeight;cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);fit();}
+function fit(){T=Math.max(28,Math.floor(Math.min(W/MAP.w,(H-TOP-6)/MAP.h)));OX=Math.floor((W-MAP.w*T)/2);OY=TOP+Math.floor((H-TOP-MAP.h*T)/2);}
+const sx=x=>OX+x*T,sy=y=>OY+y*T;
+const DIRS={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
+const key=(x,y)=>x+','+y,hash=(x,y)=>(((x*73856093)^(y*19349663))>>>0);
+function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+function label(c,s,x,y,size,col){c.font=`bold ${size}px "Hiragino Maru Gothic ProN","BIZ UDPGothic",sans-serif`;c.textAlign='center';c.textBaseline='alphabetic';
+  c.lineWidth=Math.max(3,size*0.22);c.strokeStyle='rgba(255,255,255,.95)';c.lineJoin='round';c.strokeText(s,x,y);c.fillStyle=col||'#5a3a22';c.fillText(s,x,y);}
+
+/* =========================================================
+   りか アイランドの 地図（1画面 18×13）
+   ・配置は 島の絵（ホームの 気球の 画面）と おなじ。
+     手前：ききゅうはま＋あんないじょ／左：いきものの もり／奥まん中：ほしぞらの おか
+     右奥：かざぐるまの みさき／右まん中：ふしぎ じっけんじょ／右手前：ちそうの がけ（川が 海へ）
+   ・第1版は あんないじょ だけ 入れる。ほかは きりの 中で「じゅんびちゅう」。
+   g 草　r 道　s すなはま　w 川　b 橋
+   ========================================================= */
+const PLACES=[
+  {id:'annai', name:'あんないじょ',        img:'bld_annai', x:7, y:8,w:3,h:3,door:[8,11],open:true},
+  {id:'mori',  name:'いきものの もり',     img:'lm_mori',   x:1, y:2,w:3,h:3,door:[2,5]},
+  {id:'oka',   name:'ほしぞらの おか',     img:'lm_oka',    x:7, y:0,w:3,h:3,door:[8,3]},
+  {id:'misaki',name:'かざぐるまの みさき', img:'lm_misaki', x:14,y:0,w:3,h:3,door:[15,3]},
+  {id:'jikken',name:'ふしぎ じっけんじょ', img:'lm_jikken', x:12,y:4,w:3,h:3,door:[13,7]},
+  {id:'gake',  name:'ちそうの がけ',       img:'lm_gake',   x:14,y:8,w:3,h:3,door:[15,11]},
+];
+const MAP=(()=>{const w=18,h=13,g=[];
+  for(let y=0;y<h;y++){g.push([]);for(let x=0;x<w;x++)g[y].push(y===h-1?'s':'g');}
+  const road=(x0,y0,x1,y1)=>{for(let y=Math.min(y0,y1);y<=Math.max(y0,y1);y++)for(let x=Math.min(x0,x1);x<=Math.max(x0,x1);x++)g[y][x]='r';};
+  road(2,7,15,7);road(2,5,2,7);road(8,3,8,7);road(15,3,15,7);road(10,7,10,11);road(5,11,15,11);
+  for(const [x,y] of [[11,1],[11,2],[11,3],[11,4],[11,5],[11,6],[11,7],[11,8],[12,8],[12,9],[12,10],[12,11],[12,12]])g[y][x]='w';
+  g[7][11]='b';g[11][12]='b';
+  const objs=PLACES.map(p=>({k:'place',...p}));
+  objs.push({k:'pad',img:'balloon_pad',x:4,y:11,w:2,h:2,deco:true,flat:true});
+  for(const [x,y] of [[0,0],[4,0],[5,1],[0,6],[0,9],[1,10],[3,9],[5,9],[4,4],[6,5],[13,2],[17,4],[16,6],[17,10],[9,5],[0,1]])objs.push({k:'tree',img:'deco_tree',x,y,w:1,h:1});
+  for(const [x,y] of [[6,2],[4,2],[13,9],[17,8],[1,12],[9,12],[16,12],[2,8]])objs.push({k:'bush',img:'deco_bush',x,y,w:1,h:1});
+  const block=new Set();
+  for(const o of objs){if(o.deco)continue;for(let yy=o.y;yy<o.y+o.h;yy++)for(let xx=o.x;xx<o.x+o.w;xx++)block.add(key(xx,yy));}
+  const doors={};for(const p of PLACES)doors[key(...p.door)]=p;
+  return {w,h,g,objs,block,doors};})();
+
+/* ---------- 絵（ない絵は 色だけで かく・きりで かくす） ---------- */
+const IMG={};
+fetch('assets/island/list.json?v='+APP_VERSION).then(r=>r.ok?r.json():[]).then(names=>(names||[]).forEach(n=>{const i=new Image();i.onload=()=>IMG[n]=i;i.src=`assets/island/${n}.webp?v=${APP_VERSION}`;})).catch(()=>{});
+
+/* ---------- 主人公：共通部品（/common/hero/） ---------- */
+let HERO=null,heroLook={gender:'boy'};
+async function loadHero(look){heroLook=look||heroLook;
+  if(!/^https?:$/.test(location.protocol))return;
+  try{const m=await import(new URL('../common/hero/hero.js',location.href).href);HERO=await m.createHero(heroLook);}catch(e){HERO=null;}}
+function drawPlayer(c,fx,fy,t,dir,fr){
+  c.fillStyle='rgba(0,0,0,.18)';c.beginPath();c.ellipse(fx,fy-t*0.02,t*0.3,t*0.09,0,0,7);c.fill();
+  if(HERO){HERO.draw(c,fx,fy,{dir,frame:fr,width:t*1.27});return;}
+  c.fillStyle='#ffdcbc';c.beginPath();c.arc(fx,fy-t*0.85,t*0.26,0,7);c.fill();
+  c.fillStyle=heroLook.gender==='girl'?'#f08aa8':'#4f8fd9';rr(c,fx-t*0.2,fy-t*0.6,t*0.4,t*0.52,10);c.fill();
 }
-$('go').addEventListener('click', go);
-$('code').addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
-$('code').focus();
+
+/* =========================================================
+   状態・うごき
+   ========================================================= */
+let started=false,time=0,busy=false,held=null,path=[],pendingAct=null,marker=null,visitedAnnai=false;
+const P={x:5,y:11,tx:5,ty:11,t:0,moving:false,dir:'up'};
+function walkable(x,y){if(x<0||y<0||x>=MAP.w||y>=MAP.h)return false;const t=MAP.g[y][x];if(t==='w')return false;if(MAP.block.has(key(x,y)))return false;return true;}
+function tryStep(d){P.dir=d;const [dx,dy]=DIRS[d],nx=P.x+dx,ny=P.y+dy;
+  if(walkable(nx,ny)){P.tx=nx;P.ty=ny;P.moving=true;return true;}
+  const f=placeAt(nx,ny);if(f)bump(f);return false;}
+function placeAt(x,y){return PLACES.find(p=>x>=p.x&&x<p.x+p.w&&y>=p.y&&y<p.y+p.h)||null;}
+let lastBump=0;
+function bump(p){if(performance.now()-lastBump<1200)return;lastBump=performance.now();if(!p.open)toast(`${p.name}は じゅんびちゅう だよ。\nもうすこし まってね。`);}
+/* 目の前（または 足もと）に ある 入口 */
+function facing(){const d=MAP.doors[key(P.x,P.y)];if(d)return d;const [dx,dy]=DIRS[P.dir];return placeAt(P.x+dx,P.y+dy);}
+function update(dt){time+=dt;
+  if(P.moving){P.t+=dt*4.6;
+    if(P.t>=1){const carry=P.t-1;P.x=P.tx;P.y=P.ty;P.moving=false;P.t=0;
+      const d=MAP.doors[key(P.x,P.y)];
+      if(d&&!held&&!path.length){P.dir='up';if(d.open){enter(d);return;}}
+      if(!locked()&&nextMove())P.t=carry;}}
+  else if(!locked())nextMove();}
+function locked(){return busy||!started;}
+function nextMove(){
+  if(held){path=[];pendingAct=null;return tryStep(held);}
+  if(path&&path.length){const [nx,ny]=path.shift();if(!tryStep(dirTo(P.x,P.y,nx,ny)))path=[];return P.moving;}
+  if(pendingAct){const p=pendingAct;pendingAct=null;P.dir='up';act(p);}
+  return false;}
+function dirTo(x0,y0,x1,y1){return x1>x0?'right':x1<x0?'left':y1>y0?'down':'up';}
+function bfs(tx,ty){const st=key(P.x,P.y),prev={[st]:null},q=[[P.x,P.y]];
+  while(q.length){const [x,y]=q.shift();if(x===tx&&y===ty)break;
+    for(const [dx,dy] of Object.values(DIRS)){const nx=x+dx,ny=y+dy,k=key(nx,ny);if(k in prev||!walkable(nx,ny))continue;prev[k]=[x,y];q.push([nx,ny]);}}
+  if(!(key(tx,ty) in prev))return null;const out=[];let c=[tx,ty];while(c&&key(...c)!==st){out.unshift(c);c=prev[key(...c)];}return out;}
+function act(p){p=p||facing();if(!p)return;tone([523],0.08);if(p.open)enter(p);else toast(`${p.name}は じゅんびちゅう だよ。\nもうすこし まってね。`);}
+function enter(p){if(p.id==='annai')openAnnai();}
+
+/* ---------- 入力：キーボード・タッチ・マウス（仕様書 2-8） ---------- */
+const KEYD={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',s:'down',a:'left',d:'right',W:'up',S:'down',A:'left',D:'right'};
+addEventListener('keydown',e=>{document.body.classList.add('kb');
+  if($('#annai').classList.contains('on')){if(e.key==='Escape'){e.preventDefault();closeAnnai();}return;}
+  if(!started){return;}
+  const d=KEYD[e.key];if(d){e.preventDefault();held=d;if(!P.moving&&!locked())nextMove();return;}
+  if((e.key==='Enter'||e.key===' ')&&!e.repeat){if(document.activeElement&&document.activeElement.tagName==='BUTTON'&&document.activeElement.id!=='act')return;e.preventDefault();if(!P.moving)act();}});
+addEventListener('keyup',e=>{const d=KEYD[e.key];if(d&&held===d)held=null;});
+addEventListener('pointerdown',()=>document.body.classList.remove('kb'),true);
+for(const b of document.querySelectorAll('.dbtn')){const d=b.dataset.d;
+  const on=e=>{e.preventDefault();held=d;b.classList.add('on');try{b.setPointerCapture(e.pointerId);}catch(_){}};
+  const off=()=>{if(held===d)held=null;b.classList.remove('on');};
+  b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointercancel',off);b.addEventListener('lostpointercapture',off);
+  b.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();if(!P.moving)tryStep(d);}});}
+let actT=0;$('#act').addEventListener('click',()=>{const n=performance.now();if(n-actT<350)return;actT=n;if(!P.moving)act();});
+cv.addEventListener('pointerdown',e=>{if(!started||busy)return;const x=Math.floor((e.clientX-OX)/T),y=Math.floor((e.clientY-OY)/T);
+  if(x<0||y<0||x>=MAP.w||y>=MAP.h)return;
+  const p=placeAt(x,y)||MAP.doors[key(x,y)];
+  if(p){const [dx,dy]=p.door;if(P.x===dx&&P.y===dy){P.dir='up';act(p);return;}const r=bfs(dx,dy);if(r){path=r;pendingAct=p;marker={x:dx,y:dy,t:0};}return;}
+  if(!walkable(x,y))return;const r=bfs(x,y);if(r){path=r;pendingAct=null;marker={x,y,t:0};}});
+
+/* ---------- 音・おしらせ ---------- */
+let ac=null;
+function tone(freqs,dur){try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+  freqs.forEach((f,i)=>{const o=ac.createOscillator(),g=ac.createGain(),t0=ac.currentTime+i*0.1;o.type='sine';o.frequency.value=f;
+    g.gain.setValueAtTime(0.0001,t0);g.gain.exponentialRampToValueAtTime(0.2,t0+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+    o.connect(g);g.connect(ac.destination);o.start(t0);o.stop(t0+dur+0.05);});}catch(e){}}
+let toastT=0;function toast(s){const t=$('#toast');t.textContent=s;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),2600);}
+
+/* =========================================================
+   かく
+   ========================================================= */
+function drawGround(c){
+  for(let y=0;y<MAP.h;y++)for(let x=0;x<MAP.w;x++){const t=MAP.g[y][x],X=sx(x),Y=sy(y),h=hash(x,y);
+    if(t==='g'){c.fillStyle=(x+y)%2?'#bcdca4':'#b6d79d';c.fillRect(X,Y,T+1,T+1);
+      if(h%5===0){c.strokeStyle='#9cc686';c.lineWidth=2;const gx=X+(h%40)/40*T*0.7+T*0.15,gy=Y+((h>>8)%40)/40*T*0.6+T*0.3;
+        c.beginPath();c.moveTo(gx,gy);c.lineTo(gx-3,gy-7);c.moveTo(gx+3,gy);c.lineTo(gx+5,gy-8);c.stroke();}}
+    else if(t==='r'){c.fillStyle='#eddcb6';c.fillRect(X,Y,T+1,T+1);if(h%3===0){c.fillStyle='rgba(160,120,70,.18)';c.beginPath();c.arc(X+T*0.3,Y+T*0.6,T*0.05,0,7);c.fill();}}
+    else if(t==='s'){c.fillStyle=(x+y)%2?'#f4e7c6':'#f0e2bf';c.fillRect(X,Y,T+1,T+1);}
+    else if(t==='w'||t==='b'){c.fillStyle=MAP.g[y][x-1]==='r'||MAP.g[y][x+1]==='r'?'#bcdca4':'#bcdca4';c.fillRect(X,Y,T+1,T+1);drawWater(c,x,y,X,Y);if(t==='b')drawBridge(c,x,y,X,Y);}
+  }
+  c.strokeStyle='rgba(255,255,255,.7)';c.lineWidth=4;c.strokeRect(OX-2,OY-2,MAP.w*T+4,MAP.h*T+4);}
+const isW=(x,y)=>x>=0&&y>=0&&x<MAP.w&&y<MAP.h&&(MAP.g[y][x]==='w'||MAP.g[y][x]==='b'||(y===MAP.h&&false));
+function drawWater(c,x,y,X,Y){const m=T*0.16,l=isW(x-1,y)?0:m,r=isW(x+1,y)?0:m,u=(isW(x,y-1)||y===0)?0:m,d=(isW(x,y+1)||y===MAP.h-1)?0:m;
+  c.fillStyle='#e9d9b0';c.fillRect(X+l*0.4,Y+u*0.4,T+1-l*0.4-r*0.4,T+1-u*0.4-d*0.4);
+  c.fillStyle='#8fcbe8';c.fillRect(X+l,Y+u,T+1-l-r,T+1-u-d);
+  c.strokeStyle='rgba(255,255,255,.75)';c.lineWidth=Math.max(2,T*0.05);c.lineCap='round';
+  const ph=(time*0.8+((x*7+y*3)%10)/10)%1;c.beginPath();c.moveTo(X+T*0.3,Y+T*(0.15+ph*0.7));c.lineTo(X+T*0.55,Y+T*(0.15+ph*0.7));c.stroke();}
+function drawBridge(c,x,y,X,Y){const vert=isW(x,y-1)||isW(x,y+1);c.fillStyle='#d9a066';
+  if(vert){c.fillRect(X-1,Y+T*0.12,T+2,T*0.76);c.strokeStyle='#b07a44';c.lineWidth=2;for(let i=1;i<5;i++){c.beginPath();c.moveTo(X+i*T/5,Y+T*0.12);c.lineTo(X+i*T/5,Y+T*0.88);c.stroke();}
+    c.fillStyle='#a8703c';c.fillRect(X-1,Y+T*0.08,T+2,T*0.08);c.fillRect(X-1,Y+T*0.84,T+2,T*0.08);}
+  else{c.fillRect(X+T*0.12,Y-1,T*0.76,T+2);c.strokeStyle='#b07a44';c.lineWidth=2;for(let i=1;i<5;i++){c.beginPath();c.moveTo(X+T*0.12,Y+i*T/5);c.lineTo(X+T*0.88,Y+i*T/5);c.stroke();}}}
+function drawImgFoot(c,img,cx,by,wpx){const s=wpx/img.width;c.drawImage(img,cx-wpx/2,by-img.height*s,wpx,img.height*s);}
+function drawObj(c,o){const lx=sx(o.x),by=sy(o.y+o.h),ww=o.w*T,cx=lx+ww/2,img=IMG[o.img];
+  if(o.k==='tree'){if(img)drawImgFoot(c,img,cx,by,T*1.3);return;}
+  if(o.k==='bush'){if(img)drawImgFoot(c,img,cx,by,T*1.05);return;}
+  if(o.k==='pad'){if(img)drawImgFoot(c,img,cx,by-T*0.1,ww*1.05);return;}
+  if(img)drawImgFoot(c,img,cx,by,ww*(o.id==='annai'?1.12:1.08));}
+function drawFog(c,o){const lx=sx(o.x)-T*0.3,ty=sy(o.y)-T*0.9,ww=o.w*T+T*0.6,hh=(o.h+0.9)*T+T*0.3;
+  if(IMG.block_fog){c.drawImage(IMG.block_fog,lx,ty,ww,hh);return;}
+  c.fillStyle='rgba(250,250,255,.9)';for(let i=0;i<7;i++){const fx=lx+ww*(0.1+0.8*((i*37)%7)/6),fy=ty+hh*(0.2+0.6*((i*53)%5)/4);c.beginPath();c.arc(fx,fy,T*0.75,0,7);c.fill();}}
+function playerPos(){const k=P.moving?P.t:0;return [P.x+(P.tx-P.x)*k,P.y+(P.ty-P.y)*k];}
+function render(){const c=ctx;c.setTransform(DPR,0,0,DPR,0,0);
+  c.fillStyle='#9fd0e8';c.fillRect(0,0,W,H);
+  c.fillStyle='#b8dff0';for(let i=0;i<14;i++){const wx=(i*173+time*12)%W,wy=(i*97)%H;c.fillRect(wx,wy,22,3);}
+  drawGround(c);
+  if(marker){marker.t+=1/60;const a=1-marker.t/0.8;if(a<=0)marker=null;else{c.strokeStyle=`rgba(79,179,217,${a})`;c.lineWidth=4;c.beginPath();
+    c.ellipse(sx(marker.x)+T/2,sy(marker.y)+T*0.7,T*0.35*(1+marker.t),T*0.15*(1+marker.t),0,0,7);c.stroke();}}
+  const [px,py]=playerPos(),list=[];
+  for(const o of MAP.objs)list.push({y:o.flat?-1:o.y+o.h,f:()=>drawObj(c,o)});
+  const fr=P.moving&&P.t>0.15&&P.t<0.85?1:0;
+  list.push({y:py+1.02,f:()=>drawPlayer(c,sx(px)+T/2,sy(py+1)-T*0.1,T,P.dir,fr)});
+  list.sort((a,b)=>a.y-b.y);for(const d of list)d.f();
+  const fs=Math.max(13,Math.round(T*0.3));
+  for(const p of PLACES){if(!p.open)drawFog(c,p);}
+  for(const p of PLACES){const cx=sx(p.x)+p.w*T/2;
+    label(c,p.name,cx,sy(p.y)+(p.open?T*0.05:T*0.35),p.open?Math.max(13,Math.round(T*0.28)):fs);
+    if(!p.open)label(c,'じゅんびちゅう',cx,sy(p.y+p.h)-T*0.6,Math.max(11,Math.round(T*0.22)),'#7a7a8a');}
+  label(c,'ききゅうはま',sx(4)+T,sy(12)+T*0.75,Math.max(12,Math.round(T*0.24)));
+  const f=started&&!busy&&!P.moving&&facing();$('#act').classList.toggle('off',!f);
+  if(f&&f.open){const bx=sx(f.door[0])+T/2,byy=sy(f.door[1]-1)+T*0.1+Math.sin(time*5)*3;c.fillStyle='#fff';c.strokeStyle='#2f84a8';c.lineWidth=3;rr(c,bx-T*0.22,byy-T*0.32,T*0.44,T*0.3,8);c.fill();c.stroke();
+    c.fillStyle='#2f84a8';for(let i=-1;i<=1;i++){c.beginPath();c.arc(bx+i*T*0.1,byy-T*0.17,T*0.03,0,7);c.fill();}}
+}
+let last=performance.now();
+function loop(now){const dt=Math.min(0.05,(now-last)/1000);last=now;update(dt);render();requestAnimationFrame(loop);}
+
+/* =========================================================
+   あんないじょ：ハテナリアコードを うけとる
+   ========================================================= */
+let lastFocus=null;
+function openAnnai(){busy=true;held=null;path=[];lastFocus=document.activeElement;visitedAnnai=true;$('#hint').hidden=true;
+  $('#aRes').className='res';$('#aRes').textContent='';$('#annai').classList.add('on');tone([392,523],0.15);setTimeout(()=>$('#code').focus(),50);}
+function closeAnnai(){$('#annai').classList.remove('on');busy=false;P.dir='down';
+  if(MAP.doors[key(P.x,P.y)]){P.ty=P.y+1;P.tx=P.x;if(walkable(P.tx,P.ty))P.moving=true;}
+  if(lastFocus&&lastFocus.focus&&document.body.contains(lastFocus))lastFocus.focus({preventScroll:true});else $('#act').focus({preventScroll:true});}
+const WHY={bad:'コードが ちがうみたい。\nもういちど よく みて はってね。',old:'この コードは 3日 すぎて\nつかえなく なったよ。',used:'この コードは もう つかわれているよ。',
+  off:'いまは コードが つかえないよ。\n（せんせいの せってい）',offline:'ホームの しまから きてね。\n（ホームを とおると コードが つかえるよ）'};
+let redeeming=false;
+async function redeem(){if(redeeming)return;const v=$('#code').value.trim(),res=$('#aRes');
+  if(!v){$('#code').focus();return;}
+  redeeming=true;$('#aGo').disabled=true;
+  let r;try{r=await Island.redeemCode(v);}catch(e){r={ok:false,why:'err'};}
+  if(r&&r.ok){const g=r.gain||{};
+    res.className='res';void res.offsetWidth;res.className='res ok';
+    res.textContent=`🎉 りかクエスト、がんばったね！（レベル ${r.level}）\n🪙 コイン ＋${g.coin||0}　💧 りかの そざい ＋${g.material||0}`+(g.bonus?'\n（きょう はじめての りかで ＋2こ！）':'');
+    $('#code').value='';tone([523,659,784,1047],0.28);sparkle();refreshWallet();}
+  else{res.className='res';void res.offsetWidth;res.className='res ng';res.textContent=WHY[r&&r.why]||'うまく いかなかったよ。\nもういちど ためしてね。';tone([330,262],0.18);}
+  setTimeout(()=>{redeeming=false;$('#aGo').disabled=false;},400);}
+function sparkle(){const pnl=$('#aPanel'),b=$('#aRes');const ox=b.offsetLeft+b.offsetWidth/2,oy=b.offsetTop+b.offsetHeight/2;
+  for(let i=0;i<14;i++){const s=document.createElement('span');s.className='spark';s.textContent=i%3?'✨':(i%2?'🪙':'💧');
+    const a=i/14*Math.PI*2,r=110+Math.random()*60;s.style.left=ox+'px';s.style.top=oy+'px';s.style.setProperty('--dx',Math.cos(a)*r+'px');s.style.setProperty('--dy',Math.sin(a)*r*0.7+'px');
+    pnl.appendChild(s);setTimeout(()=>s.remove(),1200);}}
+$('#aGo').addEventListener('click',redeem);
+$('#aClose').addEventListener('click',closeAnnai);
+$('#code').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.repeat){e.preventDefault();redeem();}});
+$('#annai').addEventListener('pointerdown',e=>{if(e.target.id==='annai')closeAnnai();});
+/* パネルの 中で Tab が 外に でないように */
+$('#annai').addEventListener('keydown',e=>{if(e.key!=='Tab')return;const f=[$('#code'),$('#aGo'),$('#aClose')].filter(x=>!x.disabled);const i=f.indexOf(document.activeElement);
+  if(e.shiftKey&&i<=0){e.preventDefault();f[f.length-1].focus();}else if(!e.shiftKey&&i===f.length-1){e.preventDefault();f[0].focus();}});
+
+async function refreshWallet(){if(!Island.connected)return;try{const w=await Island.wallet();$('#wCoin').textContent=w.coin||0;$('#wMat').textContent=(w.materials&&w.materials.rika)||0;$('#wallet').classList.add('on');}catch(e){}}
+
+/* =========================================================
+   はじめる
+   ========================================================= */
+function start(){if(started)return;started=true;$('#sTitle').classList.remove('on');$('#hud').classList.add('on');tone([392,523,659],0.2);
+  if(document.body.classList.contains('kb'))$('#act').focus({preventScroll:true});}
+$('#tGo').addEventListener('click',start);
+(async()=>{
+  resize();requestAnimationFrame(loop);
+  await Island.init({appId:APP_ID,subject:'rika'});
+  if(Island.connected){const nm=Island.book&&Island.book.name,gr=Island.grade;
+    $('#tBook').textContent=`📖 ${nm||''}${gr?`（${gr}ねんせい）`:''}　キーボードでも できるよ`;
+    await loadHero((Island.profile&&Island.profile.hero)||{gender:'boy'});refreshWallet();}
+  else await loadHero({gender:'boy'});
+  $('#tGo').focus({preventScroll:true});
+})();
+})();
 </script>
 </body>
 </html>
