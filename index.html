@@ -6,9 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ハテナリア">
 <title>ハテナリア</title>
-<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png?v=0.16.0">
-<link rel="apple-touch-icon" href="assets/icons/icon-180.png?v=0.16.0">
-<link rel="manifest" href="manifest.json?v=0.16.0">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png?v=0.16.1">
+<link rel="apple-touch-icon" href="assets/icons/icon-180.png?v=0.16.1">
+<link rel="manifest" href="manifest.json?v=0.16.1">
 <style>
   :root{--ink:#3a3226;--paper:#fffaf0;--gold:#ffd66b;--gold-d:#d9a93a;--green:#9be3a8;--green-d:#5fb06d}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -149,7 +149,8 @@
   body.editing .tr,body.editing .hud{visibility:hidden}
   #btn-room,#btn-out{display:none}
   body.in-room #btn-room,body.in-room #btn-out{display:inline-flex}
-  body.in-room #btn-build,body.in-room #btn-balloon{display:none}
+  body.in-room #btn-build,body.in-room #btn-balloon,body.in-room #btn-zoom{display:none}
+  body.zoomed #btn-zoom{background:#9be3a8}
   .menu2{display:flex;flex-direction:column;gap:12px;margin:8px 0 16px}
   .btn.big{min-height:76px;font-size:24px}
   .chips.big{justify-content:center;margin:6px 0 10px}.chips.big .chip{font-size:22px;padding:4px 14px}
@@ -243,6 +244,7 @@
 <div class="hud"><span class="chip" id="who"></span><span class="chip" id="coins"></span></div>
 <div class="editbar" id="editbar"><span id="edittext"></span><button class="btn" id="editrot" hidden>🔄 まわす</button><button class="btn" id="editdone">おわる</button></div>
 <div class="tr">
+  <button class="btn" id="btn-zoom" aria-label="しま ぜんたいを みる">🔍</button>
   <button class="btn" id="btn-build">🛠 しまづくり</button>
   <button class="btn sky" id="btn-balloon">🎈 しまめぐり</button>
   <button class="btn" id="btn-room">🛋 もようがえ</button>
@@ -258,6 +260,6 @@
 </div>
 <div id="hint"></div>
 <div id="layer"></div>
-<script type="module" src="home/main.js?v=0.16.0"></script>
+<script type="module" src="home/main.js?v=0.16.1"></script>
 </body>
 </html>

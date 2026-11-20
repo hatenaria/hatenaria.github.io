@@ -2,11 +2,11 @@
 // 各アプリは直接これを読み込まず、つなぎ口（island-link.js の中身）から読み込む。
 // つなぎ口がこのファイルを読み込めたら「連携モード」になる。
 
-import * as store from './store.js?v=0.16.0';
-import * as classroom from './classroom.js?v=0.16.0';
-import * as books from './books.js?v=0.16.0';
+import * as store from './store.js?v=0.16.1';
+import * as classroom from './classroom.js?v=0.16.1';
+import * as books from './books.js?v=0.16.1';
 
-export const COMMON_VERSION = '0.3.4';
+export const COMMON_VERSION = '0.3.5';
 /** 島から ふやせる めずらしい 素材（ホームの こうかんじょで つかう） */
 export const RARE_MATERIALS = { 'fushigi-kakera': 'ふしぎの かけら', 'gacha-ticket': 'ガチャけん' };
 const RARE_DAILY = { 'gacha-ticket': 3 }; // 1日の 上限が ちがう もの（ガチャけんは 島の たからばこから 1日 3まい）
@@ -91,7 +91,7 @@ export async function connect({ appId, subject }) {
     /**
      * 学習のひと区切りごとに呼ぶ。取り組んだ量（amount）に応じて
      * 共通コインと、この教科の素材を渡す。正答率では差をつけない（仕様書2-7）。
-     * その日はじめての教科なら素材は2倍（設計書5-2）。
+     * 素材は 5問で 1こ、その日はじめての教科なら ＋2こ（2026-11-20 に 2倍から かえた）。
      */
     async reward(amount = 1) {
       const n = Math.max(0, Math.min(REWARD_MAX, Math.floor(Number(amount) || 0)));
@@ -101,7 +101,7 @@ export async function connect({ appId, subject }) {
         w.materials = w.materials || {};
         w.firstOfDay = w.firstOfDay || {};
         const first = n > 0 && w.firstOfDay[subject] !== today();
-        const material = first ? n * 2 : n;
+        const material = Math.floor(n / 5) + (first ? 2 : 0); // v0.3.5：5問で 1こ、その日 はじめての 教科は ＋2（建物 3〜5こと つりあう）
         w.coin = (w.coin || 0) + n;
         w.materials[subject] = (w.materials[subject] || 0) + material;
         if (n > 0) w.firstOfDay[subject] = today();

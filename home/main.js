@@ -1,14 +1,14 @@
 // ホームアイランド v0.2
 // 島を歩く・建物を調べる・掲示板・気球で島めぐり・島から戻ったときの「おかえり」
 
-import * as store from '../common/store.js?v=0.16.0';
-import * as books from '../common/books.js?v=0.16.0';
-import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.16.0';
-import * as classroom from '../common/classroom.js?v=0.16.0';
-import { showPicker } from '../common/book-picker.js?v=0.16.0';
-import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD, GACHA } from './data.js?v=0.16.0';
+import * as store from '../common/store.js?v=0.16.1';
+import * as books from '../common/books.js?v=0.16.1';
+import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.16.1';
+import * as classroom from '../common/classroom.js?v=0.16.1';
+import { showPicker } from '../common/book-picker.js?v=0.16.1';
+import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, RESERVED, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD, GACHA } from './data.js?v=0.16.1';
 
-export const HOME_VERSION = '0.16.0';
+export const HOME_VERSION = '0.16.1';
 const PREVIEW = !!window.GI_PREVIEW; // アーティファクトでの試作表示（島へは移動しない）
 
 // 主人公の画像（仕様書2-4の規格：1コマ 384×512、足元 x=192, y=488。縮小した画像でも同じ比率で扱う）
@@ -33,6 +33,7 @@ let book = null;
 let home = null;          // p1/home の中身
 let wallet = null;
 let cls = null;           // p1/class（なければ null）
+let zoomed = false;
 let T = 96;               // 1マスの大きさ（画面上の px）
 const player = { x: 8, y: 7, dir: 'down', fx: 8, fy: 7, moving: false, from: null, t0: 0, step: 0 };
 let heldDir = null;
@@ -251,6 +252,9 @@ function resize() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const w = window.innerWidth, h = window.innerHeight;
   T = Math.max(56, Math.min(96, Math.floor(Math.min(w / 10, h / 7.5))));
+  if (zoomed && landBox && scene !== 'room') { // 🔍 しま ぜんたい（v0.16.1）
+    T = Math.max(16, Math.min(T, Math.floor(Math.min(w / (landBox.x1 - landBox.x0 + 3), (h - 60) / (landBox.y1 - landBox.y0 + 3)))));
+  }
   canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
   canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -485,6 +489,7 @@ function draw(now) {
     if (o.type === 'board') drawBoard(o, px, py, now);
     else if (o.type === 'balloon') drawBalloon(o, t, px, py, now);
     else if (o.type === 'lot') drawLot(o, t, px, py);
+    else if (o.type === 'lawn') { if (editMode?.kind === 'lawn') { ctx.setLineDash([10, 8]); ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,.9)'; roundRect(px + 4, py + 4, t.w * T - 8, t.h * T - 8, T * .3); ctx.stroke(); ctx.setLineDash([]); } }
     else if (o.type === 'plaza') drawPlaza(o, t, px, py, now);
     else drawBuilding(o, t, px, py, now);
   }
@@ -844,10 +849,11 @@ function openIslandMenu() {
     ? 'いまは しまづくりが できないよ。（せんせいの せってい）' : 'がっこうの じかんは しまづくりが できないよ。\nいえに かえってから やってみてね。（せんせいの せってい）');
   openModal((m) => {
     m.append(h('h2', {}, '🛠 しまづくり'),
-      h('p', { class: 'body small' }, 'しまを ひろげたり、たてものや かざりを うごかしたり できるよ。'),
+      h('p', { class: 'body small' }, 'しまを ひろげたり、たてものや かざりを うごかしたり、あきちを しばふに したり できるよ。'),
       h('div', { class: 'menu2' },
         h('button', { class: 'btn big', 'data-act': 'expand', onclick: () => { closeModal(); startEdit('expand'); } }, '🏝 とちを ひろげる'),
-        h('button', { class: 'btn big', 'data-act': 'move', 'data-default': '', onclick: () => { closeModal(); startEdit('move'); } }, '🪴 もようがえ')),
+        h('button', { class: 'btn big', 'data-act': 'move', 'data-default': '', onclick: () => { closeModal(); startEdit('move'); } }, '🪴 もようがえ'),
+        h('button', { class: 'btn big', 'data-act': 'lawn', onclick: () => { closeModal(); startEdit('lawn'); } }, '🌱 あきち ⇄ しばふ')),
       h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', onclick: closeModal }, 'とじる')));
   });
 }
@@ -898,6 +904,9 @@ function updateEditBar() {
     const parts = Object.entries(expandCost()).map(([k, n]) => `${k === 'coin' ? '🪙' : matIconHtml(k)} ${n}`).join('　');
     text.innerHTML = `🏝 ひろげる ばしょを えらんでね　<span class="cost">${parts}</span>`;
     check.textContent = 'ひろげる';
+  } else if (editMode.kind === 'lawn') {
+    text.textContent = '🌱 しばふに したい あきち（または あきちに もどしたい しばふ）を えらんでね';
+    check.textContent = 'かえる';
   } else {
     const p = editMode.picked;
     text.textContent = p ? `🪴 ${OBJECT_TYPES[p.o.type].name}を おく ばしょを えらんでね` : '🪴 うごかしたい ものを えらんでね';
@@ -1000,6 +1009,13 @@ async function doExpand(c) {
 // ---- もようがえ
 function editSelect() {
   const [x, y] = editMode.cur;
+  if (editMode.kind === 'lawn') {
+    const o = objectAt(x, y);
+    if (!o || (o.type !== 'lot' && o.type !== 'lawn')) { flashEdit('あきちか しばふを えらんでね'); return; }
+    o.type = o.type === 'lot' ? 'lawn' : 'lot';
+    flashEdit(o.type === 'lawn' ? '🌱 しばふに したよ' : '🔨 あきちに もどしたよ（たてものが たてられるよ）');
+    saveHome(); return;
+  }
   if (!editMode.picked) {
     const o = objectAt(x, y);
     if (!o) return;
@@ -1031,6 +1047,7 @@ function placeProblem(o) {
     const other = home.objects.find((q) => q !== o && x >= q.x && x < q.x + OBJECT_TYPES[q.type].w && y >= q.y && y < q.y + OBJECT_TYPES[q.type].h);
     if (other) return `${OBJECT_TYPES[other.type].name}と かさなるよ`;
     if (t.solid && x === player.x && y === player.y) return 'じぶんの いる ところには おけないよ';
+    if (RESERVED.some((r) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h)) return 'そこは あとで あたらしい おみせが たつ ばしょだよ';
   }
   // どの たてものにも いけるか（とおれなく ならないか）
   const seen = new Set([`${player.x},${player.y}`]), q = [[player.x, player.y]];
@@ -1072,7 +1089,7 @@ function drawEditUnder(now, cx, cy) {
   }
 }
 function drawEditOver(now, cx, cy) {
-  if (editMode?.kind === 'move') {
+  if (editMode?.kind === 'move' || editMode?.kind === 'lawn') {
     const p = editMode.picked;
     if (p) {
       const t = OBJECT_TYPES[p.o.type], bad = placeProblem(p.o);
@@ -1323,7 +1340,7 @@ const isGate = (x, y) => { const g = gateTile(); if (g && g[0] === x && g[1] ===
 const GATE = { type: 'gate', gate: true };
 function unclaimedEvent() { return doneEvents().find((e) => !claimedEvents.includes(e.id)); }
 const eventImgs = {};
-for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.16.0'], ['t0', 'assets/home/xmas_tree0.webp?v=0.16.0'], ['t1', 'assets/home/xmas_tree1.webp?v=0.16.0'], ['t2', 'assets/home/xmas_tree2.webp?v=0.16.0'], ['t3', 'assets/home/xmas_tree3.webp?v=0.16.0']]) {
+for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.16.1'], ['t0', 'assets/home/xmas_tree0.webp?v=0.16.1'], ['t1', 'assets/home/xmas_tree1.webp?v=0.16.1'], ['t2', 'assets/home/xmas_tree2.webp?v=0.16.1'], ['t3', 'assets/home/xmas_tree3.webp?v=0.16.1']]) {
   const im = new Image(); im.onload = () => { eventImgs[k] = im; }; im.src = new URL('../' + src, import.meta.url).href;
 }
 function drawGate(now) {
@@ -2313,7 +2330,7 @@ function renderHud() {
   document.getElementById('coins').innerHTML = `<span class="coin">🪙 ${wallet?.coin || 0}</span>${mats}`;
 }
 
-// ------------------------------------------------------------------ ガチャ「ふしぎの たまご」（v0.16.0）
+// ------------------------------------------------------------------ ガチャ「ふしぎの たまご」（v0.16.1）
 const TICKET = 'gacha-ticket';
 const gDay = (d = new Date()) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 const tickets = () => wallet?.materials?.[TICKET] || 0;
@@ -2472,6 +2489,7 @@ function bindControls() {
   document.getElementById('editrot').addEventListener('click', rotateHeld);
   document.getElementById('btn-out').addEventListener('click', exitRoom);
   document.getElementById('btn-balloon').addEventListener('click', openIslands);
+  document.getElementById('btn-zoom').addEventListener('click', () => { zoomed = !zoomed; document.body.classList.toggle('zoomed', zoomed); resize(); });
   document.getElementById('btn-settings').addEventListener('click', openSettings);
   // 地面や建物をタップ
   canvas.addEventListener('pointerdown', (e) => {
@@ -2513,7 +2531,7 @@ function heroGender() { return profile?.hero?.gender === 'girl' ? 'girl' : 'boy'
 
 // ------------------------------------------------------------------ タイトル画面
 // ブラウザを開いて最初の1回だけ出す（島から戻ったときや、同じタブで開き直したときは出さない）
-const LOGO_SRC = 'assets/home/logo.webp?v=0.16.0';
+const LOGO_SRC = 'assets/home/logo.webp?v=0.16.1';
 function titleShownThisSession() { try { return sessionStorage.getItem('hatenaria-title') === '1'; } catch { return false; } }
 function markTitleShown() { try { sessionStorage.setItem('hatenaria-title', '1'); } catch { /* 使えなくても動く */ } }
 function showTitle(curBook) {
