@@ -1,14 +1,14 @@
 // ホームアイランド v0.2
 // 島を歩く・建物を調べる・掲示板・気球で島めぐり・島から戻ったときの「おかえり」
 
-import * as store from '../common/store.js?v=0.14.3';
-import * as books from '../common/books.js?v=0.14.3';
-import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.14.3';
-import * as classroom from '../common/classroom.js?v=0.14.3';
-import { showPicker } from '../common/book-picker.js?v=0.14.3';
-import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE } from './data.js?v=0.14.3';
+import * as store from '../common/store.js?v=0.15.0';
+import * as books from '../common/books.js?v=0.15.0';
+import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.15.0';
+import * as classroom from '../common/classroom.js?v=0.15.0';
+import { showPicker } from '../common/book-picker.js?v=0.15.0';
+import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD } from './data.js?v=0.15.0';
 
-export const HOME_VERSION = '0.14.3';
+export const HOME_VERSION = '0.15.0';
 const PREVIEW = !!window.GI_PREVIEW; // アーティファクトでの試作表示（島へは移動しない）
 
 // 主人公の画像（仕様書2-4の規格：1コマ 384×512、足元 x=192, y=488。縮小した画像でも同じ比率で扱う）
@@ -1170,11 +1170,21 @@ function openClassInfo() {
 // ------------------------------------------------------------------ ミッション（島で あつめた 王冠。仕様書10章）
 // 島は Island.progress({ id, name, crowns }) で 王冠を おくる。ホームは 王冠の 合計で ミッションを はんていする
 const MISSIONS = [
-  { n: 1, coin: 50, name: 'はじめての おうかん' },
-  { n: 3, coin: 100, name: 'おうかん 3こ' },
-  { n: 5, coin: 200, name: 'おうかん 5こ' },
-  { n: 10, coin: 500, name: 'おうかん 10こ' },
+  { n: 1, coin: 50, outfit: 'rq-explorer', name: 'はじめての おうかん' },
+  { n: 3, coin: 100, outfit: 'rq-forest', name: 'おうかん 3こ' },
+  { n: 5, coin: 200, outfit: 'rq-autumn', name: 'おうかん 5こ' },
+  { n: 10, coin: 500, outfit: 'rq-harvest', name: 'おうかん 10こ' },
 ];
+const msReward = (x) => `🪙${x.coin}` + (x.outfit && OUTFITS[x.outfit] ? ` ＋ 👕${OUTFITS[x.outfit].name}` : '');
+// ミッションの 服を もらう（前に たっせい した 子にも あとから わたす）
+async function grantOutfits(list) {
+  const keys = list.filter((x) => x.outfit && OUTFITS[x.outfit]).map((x) => `outfit:${x.outfit}`);
+  if (!keys.length) return;
+  wardrobe = await store.update(`${book.id}/wardrobe`, (w) => {
+    const owned = Array.isArray(w?.owned) ? w.owned : [];
+    return { ...(w || {}), owned: [...owned, ...keys.filter((k) => !owned.includes(k))] };
+  }, { fallback: { owned: [] } });
+}
 let crownTotal = 0, missionsClaimed = [];
 async function refreshCrowns() {
   let n = 0;
@@ -1184,6 +1194,9 @@ async function refreshCrowns() {
   }
   crownTotal = n;
   missionsClaimed = ((await store.get(`${book.id}/missions`, {})) || {}).claimed || [];
+  const ownedNow = ((await store.get(`${book.id}/wardrobe`)) || {}).owned || [];
+  const miss = MISSIONS.filter((x) => missionsClaimed.includes(x.n) && x.outfit && !ownedNow.includes(`outfit:${x.outfit}`));
+  if (miss.length) await grantOutfits(miss);
   return n;
 }
 const missionReady = () => MISSIONS.some((x) => crownTotal >= x.n && !missionsClaimed.includes(x.n));
@@ -1197,8 +1210,10 @@ async function claimMission(ms) {
     if (list.some((x) => x.appId === 'mission' && x.id === `crown-${ms.n}`)) return list;
     return [...list, { appId: 'mission', subject: 'event', id: `crown-${ms.n}`, name: `👑 ${ms.name}`, img: '', kind: 'trophy', at: new Date().toISOString() }];
   }, { fallback: [] });
+  await grantOutfits([ms]);
   renderHud();
-  message('👑 ミッション たっせい！', `${ms.name}\n🪙${ms.coin} もらったよ。かざりだなに きねんの トロフィーが ならんだよ。`);
+  const fit = ms.outfit && OUTFITS[ms.outfit] ? `\nぼうけんふく「${OUTFITS[ms.outfit].name}」も もらったよ。きせかえやで きられるよ。` : '';
+  message('👑 ミッション たっせい！', `${ms.name}\n🪙${ms.coin} もらったよ。かざりだなに きねんの トロフィーが ならんだよ。${fit}`);
 }
 async function openMissions() {
   await refreshCrowns();
@@ -1213,7 +1228,8 @@ async function openMissions() {
         return h('div', { class: 'ms-row' + (got ? ' got' : ok ? ' ok' : ''), 'data-ms': String(x.n) },
           h('span', { class: 'ms-name' }, `${got ? '✅' : ok ? '🎁' : '👑'} ${x.name}`),
           h('span', { class: 'ms-bar' }, h('span', { style: `width:${Math.min(100, Math.round(crownTotal / x.n * 100))}%` })),
-          got ? h('span', { class: 'ms-tag' }, 'もらった') : ok ? h('button', { class: 'btn go', 'data-act': 'ms-claim', onclick: () => { closeModal(); claimMission(x); } }, `🪙${x.coin} もらう`) : h('span', { class: 'ms-tag' }, `${Math.min(crownTotal, x.n)} / ${x.n}`));
+          got ? h('span', { class: 'ms-tag' }, 'もらった') : ok ? h('button', { class: 'btn go', 'data-act': 'ms-claim', onclick: () => { closeModal(); claimMission(x); } }, 'もらう') : h('span', { class: 'ms-tag' }, `${Math.min(crownTotal, x.n)} / ${x.n}`),
+          h('span', { class: 'ms-reward' }, `ごほうび：${msReward(x)}`));
       })),
       h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', 'data-default': '', onclick: closeModal }, 'とじる')));
   });
@@ -1306,7 +1322,7 @@ const isGate = (x, y) => { const g = gateTile(); if (g && g[0] === x && g[1] ===
 const GATE = { type: 'gate', gate: true };
 function unclaimedEvent() { return doneEvents().find((e) => !claimedEvents.includes(e.id)); }
 const eventImgs = {};
-for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.14.3'], ['t0', 'assets/home/xmas_tree0.webp?v=0.14.3'], ['t1', 'assets/home/xmas_tree1.webp?v=0.14.3'], ['t2', 'assets/home/xmas_tree2.webp?v=0.14.3'], ['t3', 'assets/home/xmas_tree3.webp?v=0.14.3']]) {
+for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.15.0'], ['t0', 'assets/home/xmas_tree0.webp?v=0.15.0'], ['t1', 'assets/home/xmas_tree1.webp?v=0.15.0'], ['t2', 'assets/home/xmas_tree2.webp?v=0.15.0'], ['t3', 'assets/home/xmas_tree3.webp?v=0.15.0']]) {
   const im = new Image(); im.onload = () => { eventImgs[k] = im; }; im.src = new URL('../' + src, import.meta.url).href;
 }
 function drawGate(now) {
@@ -1990,6 +2006,27 @@ const PARTS = { outfit: OUTFITS, hair: HAIRS, accessory: ACCESSORIES };
 const partCost = (kind, id) => WARDROBE_PRICES[`${kind}:${id}`] || WARDROBE_COST[kind];
 const isFreePart = (kind, id) => kind === 'hair' || id === DEFAULTS[kind] || WARDROBE_FREE.includes(`${kind}:${id}`); // 髪型と はじめの服は ただ（仕様書 10-5）
 const ownsPart = (kind, id) => isFreePart(kind, id) || wardrobe.owned.includes(`${kind}:${id}`);
+const todayMd = () => { const d = new Date(); return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const todayYmd = () => { const d = new Date(); return `${d.getFullYear()}-${todayMd()}`; };
+const inSeason = ([a, b]) => { const t = todayMd(); return a <= b ? (t >= a && t <= b) : (t >= a || t <= b); };
+// 店に 見せるか：もっていれば いつでも。景品は 見せない。ならぶ日の まえ・期間の そとは 見せない
+function partVisible(kind, id) {
+  const k = `${kind}:${id}`;
+  if (wardrobe.owned.includes(k) || WARDROBE_FREE.includes(k) || id === DEFAULTS[kind]) return true;
+  if (WARDROBE_REWARD[k]) return false;
+  if (WARDROBE_RELEASE[k] && todayYmd() < WARDROBE_RELEASE[k]) return false;
+  if (WARDROBE_SEASON[k] && !inSeason(WARDROBE_SEASON[k])) return false;
+  return true;
+}
+// 期間限定の のこり日数（さいごの 7日だけ 見せる）
+function seasonLeft(kind, id) {
+  const p = WARDROBE_SEASON[`${kind}:${id}`]; if (!p || !inSeason(p)) return null;
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const [m, d] = p[1].split('-').map(Number);
+  let end = new Date(now.getFullYear(), m - 1, d); if (end < now) end = new Date(now.getFullYear() + 1, m - 1, d);
+  const left = Math.round((end - now) / 864e5) + 1; return left <= 7 ? left : null;
+}
+const isNewPart = (kind, id) => { const r = WARDROBE_RELEASE[`${kind}:${id}`]; return !!r && (Date.now() - new Date(r + 'T00:00:00')) < 7 * 864e5; };
 const costText = (c) => Object.entries(c).map(([k, n]) => k === 'coin' ? `🪙${n}` : `${SUBJECT_LABELS[k] || k}の そざい ${n}`).join('　');
 async function loadWardrobe() {
   const w = await store.get(`${book.id}/wardrobe`);
@@ -2012,7 +2049,7 @@ function openKisekae(state) {
     const tabs = h('div', { class: 'hopts tabs' }, ...WARDROBE_KINDS.map((k) =>
       h('button', { class: 'btn xmat' + (st.kind === k.kind ? ' on' : ''), 'data-tab': k.kind, onclick: () => openKisekae({ kind: k.kind, pick: null }) }, k.label)));
     const list = h('div', { class: 'hopts wlist', 'data-scroll': '1' });
-    const items = Object.entries(PARTS[st.kind]);
+    const items = Object.entries(PARTS[st.kind]).filter(([id]) => partVisible(st.kind, id) || worn[st.kind] === id);
     if (st.kind === 'accessory') {
       list.append(h('button', { class: 'btn xmat' + ((st.pick ? st.pick.id : worn[st.kind]) == null ? ' on' : ''), 'data-part': 'none',
         onclick: () => openKisekae({ kind: st.kind, pick: { id: null } }) }, 'つけない'));
@@ -2020,7 +2057,7 @@ function openKisekae(state) {
     for (const [id, x] of items) {
       const on = (st.pick ? st.pick.id : worn[st.kind]) === id;
       list.append(h('button', { class: 'btn xmat' + (on ? ' on' : ''), 'data-part': id, onclick: () => openKisekae({ kind: st.kind, pick: { id } }) },
-        x.name, h('span', { class: 'wtag' }, ownsPart(st.kind, id) ? (worn[st.kind] === id ? 'きている' : 'もっている') : costText(partCost(st.kind, id)))));
+        (isNewPart(st.kind, id) && !ownsPart(st.kind, id) ? '🆕 ' : '') + x.name + (WARDROBE_SEASON[`${st.kind}:${id}`] && !ownsPart(st.kind, id) ? (seasonLeft(st.kind, id) ? `（あと ${seasonLeft(st.kind, id)}日）` : '（きかんげんてい）') : ''), h('span', { class: 'wtag' }, ownsPart(st.kind, id) ? (worn[st.kind] === id ? 'きている' : 'もっている') : costText(partCost(st.kind, id)))));
     }
     if (!items.length) list.append(h('p', { class: 'body small' }, 'あたらしい しなものは もうすぐ とどくよ。たのしみに まってね。'));
     const pick = st.pick;
@@ -2031,6 +2068,7 @@ function openKisekae(state) {
     }
     m.append(h('h2', {}, '👗 きせかえや'), cv, tabs, list,
       h('p', { class: 'body small' }, pick ? 'みほんで きてみているよ。' : 'しなものを えらぶと、みほんで きてみられるよ。'),
+      items.some(([id]) => WARDROBE_SEASON[`${st.kind}:${id}`] && !ownsPart(st.kind, id)) ? h('p', { class: 'body small' }, '「きかんげんてい」は、かえば ずっと きられるよ。かいそびれても、らいねん また ならぶよ。') : null,
       h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', ...(action ? {} : { 'data-default': '' }), onclick: closeModal }, 'とじる'), action));
     const x = cv.getContext('2d');
     createHero(tryHero).then((hp) => { ['down', 'left', 'right', 'up'].forEach((d, i) => hp.draw(x, 48 + i * 96, 190, d, 0, .7)); }).catch(() => {});
@@ -2343,7 +2381,7 @@ function heroGender() { return profile?.hero?.gender === 'girl' ? 'girl' : 'boy'
 
 // ------------------------------------------------------------------ タイトル画面
 // ブラウザを開いて最初の1回だけ出す（島から戻ったときや、同じタブで開き直したときは出さない）
-const LOGO_SRC = 'assets/home/logo.webp?v=0.14.3';
+const LOGO_SRC = 'assets/home/logo.webp?v=0.15.0';
 function titleShownThisSession() { try { return sessionStorage.getItem('hatenaria-title') === '1'; } catch { return false; } }
 function markTitleShown() { try { sessionStorage.setItem('hatenaria-title', '1'); } catch { /* 使えなくても動く */ } }
 function showTitle(curBook) {

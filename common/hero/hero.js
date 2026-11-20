@@ -14,7 +14,7 @@
 // 重ねる順（共通仕様書 2-4）：奥の髪 → 体 → 服 → アクセサリー → 手前の髪
 // 画像が読めないときは createHero が例外を投げる。呼ぶ側で仮の絵に切り替える
 // =====================================================================
-import { SHEET, BODY, HAIRS, HAIR_COLORS, HAIR_COLOR_STOPS, OUTFITS, ACCESSORIES, DEFAULTS } from './parts.js?v=0.14.3';
+import { SHEET, BODY, HAIRS, HAIR_COLORS, HAIR_COLOR_STOPS, OUTFITS, ACCESSORIES, DEFAULTS } from './parts.js?v=0.15.0';
 
 export const HERO_VERSION = '1.2.2';
 const { cellW: CW, cellH: CH, footX: FX, footY: FY, dirs: DIRS } = SHEET;
@@ -153,8 +153,10 @@ export async function createHero(hero = {}, basePath) {
     } else {
       x.drawImage(img.body, col * CW, fr * CH, CW, CH, 0, 0, CW, CH);
     }
-    if (img.accessory) x.drawImage(img.accessory, col * CW, 0, CW, CH, ax, ay, CW, CH); // アクセサリー
+    const onHead = img.accessory && ACCESSORIES[h.accessory]?.at === 'head';
+    if (img.accessory && !onHead) x.drawImage(img.accessory, col * CW, 0, CW, CH, ax, ay, CW, CH); // アクセサリー（胸）
     x.drawImage(hairImg, col * CW, 0, CW, CH, hx, hy, CW, CH);                          // 手前の髪
+    if (onHead) x.drawImage(img.accessory, col * CW, 0, CW, CH, hx, hy, CW, CH);        // アクセサリー（頭：ぼうし・めがね など）
     framesCache.set(k, c);
     return c;
   }

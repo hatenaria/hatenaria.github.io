@@ -1,4 +1,4 @@
-// ハテナリア 共通部品：主人公の部品一覧（parts.js） 版 1.2.2（2026-11-18 からホームのチャットが管理。1.2.2：はじめの服 Tシャツ・ワンピース。1.2.1：はじめの服を パーカーに）
+// ハテナリア 共通部品：主人公の部品一覧（parts.js） 版 1.3.0（2026-11-18 からホームのチャットが管理。1.3.0：画像依頼セット01 の 服14・アクセサリー7・髪2、頭に つける アクセサリー（at:'head'）。1.2.2：はじめの服 Tシャツ・ワンピース。1.2.1：はじめの服を パーカーに）
 // ---------------------------------------------------------------------
 // 部品を増やすときは、画像を1枚このフォルダに置き、下の一覧に1行足すだけ。
 // プログラム（hero.js）は書き換えない（共通仕様書 2-4「追加の手順」）。
@@ -23,6 +23,8 @@ export const HAIRS = {
   'girl-01': { name: 'ポニーテール',         gender: 'girl', src: 'hair_girl_01.webp' },
   'boy-02':  { name: 'まるい ショート',       gender: 'boy',  src: 'hair_boy_02.webp' },   // 第3便
   'girl-02': { name: 'ふんわり ボブ',         gender: 'girl', src: 'hair_girl_02.webp' },  // 第3便
+  'boy-03':  { name: 'つんつん ヘア',         gender: 'boy',  src: 'hair_boy_03.webp' },   // セット01
+  'girl-03': { name: 'ツインテール',           gender: 'girl', src: 'hair_girl_03.webp' },  // セット01
 };
 
 /** 髪色。髪の明るさの濃淡に、いちばん暗い所・影・基本・明るい所の4色を当てる（パステル調） */
@@ -42,11 +44,33 @@ export const OUTFITS = {
   'casual-c':     { name: 'ふんわり パーカー', src: 'outfit_casual_c.webp' },      // 第3便
   'basic-d':      { name: 'ほしの Tシャツ', src: 'outfit_basic_d.webp' },          // 第4便
   'dress-e':      { name: 'ミントの ワンピース', src: 'outfit_dress_e.webp' },      // 第4便
+  // 画像依頼セット01（2026-11-19）
+  'coat-f':       { name: 'ダッフル コート', src: 'outfit_coat_f.webp' },
+  'sports-h':     { name: 'スポーツ ウェア', src: 'outfit_sports_h.webp' },
+  'yukata-g':     { name: 'ゆかた', src: 'outfit_yukata_g.webp' },
+  'santa':        { name: 'サンタの ふく', src: 'outfit_santa.webp' },
+  'reindeer':     { name: 'トナカイの セーター', src: 'outfit_reindeer.webp' },
+  'hakama':       { name: 'はかま', src: 'outfit_hakama.webp' },
+  'rq-explorer':  { name: 'たんけんかの ふく', src: 'outfit_rq_explorer.webp' },
+  'rq-forest':    { name: 'もりの ぼうけんふく', src: 'outfit_rq_forest.webp' },
+  'rq-autumn':    { name: 'こがらしの ぼうけんふく', src: 'outfit_rq_autumn.webp' },
+  'rq-harvest':   { name: 'みのりの ぼうけんふく', src: 'outfit_rq_harvest.webp' },
+  'rq-cosmic':    { name: 'うちゅうの ぼうけんふく', src: 'outfit_rq_cosmic.webp' },
+  'rq-royal':     { name: 'おうさまの ぼうけんふく', src: 'outfit_rq_royal.webp' },
+  'rq-legend':    { name: 'でんせつの ゆうしゃ', src: 'outfit_rq_legend.webp' },
+  'rq-halloween': { name: 'まほうつかいの ふく', src: 'outfit_rq_halloween.webp' },
 };
 
-/** アクセサリー（上段の4コマだけ。歩くときは胸の動きに合わせて動く） */
+/** アクセサリー（上段の4コマだけ。歩くときは胸の動きに合わせて動く。at:'head' は 頭に合わせて動き、髪の 上に かさねる） */
 export const ACCESSORIES = {
   'compass': { name: 'コンパスの ペンダント', src: 'accessory_compass.webp' }, // 第2便
+  'scarf':   { name: 'マフラー', src: 'accessory_scarf.webp' },
+  'cap':     { name: 'キャップ', src: 'accessory_cap.webp', at: 'head' },
+  'glasses': { name: 'まるい めがね', src: 'accessory_glasses.webp', at: 'head' },
+  'ribbon':  { name: 'リボン', src: 'accessory_ribbon.webp', at: 'head' },
+  'santa-hat': { name: 'サンタの ぼうし', src: 'accessory_santa_hat.webp', at: 'head' },
+  'kanzashi':  { name: 'かんざし', src: 'accessory_kanzashi.webp', at: 'head' },
+  'halloween-hat': { name: 'まほうつかいの ぼうし', src: 'accessory_halloween_hat.webp', at: 'head' },
 };
 
 /** profile.hero で null（まだ決めていない）のときに使う値 */
