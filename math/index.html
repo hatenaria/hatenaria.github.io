@@ -383,7 +383,7 @@ body.kb .mcard:focus{outline:4px solid #ff7a2a;outline-offset:2px}
   <div id="coin" class="pill">🪙 0</div>
   <div id="timeLeft" class="pill"></div>
   <div id="tr"><button id="furi" class="pill" type="button">ふりがな</button><button id="tts" class="pill" type="button">🔊 よみあげ</button><button id="btnSet" class="pill" type="button">⚙ せってい</button></div>
-  <div id="proto">さんすう アイランド v0.14.3</div>
+  <div id="proto">さんすう アイランド v0.14.4</div>
   <button id="act" class="off" type="button">しらべる</button>
   <button id="guide" class="pill" type="button">🧭 つぎの いしへ</button>
   <button id="wide" class="pill" type="button">🔍 ぜんたいを みる</button>
@@ -3127,7 +3127,66 @@ WORLDS[5]={keisan:[
 ]};
 })();
 
-(()=>{const O={3:{tosho:['kake','div','add4','rem','big','mul1','dec','frac','mul2'],gakuto:['kake','div','add4','rem','mul1','big','dec','mul2','frac']},4:{tosho:['big','div0','div','dec','rem','round','rule','frac','decmd'],gakuto:['big','div0','div','rem','round','rule','dec','decmd','frac']},5:{tosho:['seisu','decmul','decdiv','multiple','fdec','frac'],gakuto:['seisu','multiple','decmul','decdiv','frac','fdec']}};
+/* ===== 6年 けいさん（学校図書の 小単元の 順） ===== */
+(()=>{
+const R=(a,b)=>a+Math.floor(Math.random()*(b-a+1)),BX='<span class="box"></span>';
+const OPS={'+':['＋','たす'],'-':['－','ひく'],'*':['×','かける'],'/':['÷','わる']};
+const fx=x=>+(+x).toFixed(4),ds=x=>String(fx(x));
+const Q=(kind,a,op,b,ans,lv)=>({kind,a,b,ans:typeof ans==='number'?fx(ans):ans,lv,key:`${a}${op}${b}`,html:`${a} ${OPS[op][0]} ${b} ＝ ${BX}`,read:`${a} ${OPS[op][1]} ${b}`});
+const T=(kind,key,html,read,ans,lv,ex)=>Object.assign({kind,key,html,read,ans,lv},ex||{});
+const GN=(f,n)=>()=>{const o=[],s=new Set();for(let i=0;i<n*40&&o.length<n;i++){const p=f(i);if(p&&!s.has(p.key)){s.add(p.key);o.push(p);}}return o;};
+const HN=(...a)=>(p,st)=>a[Math.min(a.length-1,st-1)];
+const gcd=(a,b)=>b?gcd(b,a%b):a,lcm=(a,b)=>a/gcd(a,b)*b;
+const FR=(n,d,w)=>`${w?`<span class="frw">${w}</span>`:''}<span class="fr"><span>${n}</span><span>${d}</span></span>`;
+const FRR=(n,d,w)=>`${w?w+'と ':''}${d}ぶんの${n}`;
+const lab=(n,d,mixed)=>{const g=gcd(n,d);n/=g;d/=g;if(d===1)return [`${n}`,`${n}`];if(mixed&&n>d){const w=Math.floor(n/d),r=n%d;return [`${w}_${r}/${d}`,FR(r,d,w)];}return [`${n}/${d}`,FR(n,d)];};
+const frCh=(n,d,mixed,wr)=>{const [k,h]=lab(n,d,mixed),seen=new Set([k]),o=[{v:k,label:h}];for(const [a,b] of wr){if(o.length>=4)break;if(a<=0||b<=0)continue;const g=gcd(a,b),[kk,hh]=g===1||true?((a,b)=>{if(mixed&&a>b&&b>1){const w=Math.floor(a/b),r=a%b;return r?[`${w}_${r}/${b}x`,FR(r,b,w)]:[`${w}x`,`${w}`];}return [`${a}/${b}x`,FR(a,b)];})(a,b):0;if(seen.has(kk.replace('x','')))continue;seen.add(kk);o.push({v:kk,label:hh});}
+  for(let t=1;o.length<4&&t<9;t++){const [k2,h2]=lab(n+t*gcd(n,d),d,mixed);if(!seen.has(k2)){seen.add(k2);o.push({v:k2,label:h2});}}for(let i=o.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[o[i],o[j]]=[o[j],o[i]];}return {ans:k,choices:o};};
+
+const lab2=(n,d,mixed)=>lab(n,d,mixed);
+const wrongs=(n,d,a,b)=>[[n+d,d],[Math.max(1,n-1),d],[n,d+1],[a||n+1,b||d*2]];
+const S6={
+ g6mj:{id:'math.g6.A.moji',name:'文字と 式',digits:true,all:GN(i=>{const k=i%3;
+   if(k===0){const a=R(12,89),x=R(11,99);return T('add',`a${a}+${x}`,`x ＋ ${a} ＝ ${a+x}　x ＝ ${BX}`,`エックス たす ${a} は ${a+x}`,x,x);}
+   if(k===1){const a=R(2,9),x=R(11,49);return T('mul',`m${a}x${x}`,`x × ${a} ＝ ${a*x}　x ＝ ${BX}`,`エックス かける ${a} は ${a*x}`,x,x);}
+   const a=R(2,9),b=R(10,90),x=R(2,20);return T('mix',`c${a}${b}${x}`,`${a} × x ＋ ${b} ＝ ${a*x+b}　x ＝ ${BX}`,`${a} かける エックス たす ${b} は ${a*x+b}`,x,x);},200),hint:HN('たし算の 式は ひき算で、かけ算の 式は わり算で x を もとめよう。','x に 数を じゅんに あてはめて たしかめよう。'),reveal:()=>''},
+ g6fi:{id:'math.g6.A.fint',name:'分数と 整数の かけ算・わり算',digits:true,all:GN(i=>{const k=i%6,d=R(3,9),n=R(1,d-1),m=R(2,6);if(gcd(n,d)>1)return null;
+   if(k===0){if(gcd(d,m)>1)return null;return T('mx',`a${n}/${d}x${m}`,`${FR(n,d)} × ${m} ＝ ${BX}`,`${FRR(n,d)} かける ${m}`,null,d,frCh(n*m,d,true,[[n*m,d*m],[n+m,d],[n,d*m]]));}
+   if(k===1){if(gcd(d,m)===1)return null;return T('mxy',`b${n}/${d}x${m}`,`${FR(n,d)} × ${m} ＝ ${BX}`,`${FRR(n,d)} かける ${m}`,null,d,frCh(n*m,d,true,[[n*m,d],[n*m,d*m],[n+m,d]]));}
+   if(k===2){const w=R(1,3);if(gcd(d,m)>1)return null;return T('tm',`c${w}${n}/${d}x${m}`,`${FR(n,d,w)} × ${m} ＝ ${BX}`,`${FRR(n,d,w)} かける ${m}`,null,d+10,frCh((w*d+n)*m,d,true,[[w*m*d+n,d],[(w*d+n)*m,d*m]]));}
+   if(k===3){if(gcd(n,m)>1)return null;return T('dv',`d${n}/${d}/${m}`,`${FR(n,d)} ÷ ${m} ＝ ${BX}`,`${FRR(n,d)} わる ${m}`,null,d,frCh(n,d*m,true,[[n*m,d],[n,d+m],[n*m,d*m]]));}
+   if(k===4){if(gcd(n,m)===1)return null;return T('dvy',`e${n}/${d}/${m}`,`${FR(n,d)} ÷ ${m} ＝ ${BX}`,`${FRR(n,d)} わる ${m}`,null,d,frCh(n,d*m,true,[[n,d*m*2],[n*m,d],[n,d+m]]));}
+   const w=R(1,3);return T('td',`f${w}${n}/${d}/${m}`,`${FR(n,d,w)} ÷ ${m} ＝ ${BX}`,`${FRR(n,d,w)} わる ${m}`,null,d+10,frCh(w*d+n,d*m,true,[[w*d+n,d],[(w*d+n)*m,d]]));},300),hint:HN('分数×整数は 分子に、分数÷整数は 分母に 整数を かけよう。','とちゅうで 約分すると かんたんに なるよ。'),reveal:()=>''},
+ g6fm:{id:'math.g6.A.fracmul',name:'分数×分数',digits:true,all:GN(i=>{const k=i%5,a=R(1,8),b=R(2,9),c=R(1,8),d=R(2,9);
+   if(k===0){if(a>=b||c>=d||gcd(a*c,b*d)>1)return null;return T('m',`a${a}/${b}x${c}/${d}`,`${FR(a,b)} × ${FR(c,d)} ＝ ${BX}`,`${FRR(a,b)} かける ${FRR(c,d)}`,null,b*d,frCh(a*c,b*d,true,[[a+c,b+d],[a*d,b*c],[a*c,b+d]]));}
+   if(k===1){if(a>=b||c<=d||gcd(a,b)>1||gcd(c,d)>1)return null;return T('mk',`b${a}/${b}x${c}/${d}`,`${FR(a,b)} × ${FR(c,d)} ＝ ${BX}`,`${FRR(a,b)} かける ${FRR(c,d)}`,null,b*d,frCh(a*c,b*d,true,[[a+c,b+d],[a*d,b*c]]));}
+   if(k===2){if(a>=b||c>=d||gcd(a*c,b*d)===1||gcd(a,b)>1||gcd(c,d)>1)return null;return T('my',`c${a}/${b}x${c}/${d}`,`${FR(a,b)} × ${FR(c,d)} ＝ ${BX}`,`${FRR(a,b)} かける ${FRR(c,d)}`,null,b*d,frCh(a*c,b*d,true,[[a*c,b*d],[a+c,b+d],[a*d,b*c]]));}
+   if(k===3){const e=R(1,4),f=R(2,5);if(a>=b||c>=d||e>=f)return null;return T('m3',`d${a}${b}${c}${d}${e}${f}`,`${FR(a,b)} × ${FR(c,d)} × ${FR(e,f)} ＝ ${BX}`,`${FRR(a,b)} かける ${FRR(c,d)} かける ${FRR(e,f)}`,null,b*d*f,frCh(a*c*e,b*d*f,true,[[a+c+e,b+d+f],[a*c*e,b+d+f]]));}
+   if(a>=b||gcd(a,b)>1)return null;const t=R(0,1);return t?T('gyaku',`g${a}/${b}`,`${FR(a,b)} の 逆数は？`,`${FRR(a,b)}の ぎゃくすうは`,null,b,frCh(b,a,true,[[a,b*2],[b,a+1],[a+1,b]])):T('gyaku',`h${b}`,`${b} の 逆数は？`,`${b}の ぎゃくすうは`,null,b,frCh(1,b,true,[[b,1],[1,b+1],[2,b]]));},400),hint:HN('分母どうし、分子どうしを かけよう。','とちゅうで 約分すると かんたんに なるよ。'),reveal:()=>''},
+ g6fd:{id:'math.g6.A.fracdiv',name:'分数÷分数',digits:true,all:GN(i=>{const k=i%3,a=R(1,8),b=R(2,9),c=R(1,8),d=R(2,9);if(gcd(a,b)>1||gcd(c,d)>1)return null;
+   if(k===0){if(a>=b||c>=d)return null;return T('d',`a${a}/${b}/${c}/${d}`,`${FR(a,b)} ÷ ${FR(c,d)} ＝ ${BX}`,`${FRR(a,b)} わる ${FRR(c,d)}`,null,b*c,frCh(a*d,b*c,true,[[a*c,b*d],[b*c,a*d],[a*d,b*d]]));}
+   if(k===1){const m=R(2,6);if(c>=d)return null;return T('di',`b${m}/${c}/${d}`,`${m} ÷ ${FR(c,d)} ＝ ${BX}`,`${m} わる ${FRR(c,d)}`,null,c,frCh(m*d,c,true,[[m*c,d],[c,m*d],[m*d,c+1]]));}
+   const w=R(1,2);if(a>=b||c>=d)return null;const C=w*d+c;return T('dt',`c${a}/${b}/${w}${c}/${d}`,`${FR(a,b)} ÷ ${FR(c,d,w)} ＝ ${BX}`,`${FRR(a,b)} わる ${FRR(c,d,w)}`,null,b*C,frCh(a*d,b*C,true,[[a*C,b*d],[a*d,b*c],[b*C,a*d]]));},300),hint:HN('わる数の 逆数を かけよう。','帯分数は 仮分数に なおしてから 計算しよう。'),reveal:()=>''},
+ g6mx:{id:'math.g6.A.mixcalc',name:'小数と 分数の 計算',digits:true,all:GN(i=>{const k=i%2,d=[2,4,5][R(0,2)],n=R(1,d-1);
+   if(k===0){const xi=R(1,9),x=xi/10,t=R(0,1);const N=t?n*10+xi*d:xi*d-n*10,D=d*10;if(N<=0)return null;return T('as',`a${n}/${d}${t}${x}`,t?`${FR(n,d)} ＋ ${ds(x)} ＝ ${BX}`:`${ds(x)} － ${FR(n,d)} ＝ ${BX}`,t?`${FRR(n,d)} たす ${ds(x)}`:`${ds(x)} ひく ${FRR(n,d)}`,null,d,frCh(N,D,true,[[n+xi,d+10],[N,D*2],[n,d]]));}
+   const m=R(2,9),xi=R(2,9),x=xi/10;return T('md',`m${n}/${d}${m}${x}`,`${m} × ${FR(n,d)} ÷ ${ds(x)} ＝ ${BX}`,`${m} かける ${FRR(n,d)} わる ${ds(x)}`,null,m,frCh(m*n*10,d*xi,true,[[m*n,d],[m*n*xi,d*10]]));},200),hint:HN('小数を 分数に なおして 計算しよう。','0.1＝1/10 だよ。'),reveal:()=>''},
+ g6hi:{id:'math.g6.A.hi',name:'比',digits:true,all:GN(i=>{const k=i%4,a=R(1,9),b=R(1,9);if(gcd(a,b)>1||a===b)return null;
+   if(k===0)return T('val',`v${a}:${b}`,`${a}：${b} の 比の 値は？`,`${a}たい${b}の ひのあたいは`,null,a+b,frCh(a,b,false,[[b,a],[a,a+b],[a+1,b]]));
+   if(k===1){const m=R(2,9),t=R(0,1);return t?T('eq',`e${a}${b}${m}`,`${a}：${b} ＝ ${a*m}：x　x ＝ ${BX}`,`${a}たい${b}は ${a*m}たい エックス`,b*m,m):T('eq',`f${a}${b}${m}`,`${a}：${b} ＝ x：${b*m}　x ＝ ${BX}`,`${a}たい${b}は エックスたい${b*m}`,a*m,m);}
+   if(k===2){const m=R(2,9);const ch=[[a,b],[a*m/ (m%2?1:2),b*m/(m%2?1:2)],[b,a],[a+1,b]],seen=new Set(),o=[];for(const [x,y] of ch){const v=`${x}:${y}`;if(seen.has(v)||!Number.isInteger(x))continue;seen.add(v);o.push({v,label:`${x}：${y}`});}return T('simp',`s${a*m}:${b*m}`,`${a*m}：${b*m} を かんたんに すると？`,`${a*m}たい${b*m}を かんたんに すると`,`${a}:${b}`,m,{choices:o.sort(()=>Math.random()-.5)});}
+   const m=R(2,9)*(a+b),who=R(0,1);return T('hai',`h${a}${b}${m}${who}`,`${m}こを ${a}：${b}に 分けると、${who?'多い':'少ない'} ほうは ${BX}こ`,`${m}こを ${a}たい${b}に わけると ${who?'おおい':'すくない'}ほうは`,(who?Math.max(a,b):Math.min(a,b))*m/(a+b),m);},300),hint:HN('比の 両方に 同じ 数を かけても わっても、等しい 比に なるよ。','全体を 比の 和で わると、1つ分が わかるよ。'),reveal:()=>''}
+};
+Object.assign(SKILLS,S6);
+WORLDS[6]={keisan:[
+ {id:'math.g6.A.moji',name:'文字と 式',st:[['たし算の 式の x','g6mj',p=>p.kind==='add'],['かけ算の 式の x','g6mj',p=>p.kind==='mul'],['x に あてはまる 数','g6mj',p=>p.kind==='mix']]},
+ {id:'math.g6.A.fint',name:'分数と 整数の かけ算・わり算',st:[['分数×整数','g6fi',p=>p.kind==='mx'],['約分の ある 分数×整数','g6fi',p=>p.kind==='mxy'],['帯分数×整数','g6fi',p=>p.kind==='tm'],['分数÷整数','g6fi',p=>p.kind==='dv'],['約分の ある 分数÷整数','g6fi',p=>p.kind==='dvy'],['帯分数÷整数','g6fi',p=>p.kind==='td']]},
+ {id:'math.g6.A.fracmul',name:'分数×分数',st:[['分数×分数','g6fm',p=>p.kind==='m'],['仮分数を かける','g6fm',p=>p.kind==='mk'],['とちゅうで 約分','g6fm',p=>p.kind==='my'],['3つの 分数の かけ算','g6fm',p=>p.kind==='m3'],['逆数','g6fm',p=>p.kind==='gyaku']]},
+ {id:'math.g6.A.fracdiv',name:'分数÷分数',st:[['分数÷分数','g6fd',p=>p.kind==='d'],['整数÷分数','g6fd',p=>p.kind==='di'],['帯分数で わる','g6fd',p=>p.kind==='dt']]},
+ {id:'math.g6.A.mixcalc',name:'小数と 分数の 計算',st:[['たし算・ひき算','g6mx',p=>p.kind==='as'],['かけ算・わり算','g6mx',p=>p.kind==='md']]},
+ {id:'math.g6.A.hi',name:'比',st:[['比の 値','g6hi',p=>p.kind==='val'],['等しい 比','g6hi',p=>p.kind==='eq'],['比を かんたんに','g6hi',p=>p.kind==='simp'],['比例配分','g6hi',p=>p.kind==='hai']]}
+]};
+})();
+(()=>{const O={3:{tosho:['kake','div','add4','rem','big','mul1','dec','frac','mul2'],gakuto:['kake','div','add4','rem','mul1','big','dec','mul2','frac']},4:{tosho:['big','div0','div','dec','rem','round','rule','frac','decmd'],gakuto:['big','div0','div','rem','round','rule','dec','decmd','frac']},6:{tosho:['moji','fint','fracmul','fracdiv','mixcalc','hi'],gakuto:['moji','fint','fracmul','fracdiv','mixcalc','hi']},5:{tosho:['seisu','decmul','decdiv','multiple','fdec','frac'],gakuto:['seisu','multiple','decmul','decdiv','frac','fdec']}};
  const mk=g=>{const W=WORLDS[g].keisan,row=k=>{const w=W.find(x=>x.id===`math.g${g}.A.${k}`);return [w.id.replace(`math.g${g}.`,''),w.name,'keisan'];},L=W.map(w=>[w.id.replace(`math.g${g}.`,''),w.name,'keisan']);
   return O[g]?{tosho:O[g].tosho.map(row),gakuto:O[g].gakuto.map(row)}:{tosho:L,gakuto:L};};for(const g of [2,3,4,5,6])ROAD[g]=mk(g);})();
 
