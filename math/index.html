@@ -385,7 +385,7 @@ body.kb .mcard:focus{outline:4px solid #ff7a2a;outline-offset:2px}
   <div id="coin" class="pill">🪙 0</div>
   <div id="timeLeft" class="pill"></div>
   <div id="tr"><button id="furi" class="pill" type="button">ふりがな</button><button id="tts" class="pill" type="button">🔊 よみあげ</button><button id="btnSet" class="pill" type="button">⚙ せってい</button></div>
-  <div id="proto">さんすう アイランド v0.15.1</div>
+  <div id="proto">さんすう アイランド v0.15.2</div>
   <button id="act" class="off" type="button">しらべる</button>
   <button id="guide" class="pill" type="button">🧭 つぎの いしへ</button>
   <button id="wide" class="pill" type="button">🔍 ぜんたいを みる</button>
@@ -2416,12 +2416,12 @@ function openAreaMap(a,pg){const all=worldsOf(a)||[],COLS=6,MAXR=3,W=1600,H=1000
   const ws=(PG[pg]||[]).map(i=>all[i]),nodes=[];const RY=[860,595,330];let row=0;
   ws.forEach((w,wi)=>{const u=unitNo(w),L=w.all.length,nr=Math.ceil(L/COLS),per=Math.ceil(L/nr);w.all.forEach((x,k)=>{const r=row+Math.floor(k/per),c=k%per,rev=r%2===1,cc=rev?per-1-c:c,span=Math.max(per-1,1);
       const px=330+cc*((W-500)/(COLS-1));nodes.push({x,w,wi,u,lab:x.boss?'まとめ':`${u}-${x.k}`,px:px+Math.sin(k*1.7)*16,py:RY[r]+Math.cos(k*1.3)*14});});row+=nr;});
-  const dgDone=dgRun().done;{const obs=[];let lw=-1;nodes.forEach(d=>{if(d.sp)return;obs.push([d.px,d.py,60,50]);if(d.wi!==lw){obs.push([d.px,d.py-132,150,40]);lw=d.wi;}});
-  nodes.filter(d=>d.x&&d.x.boss&&S.cleared.includes(d.x.id)).forEach(b=>{let best=null,bs=-1;
-    for(const [dx,dy] of [[0,150],[0,-150],[170,0],[-170,0],[140,120],[-140,120],[140,-120],[-140,-120],[0,200],[0,-200]]){const x=b.px+dx,y=b.py+dy;if(x<120||x>W-120||y<230||y>H-120)continue;
-      let sc=1e9;for(const [ox,oy,rx,ry] of obs){const ex=Math.max(0,Math.abs(x-ox)-rx),ey=Math.max(0,Math.abs(y-oy)-ry);sc=Math.min(sc,Math.hypot(ex,ey));}
-      for(const o of nodes)if(o.sp)sc=Math.min(sc,Math.hypot(x-o.px,y-o.py)-100);if(sc>bs){bs=sc;best=[x,y];}}
-    if(!best)best=[b.px,b.py+150];const q={sp:'dg',w:b.w,u:b.u,bx:b.px,by:b.py,px:best[0],py:best[1],lab:`${b.u}-★`,st:dgDone?'clear':'open'};nodes.splice(nodes.indexOf(b)+1,0,q);obs.push([q.px,q.py,80,90]);});}
+  const dgDone=dgRun().done;{const obs=[];let lw=-1;nodes.forEach(d=>{if(d.sp)return;obs.push([d.px,d.py,55,50]);if(d.wi!==lw){obs.push([d.px,d.py-132,140,40]);lw=d.wi;}});
+  nodes.filter(d=>d.x&&d.x.boss&&S.cleared.includes(d.x.id)).forEach(b=>{let best=null,bs=-1e9;
+    const CAND=[];for(let dy=-260;dy<=260;dy+=40)for(let dx=-320;dx<=320;dx+=40)if(Math.abs(dx)+Math.abs(dy)>=80)CAND.push([dx,dy]);for(const [dx,dy] of CAND){const x=b.px+dx,y=b.py+dy;if(x<120||x>W-120||y<230||y>H-120)continue;
+      let sc=1e9;for(const [ox,oy,rx,ry] of obs){const ex=Math.abs(x-ox)-rx-55,ey=Math.abs(y+28-oy)-ry-76;sc=Math.min(sc,Math.max(ex,ey));}
+      for(const o of nodes)if(o.sp)sc=Math.min(sc,Math.hypot(x-o.px,y-o.py)-100);const scr=Math.min(sc,40)-Math.hypot(dx,dy)*0.02;if(scr>bs){bs=scr;best=[x,y];}}
+    if(!best)best=[b.px,b.py+150];const q={sp:'dg',w:b.w,u:b.u,bx:b.px,by:b.py,px:best[0],py:best[1],lab:`${b.u}-★`,st:dgDone?'clear':'open'};nodes.splice(nodes.indexOf(b)+1,0,q);obs.push([q.px,q.py+28,60,80]);});}
   AM={a,nodes,pg,pages,sel:Math.max(0,nodes.findIndex(d=>d.x&&stageState(d.x)==='open'))};
   $('#amPrev').style.visibility=pg>0?'visible':'hidden';$('#amNext').style.visibility=pg<pages-1?'visible':'hidden';$('#amPage').textContent=pages>1?`${pg+1} / ${pages}`:'';
   $('#amTitle').textContent=`${plain(AREAS[a].name)}　マップ`;$('#amRoad').innerHTML=`🗺 ${rubyHTML(roadName())}`;
@@ -3288,7 +3288,7 @@ window.__g19build=function g19Build(){const G19=window.G19;if(!G19)return;const 
   return O[g]?{tosho:O[g].tosho.map(row),gakuto:O[g].gakuto.map(row)}:{tosho:L,gakuto:L};};for(const g of [2,3,4,5,6])ROAD[g]=mk(g);})();
 
 })();
-window.__sq={get P(){return P},poolOf,lvOf,get mapId(){return map&&map.id},get g(){return GRADE},set g(v){GRADE=v},get L(){return L},openAreaMap,amGo,get S(){return S},goTo,floorId,get MAPS(){return MAPS},startLesson,worldsOf,genStageSet,roadNodes,unitNo,AREA_ORDER};
+window.__sq={get AM(){return AM},get P(){return P},poolOf,lvOf,get mapId(){return map&&map.id},get g(){return GRADE},set g(v){GRADE=v},get L(){return L},openAreaMap,amGo,get S(){return S},goTo,floorId,get MAPS(){return MAPS},startLesson,worldsOf,genStageSet,roadNodes,unitNo,AREA_ORDER};
 (async()=>{try{const r=await fetch('data/g19.json');if(r.ok){window.G19=await r.json();window.__g19build();}}catch(e){console.warn('g19',e);}
   resize();requestAnimationFrame(loop);
   await Island.init({appId:APP_ID,subject:'math'});
