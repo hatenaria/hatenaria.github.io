@@ -115,6 +115,7 @@ ruby rt{font-size:.45em}
 #tablet{align-items:center;justify-content:center;padding:10px;background:rgba(40,25,50,.55)}
 .ldiv{display:grid;font-size:28px;line-height:1.35;font-variant-numeric:tabular-nums;margin:6px auto;width:max-content}.ldiv>div{text-align:center}.ldiv .bar{border-top:3px solid currentColor;align-self:start;height:0;margin-left:.62em}.ldiv .br svg{display:block;width:100%;height:1.35em}.ldiv .uline{border-bottom:2.5px solid currentColor;align-self:end;height:0}.ldiv .br{font-weight:bold}.ldiv .ul{border-bottom:2px solid currentColor}.ldiv .hl{color:#e0663f;font-weight:bold}
 #qText .box.fbox{width:auto!important;min-width:1.4em;height:auto!important;min-height:1.4em;padding:4px 12px;vertical-align:middle;line-height:1.1;display:inline-flex;align-items:center}
+.g19tb{flex:0 0 auto;border-collapse:collapse;margin:6px auto;font-size:20px;background:#fff}.g19tb th,.g19tb td{border:2px solid #8a5a3c;padding:6px 14px;text-align:center}.g19tb th{background:#fbe8c0}.g19u{text-align:right;font-size:14px}
 /*fr*/.fr{display:inline-flex;flex-direction:column;text-align:center;vertical-align:middle;line-height:1.05;margin:0 .1em}.fr>span:first-child{border-bottom:.08em solid currentColor;padding:0 .15em}.frw{vertical-align:middle}
 #amap{background:#2a2040;padding:10px;gap:8px;align-items:center}
 .amhead{display:flex;gap:10px;align-items:center;width:100%;max-width:1200px}#amTitle{flex:1;font-size:clamp(18px,3.2vh,26px);font-weight:bold;color:#fff}
@@ -384,7 +385,7 @@ body.kb .mcard:focus{outline:4px solid #ff7a2a;outline-offset:2px}
   <div id="coin" class="pill">🪙 0</div>
   <div id="timeLeft" class="pill"></div>
   <div id="tr"><button id="furi" class="pill" type="button">ふりがな</button><button id="tts" class="pill" type="button">🔊 よみあげ</button><button id="btnSet" class="pill" type="button">⚙ せってい</button></div>
-  <div id="proto">さんすう アイランド v0.14.5</div>
+  <div id="proto">さんすう アイランド v0.15.1</div>
   <button id="act" class="off" type="button">しらべる</button>
   <button id="guide" class="pill" type="button">🧭 つぎの いしへ</button>
   <button id="wide" class="pill" type="button">🔍 ぜんたいを みる</button>
@@ -2409,11 +2410,12 @@ function radar(cv,names,vals,low){const c=cv.getContext('2d'),W=cv.width,H=cv.he
 const AM_BG={keisan:['#3a3060','#7a6aa8'],katachi:['#5a8a4a','#b8d890'],kurabe:['#4a7ab0','#a8d0e8'],shirabe:['#4a6a3a','#e0b870']};
 let AM=null;
 function unitNo(w){const ns=roadNodes(),i=ns.findIndex(n=>n.ids.includes(w.id));return i+1||0;}
-function openAreaMap(a,pg){const all=worldsOf(a)||[],PER=3,pages=Math.ceil(all.length/PER);
-  if(pg==null){const cur=all.findIndex(w=>w.all.some(x=>stageState(x)==='open'));pg=Math.max(0,Math.floor((cur<0?0:cur)/PER));}
-  const ws=all.slice(pg*PER,pg*PER+PER),nodes=[];ws.forEach((w,wi)=>{const u=unitNo(w);w.all.forEach((x,k)=>nodes.push({x,w,wi,u,lab:x.boss?'まとめ':`${u}-${x.k}`}));});
-  const n=nodes.length,per=Math.min(7,Math.max(4,Math.ceil(n/3))),rows=Math.ceil(n/per),W=1600,H=1000;
-  nodes.forEach((d,i)=>{const r=Math.floor(i/per),c=i%per,cc=r%2?per-1-c:c;d.px=330+cc*((W-500)/Math.max(1,per-1))+Math.sin(i*1.7)*24;d.py=860-r*((860-330)/Math.max(1,rows-1||1))+Math.cos(i*1.3)*20;});
+function openAreaMap(a,pg){const all=worldsOf(a)||[],COLS=6,MAXR=3,W=1600,H=1000;
+  const PG=[];let cur=[],used=0;all.forEach((w,wi)=>{const r=Math.ceil(w.all.length/COLS);if(used+r>MAXR&&cur.length){PG.push(cur);cur=[];used=0;}cur.push(wi);used+=r;});if(cur.length)PG.push(cur);const pages=PG.length||1;
+  if(pg==null){const c=all.findIndex(w=>w.all.some(x=>stageState(x)==='open'));pg=Math.max(0,PG.findIndex(l=>l.includes(c<0?0:c)));}
+  const ws=(PG[pg]||[]).map(i=>all[i]),nodes=[];const RY=[860,595,330];let row=0;
+  ws.forEach((w,wi)=>{const u=unitNo(w),L=w.all.length,nr=Math.ceil(L/COLS),per=Math.ceil(L/nr);w.all.forEach((x,k)=>{const r=row+Math.floor(k/per),c=k%per,rev=r%2===1,cc=rev?per-1-c:c,span=Math.max(per-1,1);
+      const px=330+cc*((W-500)/(COLS-1));nodes.push({x,w,wi,u,lab:x.boss?'まとめ':`${u}-${x.k}`,px:px+Math.sin(k*1.7)*16,py:RY[r]+Math.cos(k*1.3)*14});});row+=nr;});
   const dgDone=dgRun().done;{const obs=[];let lw=-1;nodes.forEach(d=>{if(d.sp)return;obs.push([d.px,d.py,60,50]);if(d.wi!==lw){obs.push([d.px,d.py-132,150,40]);lw=d.wi;}});
   nodes.filter(d=>d.x&&d.x.boss&&S.cleared.includes(d.x.id)).forEach(b=>{let best=null,bs=-1;
     for(const [dx,dy] of [[0,150],[0,-150],[170,0],[-170,0],[140,120],[-140,120],[140,-120],[-140,-120],[0,200],[0,-200]]){const x=b.px+dx,y=b.py+dy;if(x<120||x>W-120||y<230||y>H-120)continue;
@@ -3195,13 +3197,99 @@ WORLDS[6]={keisan:[
  {id:'math.g6.A.hi',name:'比',st:[['比の 値','g6hi',p=>p.kind==='val'],['等しい 比','g6hi',p=>p.kind==='eq'],['比を かんたんに','g6hi',p=>p.kind==='simp'],['比例配分','g6hi',p=>p.kind==='hai']]}
 ]};
 })();
+/* ===== 2〜6年 かたち山・くらべ谷・しらべの森（第19便の原案から） ===== */
+const G19FIG=(()=>{
+const NS='http://www.w3.org/2000/svg';
+const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const svg=(w,h,body)=>`<svg class="g19fig" viewBox="0 0 ${w} ${h}" style="width:440px;max-width:100%;height:auto;max-height:330px;display:block;margin:6px auto;flex:0 1 auto" xmlns="${NS}" font-family="inherit">${body}</svg>`;
+const txt=(x,y,t,o)=>`<text x="${x}" y="${y}" text-anchor="${(o&&o.a)||'middle'}" dominant-baseline="middle" font-size="${(o&&o.s)||18}" fill="${(o&&o.c)||'#3b2a1a'}" ${o&&o.b?'font-weight="bold"':''}>${esc(t)}</text>`;
+const ln=(x1,y1,x2,y2,o)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${(o&&o.c)||'#3b2a1a'}" stroke-width="${(o&&o.w)||2}" ${o&&o.d?`stroke-dasharray="${o.d}"`:''}/>`;
+const nice=v=>Number.isInteger(v)?v:+v.toFixed(2);
+function fit(pts,W,H,pad){const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);const s=Math.min((W-2*pad)/Math.max(1e-6,x1-x0),(H-2*pad)/Math.max(1e-6,y1-y0));const ox=(W-(x1-x0)*s)/2,oy=(H-(y1-y0)*s)/2;return p=>[ox+(p[0]-x0)*s,H-(oy+(p[1]-y0)*s)];}
+function axes(W,H,L,B,R,T,min,max,step,unit,horiz){let g='';const n=Math.round((max-min)/step);for(let i=0;i<=n;i++){const v=min+i*step;if(horiz){const x=L+(W-L-R)*(v-min)/(max-min);g+=ln(x,T,x,H-B,{c:'#d9cbb5',w:1})+(n<=12||i%Math.ceil(n/12)===0?txt(x,H-B+16,nice(v),{s:13}):'');}else{const y=H-B-(H-B-T)*(v-min)/(max-min);g+=ln(L,y,W-R,y,{c:'#d9cbb5',w:1})+(n<=12||i%Math.ceil(n/12)===0?txt(L-8,y,nice(v),{s:13,a:'end'}):'');}}
+  g+=ln(L,T,L,H-B)+ln(L,H-B,W-R,H-B);if(unit)g+=horiz?txt(W-R,H-B+34,`（${unit}）`,{s:13,a:'end'}):txt(L,T-12,`（${unit}）`,{s:13,a:'start'});return g;}
+const R={
+ text_tokens(f){const c=f.arrangement_columns||5,w=80,h=44;let g='';f.tokens.forEach((t,i)=>{const x=10+(i%c)*w,y=10+Math.floor(i/c)*h;g+=`<rect x="${x}" y="${y}" width="${w-10}" height="${h-10}" rx="8" fill="#fff8e6" stroke="#8a5a3c"/>`+txt(x+(w-10)/2,y+(h-10)/2,t,{s:16});});return svg(c*w+20,Math.ceil(f.tokens.length/c)*h+20,g);},
+ table(f){const hd=f.headers,cols=f.column_labels,rows=f.row_labels;let h='<table class="g19tb">';if(hd)h+='<tr>'+hd.map(x=>`<th>${esc(x)}</th>`).join('')+'</tr>';else if(cols)h+='<tr>'+(rows?'<th></th>':'')+cols.map(x=>`<th>${esc(x)}</th>`).join('')+'</tr>';
+   f.values.forEach((r,i)=>{h+='<tr>'+(rows?`<th>${esc(rows[i])}</th>`:'')+r.map(v=>`<td>${v==null?'□':esc(v)}</td>`).join('')+'</tr>';});h+='</table>';if(f.unit)h+=`<div class="g19u">（単位：${esc(f.unit)}）</div>`;return h;},
+ bar(f){const hz=f.orientation==='horizontal',W=460,H=300,L=hz?90:50,B=hz?40:50,Rr=20,T=30,n=f.categories.length;let g=axes(W,H,L,B,Rr,T,f.axis_min,f.axis_max,f.tick_step,f.value_unit,hz);
+   f.categories.forEach((c,i)=>{const v=f.values[i];if(hz){const bh=(H-B-T)/n,y=T+i*bh+bh*0.2,x2=L+(W-L-Rr)*(v-f.axis_min)/(f.axis_max-f.axis_min);g+=`<rect x="${L}" y="${y}" width="${x2-L}" height="${bh*0.6}" fill="#8cc0e6" stroke="#3b6e95"/>`+txt(L-8,y+bh*0.3,c,{s:14,a:'end'});}
+     else{const bw=(W-L-Rr)/n,x=L+i*bw+bw*0.2,y2=H-B-(H-B-T)*(v-f.axis_min)/(f.axis_max-f.axis_min);g+=`<rect x="${x}" y="${y2}" width="${bw*0.6}" height="${H-B-y2}" fill="#8cc0e6" stroke="#3b6e95"/>`+txt(x+bw*0.3,H-B+18,c,{s:14});}});return svg(W,H,g);},
+ line(f){const W=460,H=300,L=50,B=50,Rr=20,T=30,n=f.x_labels.length;let g=axes(W,H,L,B,Rr,T,f.axis_min,f.axis_max,f.tick_step,f.value_unit,false);const X=i=>L+(W-L-Rr)*(i+0.5)/n,Y=v=>H-B-(H-B-T)*(v-f.axis_min)/(f.axis_max-f.axis_min);
+   f.x_labels.forEach((c,i)=>g+=txt(X(i),H-B+18,c,{s:13}));const cols=['#e0663f','#3b6e95','#4d9a52'];f.series.forEach((s,k)=>{g+=`<polyline points="${s.values.map((v,i)=>`${X(i)},${Y(v)}`).join(' ')}" fill="none" stroke="${cols[k%3]}" stroke-width="3"/>`+s.values.map((v,i)=>`<circle cx="${X(i)}" cy="${Y(v)}" r="4" fill="${cols[k%3]}"/>`).join('');});
+   if(f.series.length>1)g+=f.series.map((s,k)=>txt(W-Rr-60*(f.series.length-k),14,`● ${s.name}`,{s:13,c:cols[k%3]})).join('');return svg(W,H,g);},
+ dot_plot(f){const W=460,H=220,L=30,Rr=30,B=50,X=v=>L+(W-L-Rr)*(v-f.axis_min)/(f.axis_max-f.axis_min);let g=ln(L,H-B,W-Rr,H-B);for(let v=f.axis_min;v<=f.axis_max+1e-9;v+=f.tick_step){g+=ln(X(v),H-B,X(v),H-B+6)+txt(X(v),H-B+20,nice(v),{s:13});}
+   const cnt={};f.data.forEach(v=>{cnt[v]=(cnt[v]||0)+1;g+=`<circle cx="${X(v)}" cy="${H-B-12-(cnt[v]-1)*18}" r="7" fill="#e0663f"/>`;});if(f.unit)g+=txt(W-Rr,H-B+38,`（${f.unit}）`,{s:13,a:'end'});return svg(W,H,g);},
+ clock(f,cx,cy,r){cx=cx||150;cy=cy||150;r=r||120;let g=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff" stroke="#3b2a1a" stroke-width="4"/>`;for(let i=0;i<60;i++){const a=i*Math.PI/30,L=i%5?r*0.93:r*0.85;g+=ln(cx+Math.sin(a)*L,cy-Math.cos(a)*L,cx+Math.sin(a)*r*0.98,cy-Math.cos(a)*r*0.98,{w:i%5?1:3});}
+   for(let h=1;h<=12;h++){const a=h*Math.PI/6;g+=txt(cx+Math.sin(a)*r*0.72,cy-Math.cos(a)*r*0.72,h,{s:r*0.17});}const m=(f.minute||0)+(f.second||0)/60,hh=(f.hour%12)+m/60;
+   const ha=hh*Math.PI/6,ma=m*Math.PI/30;g+=ln(cx,cy,cx+Math.sin(ha)*r*0.5,cy-Math.cos(ha)*r*0.5,{w:7})+ln(cx,cy,cx+Math.sin(ma)*r*0.78,cy-Math.cos(ma)*r*0.78,{w:4})+`<circle cx="${cx}" cy="${cy}" r="6" fill="#3b2a1a"/>`;return cx===150&&cy===150&&r===120&&!f._in?svg(300,300,g):g;},
+ clock_pair(f){const lab=f.labels||['はじめ','おわり'];let g='';f.clocks.forEach((c,i)=>{g+=R.clock(Object.assign({_in:1},c),130+i*280,150,110);});return svg(540,300,g);},
+ ruler(f){const W=480,H=150,L=30,Rr=30,X=v=>L+(W-L-Rr)*(v-f.start)/(f.end-f.start);let g=`<rect x="${L-10}" y="70" width="${W-L-Rr+20}" height="60" fill="#f6e7b4" stroke="#8a6a2c"/>`;
+   const ms=f.minor_step||f.major_step;for(let v=f.start;v<=f.end+1e-9;v+=ms){const maj=Math.abs((v-f.start)/f.major_step-Math.round((v-f.start)/f.major_step))<1e-6;g+=ln(X(v),70,X(v),70+(maj?24:12),{w:maj?2:1});if(maj)g+=txt(X(v),110,nice(v),{s:14});}
+   g+=txt(W-Rr+6,120,f.unit||'',{s:12,a:'start'})+`<rect x="${X(f.segment_start)}" y="52" width="${X(f.segment_end)-X(f.segment_start)}" height="8" fill="#e0663f"/>`;return svg(W,H,g);},
+ tape(f){const W=480,tot=f.layout==='concatenate'?f.lengths.reduce((a,b)=>a+b,0):Math.max(...f.lengths),s=(W-(f.layout==='concatenate'?60:130))/tot,cols=['#f4b183','#9dc3e6','#a9d18e','#ffd966'];let g='',x=30;
+   if(f.layout==='concatenate'){f.lengths.forEach((l,i)=>{g+=`<rect x="${x}" y="40" width="${l*s}" height="40" fill="${cols[i%4]}" stroke="#3b2a1a"/>`+txt(x+l*s/2,60,`${f.labels[i]}${f.labels[i]&&f.labels[i]!=='?'&&f.labels[i]!=='□'?f.unit:''}`,{s:15});x+=l*s;});
+     if(f.total_label!=null)g+=`<path d="M30 92 Q ${30+tot*s/2} 120 ${30+tot*s} 92" fill="none" stroke="#3b2a1a"/>`+txt(30+tot*s/2,126,`${f.total_label}${/^[0-9.]+$/.test(f.total_label)?f.unit:''}`,{s:15});return svg(W,145,g);}
+   f.lengths.forEach((l,i)=>{const y=20+i*50;g+=`<rect x="30" y="${y}" width="${l*s}" height="34" fill="${cols[i%4]}" stroke="#3b2a1a"/>`+txt(30+l*s+8,y+17,`${f.labels[i]}${/^[0-9.]+$/.test(f.labels[i])?f.unit:''}`,{s:15,a:'start'});});return svg(W,30+f.lengths.length*50,g);},
+ polygon(f){const W=420,H=300,P=f.vertices,T=fit(P,W,H,50),Q=P.map(T);let g=`<polygon points="${Q.map(p=>p.join(',')).join(' ')}" fill="#fdf3d9" stroke="#3b2a1a" stroke-width="3"/>`;
+   const cx=Q.reduce((a,p)=>a+p[0],0)/Q.length,cy=Q.reduce((a,p)=>a+p[1],0)/Q.length;
+   (f.diagonals||[]).forEach(([a,b])=>g+=ln(Q[a][0],Q[a][1],Q[b][0],Q[b][1],{d:'6 4'}));
+   if(f.show_right_angle_marks)Q.forEach((p,i)=>{const a=Q[(i+Q.length-1)%Q.length],b=Q[(i+1)%Q.length],u=[a[0]-p[0],a[1]-p[1]],v=[b[0]-p[0],b[1]-p[1]];if(Math.abs(u[0]*v[0]+u[1]*v[1])<1e-3*Math.hypot(...u)*Math.hypot(...v)){const k=12,lu=Math.hypot(...u),lv=Math.hypot(...v),U=[u[0]/lu*k,u[1]/lu*k],V=[v[0]/lv*k,v[1]/lv*k];g+=`<path d="M${p[0]+U[0]} ${p[1]+U[1]} L${p[0]+U[0]+V[0]} ${p[1]+U[1]+V[1]} L${p[0]+V[0]} ${p[1]+V[1]}" fill="none" stroke="#3b2a1a"/>`;}});
+   const el=f.edge_labels||(f.show_edge_lengths&&f.edge_lengths?f.edge_lengths.map(String):null);
+   if(el)el.forEach((t,i)=>{if(t==null)return;const a=Q[i],b=Q[(i+1)%Q.length],mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2,dx=mx-cx,dy=my-cy,d=Math.hypot(dx,dy)||1;g+=txt(mx+dx/d*20,my+dy/d*20,/^[0-9.]+$/.test(t)?`${t}${f.unit&&f.unit!=='grid'?f.unit:''}`:t,{s:16});});
+   (f.vertex_labels||[]).forEach((t,i)=>{if(!t)return;const p=Q[i],dx=p[0]-cx,dy=p[1]-cy,d=Math.hypot(dx,dy)||1;g+=txt(p[0]+dx/d*18,p[1]+dy/d*18,t,{s:16,b:1});});return svg(W,H,g);},
+ angle(f){const W=360,H=260,O=[180,200],L=150;let g='';for(const a of [f.ray1_angle_degrees,f.ray2_angle_degrees]){const r=a*Math.PI/180;g+=ln(O[0],O[1],O[0]+Math.cos(r)*L,O[1]-Math.sin(r)*L,{w:3});}
+   const a1=f.ray1_angle_degrees*Math.PI/180,a2=f.ray2_angle_degrees*Math.PI/180,r=30;g+=`<path d="M${O[0]+Math.cos(a1)*r} ${O[1]-Math.sin(a1)*r} A ${r} ${r} 0 ${Math.abs(f.ray2_angle_degrees-f.ray1_angle_degrees)>180?1:0} 0 ${O[0]+Math.cos(a2)*r} ${O[1]-Math.sin(a2)*r}" fill="none" stroke="#e0663f" stroke-width="2"/>`;
+   if(f.show_degree_label)g+=txt(O[0]+Math.cos((a1+a2)/2)*55,O[1]-Math.sin((a1+a2)/2)*55,`${Math.abs(f.ray2_angle_degrees-f.ray1_angle_degrees)}°`,{s:16});return svg(W,H,g);},
+ fraction_rectangle(f){const W=420,H=160,s=Math.min((W-40)/f.width,(H-40)/f.height),w=f.width*s,h=f.height*s,x0=(W-w)/2,y0=(H-h)/2;let g='';const cuts=[0,...(f.cut_positions||[]),f.width];
+   for(let i=0;i<cuts.length-1;i++)g+=`<rect x="${x0+cuts[i]*s}" y="${y0}" width="${(cuts[i+1]-cuts[i])*s}" height="${h}" fill="${i<f.shaded_parts?'#f4b183':'#fff'}" stroke="#3b2a1a" stroke-width="2"/>`;return svg(W,H,g);},
+ cuboid(f){const [a,b,c]=f.dimensions,W=420,H=300,k=Math.min(220/(a+b*0.5),200/(c+b*0.5)),dx=b*k*0.5,dy=b*k*0.4,x0=(W-(a*k+dx))/2,y0=(H-(c*k+dy))/2+dy,F=[[x0,y0],[x0+a*k,y0],[x0+a*k,y0+c*k],[x0,y0+c*k]],Bk=F.map(p=>[p[0]+dx,p[1]-dy]);
+   let g=`<polygon points="${F.map(p=>p.join(',')).join(' ')}" fill="${f.highlight_face==='front'?'#f4b183':'#fdf3d9'}" stroke="#3b2a1a" stroke-width="2"/>`;g+=`<polygon points="${[F[0],F[1],Bk[1],Bk[0]].map(p=>p.join(',')).join(' ')}" fill="${f.highlight_face==='top'?'#f4b183':'#fbe8c0'}" stroke="#3b2a1a" stroke-width="2"/>`+`<polygon points="${[F[1],F[2],Bk[2],Bk[1]].map(p=>p.join(',')).join(' ')}" fill="${f.highlight_face==='side'||f.highlight_face==='right'?'#f4b183':'#f3dca8'}" stroke="#3b2a1a" stroke-width="2"/>`;
+   if(f.show_hidden_edges)g+=ln(F[3][0],F[3][1],Bk[3][0],Bk[3][1],{d:'5 4'})+ln(Bk[3][0],Bk[3][1],Bk[0][0],Bk[0][1],{d:'5 4'})+ln(Bk[3][0],Bk[3][1],Bk[2][0],Bk[2][1],{d:'5 4'});
+   if(f.show_lengths!==false&&f.unit)g+=txt((F[2][0]+F[3][0])/2,F[2][1]+18,`${a}${f.unit}`,{s:15})+txt(F[2][0]+dx/2+18,F[2][1]-dy/2+6,`${b}${f.unit}`,{s:15,a:'start'})+txt(F[0][0]-10,(F[0][1]+F[3][1])/2,`${c}${f.unit}`,{s:15,a:'end'});return svg(W,H,g);},
+ circle(f){const W=360,H=300,c=f.center||[0,0],r0=f.radius,T=fit([[c[0]-r0,c[1]-r0],[c[0]+r0,c[1]+r0]],W,H,40),C=T(c),r=Math.abs(T([c[0]+r0,c[1]])[0]-C[0]);let g=`<circle cx="${C[0]}" cy="${C[1]}" r="${r}" fill="#fdf3d9" stroke="#3b2a1a" stroke-width="3"/>`;
+   const P={};Object.entries(f.point_labels||{}).forEach(([k,p])=>{P[k]=T(p);});(f.segments||[]).forEach(([a,b])=>{if(P[a]&&P[b])g+=ln(P[a][0],P[a][1],P[b][0],P[b][1]);});
+   Object.entries(P).forEach(([k,p])=>{g+=`<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="#3b2a1a"/>`+txt(p[0]+(p[0]>=C[0]?12:-12),p[1]-14,k,{s:16,b:1});});
+   if(f.radius_label!=null)g+=ln(C[0],C[1],C[0]+r,C[1])+txt(C[0]+r/2,C[1]-12,`${f.radius_label}${/^[0-9.]+$/.test(f.radius_label)?f.unit:''}`,{s:15});
+   if(f.diameter_label!=null)g+=ln(C[0]-r,C[1]+(f.radius_label!=null?0:0),C[0]+r,C[1])+txt(C[0],C[1]+18,`${f.diameter_label}${/^[0-9.]+$/.test(f.diameter_label)?f.unit:''}`,{s:15});return svg(W,H,g);},
+ regular_polygon(f){const n=f.sides,P=[...Array(n)].map((_,i)=>{const a=Math.PI/2+i*2*Math.PI/n;return [Math.cos(a),Math.sin(a)];});const W=340,H=300,T=fit(P,W,H,40),Q=P.map(T);let g=`<polygon points="${Q.map(p=>p.join(',')).join(' ')}" fill="#fdf3d9" stroke="#3b2a1a" stroke-width="3"/>`;
+   if(f.show_all_fan_diagonals||f.fan_diagonals_from_vertex!=null)for(let j=2;j<n-1;j++)g+=ln(Q[0][0],Q[0][1],Q[j][0],Q[j][1],{d:'6 4'});
+   if(f.show_one_side_label&&f.side_length!=null){const a=Q[0],b=Q[1];g+=txt((a[0]+b[0])/2-14,(a[1]+b[1])/2-10,`${f.side_length}${f.unit||''}`,{s:15});}return svg(W,H,g);}
+};
+const SUP={text_tokens:['tokens','arrangement_columns'],table:['headers','values','row_labels','column_labels','unit'],bar:['categories','values','value_unit','axis_min','axis_max','tick_step','orientation'],line:['x_labels','series','value_unit','axis_min','axis_max','tick_step'],
+ dot_plot:['data','unit','axis_min','axis_max','tick_step'],clock:['hour','minute','second','minute_ticks','show_digital'],clock_pair:['clocks'],ruler:['unit','start','end','major_step','minor_step','segment_start','segment_end'],tape:['lengths','labels','unit','origin_aligned','layout','total_label'],
+ polygon:['vertices','closed','unit','show_edge_lengths','edge_labels','show_right_angle_marks','vertex_labels','edge_lengths','diagonals'],angle:['vertex','ray1_angle_degrees','ray2_angle_degrees','ray_length','show_degree_label'],fraction_rectangle:['width','height','equal_parts','shaded_parts','cut_positions','show_fraction_label'],
+ cuboid:['dimensions','unit','highlight_face','show_hidden_edges'],circle:['center','radius','unit','point_labels','segments','radius_label','diameter_label'],regular_polygon:['sides','circumradius','show_angle_labels','fan_diagonals_from_vertex','show_all_fan_diagonals','side_length','unit','show_one_side_label']};
+function ok(f){if(!f)return true;const s=SUP[f.type];if(!s)return false;return Object.keys(f).every(k=>k==='type'||s.includes(k));}
+function render(f){try{return R[f.type](f);}catch(e){return null;}}
+return {ok,render};
+})();
+window.__g19build=function g19Build(){const G19=window.G19;if(!G19)return;const AREA={katachi:'C',kurabe:'D',shirabe:'E'};
+  for(const [g,units] of Object.entries(G19)){const G=+g;WORLDS[G]=WORLDS[G]||{};
+    for(const U of units){const wid=`math.g${G}.${U.area==='katachi'?'B':U.area==='kurabe'?'C':'D'}.u${U.u}`,sk='g19_'+G+'_'+U.u;
+      const qs=[];U.c.forEach(C=>C.q.forEach(([id,mode,text,fig,ch,ans])=>{if(!G19FIG.ok(fig))return;const fh=fig?G19FIG.render(fig):null;if(fig&&!fh)return;
+        const p={kind:'c'+C.k,key:id,html:text.replace(/□/g,'<span class="sq">□</span>'),read:text,lv:+id.split('-')[3]||0,fig:fh||undefined,g19:true};
+        if(mode==='A'){const fr=/^\d+\/\d+$/.test(ans);p.ans=fr?ans:+ans;if(fr)p.fin=true;if(/\./.test(ans))p.dec=true;p.html+=` <span class="box"></span>`;}
+        else if(mode==='C'){const m={'＞':'>','＜':'<','＝':'='};p.ans=m[ans]||ans;p.choices=[{v:'>',label:'＞'},{v:'=',label:'＝'},{v:'<',label:'＜'}];}
+        else{p.ans=ans;p.choices=(ch||[]).map(c=>({v:String(c),label:String(c)}));if(!p.choices.some(c=>c.v===ans))return;}
+        qs.push(p);}));
+      SKILLS[sk]={id:wid,name:U.name,digits:true,all:()=>qs.map(p=>Object.assign({},p)),hint:(p,st)=>st<2?'図や 問題文を もう一度 よく 見よう。':'わかっている ことと、きかれている ことを 分けて 考えよう。',reveal:()=>''};
+      const st=U.c.filter(C=>qs.filter(p=>p.kind==='c'+C.k).length>=5).map(C=>[C.n,sk,(k=>p=>p.kind===k)('c'+C.k)]);
+      if(st.length<1)continue;(WORLDS[G][U.area]=WORLDS[G][U.area]||[]).push({id:wid,name:U.name,st,g19u:U.u});}}
+  const KN={2:{add:4,sub:5,num1000:8,add3d:9,kuku1:12,kuku2:13,kuku3:14,num10000:17},3:{kake:1,div:3,add4:4,rem:8,mul1:10,big:11,dec:12,mul2:14,frac:15},4:{big:1,div0:3,div:6,rem:8,round:10,rule:11,dec:12,decmd:16,frac:17},5:{seisu:1,multiple:5,decmul:7,decdiv:8,frac:11,fdec:12},6:{moji:2,fint:3,fracmul:4,fracdiv:5,mixcalc:8,hi:11}};
+  const BAI={3:{'倍':3.5},4:{'倍1':8.5,'倍2':9.5,'倍3':16.5},5:{'倍':8.5},6:{'倍':8.5}};
+  for(const G of [2,3,4,5,6]){if(!ROAD[G])continue;const num=(row)=>{const [k,,a]=row;if(a==='keisan')return KN[G][k.replace('A.','')]??99;const u=k.split('.u')[1];return BAI[G]&&BAI[G][u]!=null?BAI[G][u]:+u;};
+    const extra=[];for(const a of ['katachi','kurabe','shirabe'])for(const w of WORLDS[G][a]||[])extra.push([w.id.replace(`math.g${G}.`,''),w.name,a]);
+    for(const t of ['tosho','gakuto']){const base=ROAD[G][t].filter(r=>r[2]==='keisan');ROAD[G][t]=t==='gakuto'?[...base,...extra].sort((x,y)=>num(x)-num(y)):[...base,...extra];}}
+};
+
 (()=>{const O={3:{tosho:['kake','div','add4','rem','big','mul1','dec','frac','mul2'],gakuto:['kake','div','add4','rem','mul1','big','dec','mul2','frac']},4:{tosho:['big','div0','div','dec','rem','round','rule','frac','decmd'],gakuto:['big','div0','div','rem','round','rule','dec','decmd','frac']},6:{tosho:['moji','fint','fracmul','fracdiv','mixcalc','hi'],gakuto:['moji','fint','fracmul','fracdiv','mixcalc','hi']},5:{tosho:['seisu','decmul','decdiv','multiple','fdec','frac'],gakuto:['seisu','multiple','decmul','decdiv','frac','fdec']}};
  const mk=g=>{const W=WORLDS[g].keisan,row=k=>{const w=W.find(x=>x.id===`math.g${g}.A.${k}`);return [w.id.replace(`math.g${g}.`,''),w.name,'keisan'];},L=W.map(w=>[w.id.replace(`math.g${g}.`,''),w.name,'keisan']);
   return O[g]?{tosho:O[g].tosho.map(row),gakuto:O[g].gakuto.map(row)}:{tosho:L,gakuto:L};};for(const g of [2,3,4,5,6])ROAD[g]=mk(g);})();
 
 })();
 window.__sq={get P(){return P},poolOf,lvOf,get mapId(){return map&&map.id},get g(){return GRADE},set g(v){GRADE=v},get L(){return L},openAreaMap,amGo,get S(){return S},goTo,floorId,get MAPS(){return MAPS},startLesson,worldsOf,genStageSet,roadNodes,unitNo,AREA_ORDER};
-(async()=>{
+(async()=>{try{const r=await fetch('data/g19.json');if(r.ok){window.G19=await r.json();window.__g19build();}}catch(e){console.warn('g19',e);}
   resize();requestAnimationFrame(loop);
   await Island.init({appId:APP_ID,subject:'math'});
   if(Island.connected){
