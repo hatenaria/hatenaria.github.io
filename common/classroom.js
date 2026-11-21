@@ -1,7 +1,7 @@
 // 先生とのつながり（共通仕様書 4章）
 // 児童の端末 → 先生のGAS：参加の登録、学習の要約（片道）。先生のGAS → 端末：クラス設定とお知らせだけ。
 // 児童の記録は先生から返ってこない。実名は送らない（出席番号とハンドルネームだけ）。
-import * as store from './store.js?v=0.16.3';
+import * as store from './store.js?v=0.17.0';
 
 const REFRESH_MS = 2 * 60 * 1000;   // クラス設定（おしらせ・宿題など）はホームを開くたびに読む。続けて開いたときだけ2分あける
 const SEND_MAX = 50;                     // 1回に送る要約の数
@@ -30,6 +30,27 @@ export function clearJoinLink() {
   const u = new URL(location.href);
   u.searchParams.delete('join'); u.searchParams.delete('c');
   history.replaceState(null, '', u.pathname + (u.search ? u.search : '') + u.hash);
+}
+
+/** 先生用ページの「先生として ホームへ」から 来たとき（?teach=…）。{ url, code, token, grade, className } */
+export function readTeacherLink(href = location.href) {
+  const v = new URL(href).searchParams.get('teach'); if (!v) return null;
+  try {
+    const bin = atob(v.replace(/-/g, '+').replace(/_/g, '/'));
+    const d = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0))));
+    const url = endpointOf(d.j);
+    if (!url || !d.c || !d.t) return null;
+    return { url, code: String(d.c), token: String(d.t), grade: Number(d.g) || null, className: String(d.n || '') };
+  } catch { return null; }
+}
+export function clearTeacherLink() {
+  const u = new URL(location.href); u.searchParams.delete('teach');
+  history.replaceState(null, '', u.pathname + (u.search ? u.search : '') + u.hash);
+}
+/** 先生の 冒険の書に クラスを つける（出席番号 0。成績には 入らない） */
+export async function setTeacher(bookId, t) {
+  return await store.update(`${bookId}/class`, (c) => ({ ...(c && c.teacher && c.code === t.code ? c : {}), code: t.code, url: t.url, number: 0, handle: 'せんせい', token: t.token, teacher: true,
+    className: t.className, settings: { ...((c && c.code === t.code && c.settings) || {}), teacher: true, grade: t.grade }, fetchedAt: 0, joinedAt: c?.joinedAt || new Date().toISOString() }), { fallback: null });
 }
 
 async function post(url, body, timeoutMs = 20000) {

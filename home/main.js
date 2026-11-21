@@ -1,14 +1,14 @@
 // ホームアイランド v0.2
 // 島を歩く・建物を調べる・掲示板・気球で島めぐり・島から戻ったときの「おかえり」
 
-import * as store from '../common/store.js?v=0.16.3';
-import * as books from '../common/books.js?v=0.16.3';
-import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.16.3';
-import * as classroom from '../common/classroom.js?v=0.16.3';
-import { showPicker } from '../common/book-picker.js?v=0.16.3';
-import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, RESERVED, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD, GACHA } from './data.js?v=0.16.3';
+import * as store from '../common/store.js?v=0.17.0';
+import * as books from '../common/books.js?v=0.17.0';
+import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.17.0';
+import * as classroom from '../common/classroom.js?v=0.17.0';
+import { showPicker } from '../common/book-picker.js?v=0.17.0';
+import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, RESERVED, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD, GACHA } from './data.js?v=0.17.0';
 
-export const HOME_VERSION = '0.16.3';
+export const HOME_VERSION = '0.17.0';
 const PREVIEW = !!window.GI_PREVIEW; // アーティファクトでの試作表示（島へは移動しない）
 
 // 主人公の画像（仕様書2-4の規格：1コマ 384×512、足元 x=192, y=488。縮小した画像でも同じ比率で扱う）
@@ -252,7 +252,7 @@ function resize() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const w = window.innerWidth, h = window.innerHeight;
   T = Math.max(56, Math.min(96, Math.floor(Math.min(w / 10, h / 7.5))));
-  if (zoomed && landBox && scene !== 'room') { // 🔍 しま ぜんたい（v0.16.3）
+  if (zoomed && landBox && scene !== 'room') { // 🔍 しま ぜんたい（v0.17.0）
     T = Math.max(16, Math.min(T, Math.floor(Math.min(w / (landBox.x1 - landBox.x0 + 3), (h - 60) / (landBox.y1 - landBox.y0 + 3)))));
   }
   canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
@@ -1071,6 +1071,11 @@ function placeProblem(o) {
   return null;
 }
 let editFlash = null;
+// 画面の 上に 数秒 出る お知らせ（v0.17.0）
+function note(text) {
+  const el = h('div', { class: 'note', role: 'status' }, text); document.body.append(el);
+  setTimeout(() => el.classList.add('out'), 4200); setTimeout(() => el.remove(), 4800);
+}
 function flashEdit(text) { editFlash = { text, t0: performance.now() }; }
 
 function drawEditUnder(now, cx, cy) {
@@ -1340,7 +1345,7 @@ const isGate = (x, y) => { const g = gateTile(); if (g && g[0] === x && g[1] ===
 const GATE = { type: 'gate', gate: true };
 function unclaimedEvent() { return doneEvents().find((e) => !claimedEvents.includes(e.id)); }
 const eventImgs = {};
-for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.16.3'], ['t0', 'assets/home/xmas_tree0.webp?v=0.16.3'], ['t1', 'assets/home/xmas_tree1.webp?v=0.16.3'], ['t2', 'assets/home/xmas_tree2.webp?v=0.16.3'], ['t3', 'assets/home/xmas_tree3.webp?v=0.16.3']]) {
+for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.17.0'], ['t0', 'assets/home/xmas_tree0.webp?v=0.17.0'], ['t1', 'assets/home/xmas_tree1.webp?v=0.17.0'], ['t2', 'assets/home/xmas_tree2.webp?v=0.17.0'], ['t3', 'assets/home/xmas_tree3.webp?v=0.17.0']]) {
   const im = new Image(); im.onload = () => { eventImgs[k] = im; }; im.src = new URL('../' + src, import.meta.url).href;
 }
 function drawGate(now) {
@@ -2324,13 +2329,14 @@ async function backup() {
 
 // ------------------------------------------------------------------ 持ち物の表示
 function renderHud() {
-  document.getElementById('who').textContent = `📖 ${book.name}`;
+  const wm = document.getElementById('whoami'); if (wm) wm.textContent = cls?.teacher ? '👩‍🏫 せんせいの ためし（せいせきには はいりません）' : '🧒 こども よう';
+  document.getElementById('who').textContent = cls?.teacher ? `👩‍🏫 せんせい（${cls.className || ''}）` : `📖 ${book.name}`;
   const mats = Object.entries(wallet?.materials || {}).filter(([, v]) => v > 0)
     .map(([k, v]) => `<span class="mat" title="${MATERIALS[k]?.name || k}">${matIconHtml(k)} ${v}</span>`).join('');
   document.getElementById('coins').innerHTML = `<span class="coin">🪙 ${wallet?.coin || 0}</span>${mats}`;
 }
 
-// ------------------------------------------------------------------ ガチャ「ふしぎの たまご」（v0.16.3）
+// ------------------------------------------------------------------ ガチャ「ふしぎの たまご」（v0.17.0）
 const TICKET = 'gacha-ticket';
 const gDay = (d = new Date()) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 const tickets = () => wallet?.materials?.[TICKET] || 0;
@@ -2534,7 +2540,7 @@ function heroGender() { return profile?.hero?.gender === 'girl' ? 'girl' : 'boy'
 
 // ------------------------------------------------------------------ タイトル画面
 // ブラウザを開いて最初の1回だけ出す（島から戻ったときや、同じタブで開き直したときは出さない）
-const LOGO_SRC = 'assets/home/logo.webp?v=0.16.3';
+const LOGO_SRC = 'assets/home/logo.webp?v=0.17.0';
 function titleShownThisSession() { try { return sessionStorage.getItem('hatenaria-title') === '1'; } catch { return false; } }
 function markTitleShown() { try { sessionStorage.setItem('hatenaria-title', '1'); } catch { /* 使えなくても動く */ } }
 function showTitle(curBook) {
@@ -2580,6 +2586,19 @@ function showTitle(curBook) {
 async function start() {
   store.requestPersist();
   book = await books.getCurrent();
+  // 先生用ページの「先生として ホームへ」（v0.17.0）：先生の 冒険の書を つかう（なければ つくる）
+  const tl = classroom.readTeacherLink();
+  if (tl) {
+    classroom.clearTeacherLink();
+    let tb = null;
+    for (const b of await books.listBooks()) { const c = await store.get(`${b.id}/class`); if (c?.teacher) { tb = b; break; } }
+    if (!tb) { try { tb = await books.createBook('せんせい', tl.grade || 3); } catch { tb = null; } }
+    if (tb) {
+      await classroom.setTeacher(tb.id, tl);
+      if (tl.grade) await books.setGrade(tb.id, tl.grade);
+      await books.setCurrent(tb.id); book = await books.getCurrent(); markTitleShown();
+    } else alert('ぼうけんの しょが いっぱい（3さつ）なので、先生の ぼうけんの しょを つくれませんでした。1さつ けしてから もういちど ためしてください。');
+  }
   const returning = book && await store.get(`${book.id}/homeTrip`);
   if (!returning && !titleShownThisSession()) {
     const choice = await showTitle(book);
@@ -2598,7 +2617,7 @@ async function start() {
   await loadWardrobe();
   await refreshHomework();
   await refreshCrowns();
-  await grantDailyTickets();
+  const gotTickets = await grantDailyTickets();
   Object.assign(player, home.player, { fx: home.player.x, fy: home.player.y });
   loadHero();
   for (const [type, t] of Object.entries(OBJECT_TYPES)) {
@@ -2616,6 +2635,7 @@ async function start() {
   document.body.classList.add('ready');
   requestAnimationFrame(loop);
   await welcomeBack();
+  if (gotTickets.length) note(`🎟️ ガチャけんを ${gotTickets.length}まい もらったよ（${gotTickets.join('・')}）。ふしぎの たまごやで ひけるよ`);
   if (!profile?.grade && !modalOpen) openGrade(true); // 学年がない古い冒険の書
   else if (!profile?.hero?.gender && !modalOpen && !skipFirstHero()) await openFirstHero(); // まだ しゅじんこうを えらんでいない
   // 参加用リンクから来たとき
