@@ -1,14 +1,14 @@
 // ホームアイランド v0.2
 // 島を歩く・建物を調べる・掲示板・気球で島めぐり・島から戻ったときの「おかえり」
 
-import * as store from '../common/store.js?v=0.17.1';
-import * as books from '../common/books.js?v=0.17.1';
-import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.17.1';
-import * as classroom from '../common/classroom.js?v=0.17.1';
-import { showPicker } from '../common/book-picker.js?v=0.17.1';
-import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, RESERVED, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD, GACHA } from './data.js?v=0.17.1';
+import * as store from '../common/store.js?v=0.17.2';
+import * as books from '../common/books.js?v=0.17.2';
+import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.17.2';
+import * as classroom from '../common/classroom.js?v=0.17.2';
+import { showPicker } from '../common/book-picker.js?v=0.17.2';
+import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, RESERVED, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD, GACHA } from './data.js?v=0.17.2';
 
-export const HOME_VERSION = '0.17.1';
+export const HOME_VERSION = '0.17.2';
 const PREVIEW = !!window.GI_PREVIEW; // アーティファクトでの試作表示（島へは移動しない）
 
 // 主人公の画像（仕様書2-4の規格：1コマ 384×512、足元 x=192, y=488。縮小した画像でも同じ比率で扱う）
@@ -252,7 +252,7 @@ function resize() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const w = window.innerWidth, h = window.innerHeight;
   T = Math.max(56, Math.min(96, Math.floor(Math.min(w / 10, h / 7.5))));
-  if (zoomed && landBox && scene !== 'room') { // 🔍 しま ぜんたい（v0.17.1）
+  if (zoomed && landBox && scene !== 'room') { // 🔍 しま ぜんたい（v0.17.2）
     T = Math.max(16, Math.min(T, Math.floor(Math.min(w / (landBox.x1 - landBox.x0 + 3), (h - 60) / (landBox.y1 - landBox.y0 + 3)))));
   }
   canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
@@ -1071,7 +1071,7 @@ function placeProblem(o) {
   return null;
 }
 let editFlash = null;
-// 画面の 上に 数秒 出る お知らせ（v0.17.1）
+// 画面の 上に 数秒 出る お知らせ（v0.17.2）
 function note(text) {
   const el = h('div', { class: 'note', role: 'status' }, text); document.body.append(el);
   setTimeout(() => el.classList.add('out'), 4200); setTimeout(() => el.remove(), 4800);
@@ -1345,7 +1345,7 @@ const isGate = (x, y) => { const g = gateTile(); if (g && g[0] === x && g[1] ===
 const GATE = { type: 'gate', gate: true };
 function unclaimedEvent() { return doneEvents().find((e) => !claimedEvents.includes(e.id)); }
 const eventImgs = {};
-for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.17.1'], ['t0', 'assets/home/xmas_tree0.webp?v=0.17.1'], ['t1', 'assets/home/xmas_tree1.webp?v=0.17.1'], ['t2', 'assets/home/xmas_tree2.webp?v=0.17.1'], ['t3', 'assets/home/xmas_tree3.webp?v=0.17.1']]) {
+for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.17.2'], ['t0', 'assets/home/xmas_tree0.webp?v=0.17.2'], ['t1', 'assets/home/xmas_tree1.webp?v=0.17.2'], ['t2', 'assets/home/xmas_tree2.webp?v=0.17.2'], ['t3', 'assets/home/xmas_tree3.webp?v=0.17.2']]) {
   const im = new Image(); im.onload = () => { eventImgs[k] = im; }; im.src = new URL('../' + src, import.meta.url).href;
 }
 function drawGate(now) {
@@ -2330,22 +2330,23 @@ async function backup() {
 // ------------------------------------------------------------------ 持ち物の表示
 function renderHud() {
   const wm = document.getElementById('whoami');
-  if (wm) { // 画面の 下：どの クラスの しまか（v0.17.1）
-    // 学年で ならった 漢字だけ つかう（子＝1年、年・用＝2年…ここでは 1年・2年・3年で きりかえ。島＝3年）
+  if (wm) { // 画面の 下：どの クラスの しまか（v0.17.2）
+    // 学年で ならった 漢字だけ つかう（年・生・子＝1年、組・用＝2年、島＝3年）
     const g = Number(cls?.settings?.grade || book.grade) || 1;
-    if (cls?.teacher) wm.textContent = `🏝 ${cls.className || g + '年'}の島　👩‍🏫 先生の試し（成績には入りません）`;
+    const cname = (cls?.className || '').replace(/(\d+)\s*(?:ねん|年)\s*(\d+)\s*(?:くみ|組)/, (m, a, b) => `${a}年${b}${g >= 2 || cls?.teacher ? '組' : 'くみ'}`).replace(/(\d+)\s*ねん/, '$1年');
+    if (cls?.teacher) wm.textContent = `🏝 ${cname || g + '年'}の島　👩‍🏫 先生の試し（成績には入りません）`;
     else {
-      const isle = g >= 3 ? '島' : 'しま', nen = g >= 2 ? '年生' : 'ねんせい', kid = g >= 2 ? '子ども用' : 'こども よう';
-      wm.textContent = `🏝 ${cls?.className || g + nen}の ${isle}　🧒 ${kid}`;
+      const isle = g >= 3 ? '島' : 'しま', kid = g >= 2 ? '子ども用' : '子ども よう';
+      wm.textContent = `🏝 ${cname || g + '年生'}の ${isle}　🧒 ${kid}`;
     }
   }
-  document.getElementById('who').textContent = cls?.teacher ? `👩‍🏫 先生（${cls.className || ''}）` : `📖 ${book.name}`;
+  document.getElementById('who').textContent = cls?.teacher ? `👩‍🏫 先生（${(cls.className || '').replace(/(\d+)\s*ねん\s*(\d+)\s*くみ/, '$1年$2組')}）` : `📖 ${book.name}`;
   const mats = Object.entries(wallet?.materials || {}).filter(([, v]) => v > 0)
     .map(([k, v]) => `<span class="mat" title="${MATERIALS[k]?.name || k}">${matIconHtml(k)} ${v}</span>`).join('');
   document.getElementById('coins').innerHTML = `<span class="coin">🪙 ${wallet?.coin || 0}</span>${mats}`;
 }
 
-// ------------------------------------------------------------------ ガチャ「ふしぎの たまご」（v0.17.1）
+// ------------------------------------------------------------------ ガチャ「ふしぎの たまご」（v0.17.2）
 const TICKET = 'gacha-ticket';
 const gDay = (d = new Date()) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 const tickets = () => wallet?.materials?.[TICKET] || 0;
@@ -2549,7 +2550,7 @@ function heroGender() { return profile?.hero?.gender === 'girl' ? 'girl' : 'boy'
 
 // ------------------------------------------------------------------ タイトル画面
 // ブラウザを開いて最初の1回だけ出す（島から戻ったときや、同じタブで開き直したときは出さない）
-const LOGO_SRC = 'assets/home/logo.webp?v=0.17.1';
+const LOGO_SRC = 'assets/home/logo.webp?v=0.17.2';
 function titleShownThisSession() { try { return sessionStorage.getItem('hatenaria-title') === '1'; } catch { return false; } }
 function markTitleShown() { try { sessionStorage.setItem('hatenaria-title', '1'); } catch { /* 使えなくても動く */ } }
 function showTitle(curBook) {
@@ -2595,7 +2596,7 @@ function showTitle(curBook) {
 async function start() {
   store.requestPersist();
   book = await books.getCurrent();
-  // 先生用ページの「先生として ホームへ」（v0.17.1）：先生の 冒険の書を つかう（なければ つくる）
+  // 先生用ページの「先生として ホームへ」（v0.17.2）：先生の 冒険の書を つかう（なければ つくる）
   const tl = classroom.readTeacherLink();
   if (tl) {
     classroom.clearTeacherLink();
