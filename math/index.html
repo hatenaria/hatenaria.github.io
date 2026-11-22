@@ -385,7 +385,7 @@ body.kb .mcard:focus{outline:4px solid #ff7a2a;outline-offset:2px}
   <div id="coin" class="pill">🪙 0</div>
   <div id="timeLeft" class="pill"></div>
   <div id="tr"><button id="furi" class="pill" type="button">ふりがな</button><button id="tts" class="pill" type="button">🔊 よみあげ</button><button id="btnSet" class="pill" type="button">⚙ せってい</button></div>
-  <div id="proto">さんすう アイランド v0.15.5</div>
+  <div id="proto">さんすう アイランド v0.15.6</div>
   <button id="act" class="off" type="button">しらべる</button>
   <button id="guide" class="pill" type="button">🧭 つぎの いしへ</button>
   <button id="wide" class="pill" type="button">🔍 ぜんたいを みる</button>
@@ -847,7 +847,7 @@ function openRoad(){const ns=roadState(),done=ns.filter(n=>n.st==='done').length
   busy=true;held=null;$('#hud').classList.remove('on');$('#road').classList.add('on');}
 function closeRoad(){$('#road').classList.remove('on');busy=false;$('#hud').classList.add('on');}
 const NUSHI={keisan:'すいしょうの ゴーレム',katachi:'つみき ドラゴン',kurabe:'てんびん ガニ',shirabe:'ものしり フクロウ',tower:'とうの ぬし'};
-const MARU='①②③④⑤⑥';
+const MARU='①②③④⑤⑥⑦⑧⑨⑩⑪⑫';
 const FLUENCY=new Set(['add','sub','addcarry','subborrow']);   // 1ぷんチャレンジが ある 技能
 let _wcache={};
 function worldsOf(area){const ws=(WORLDS[GRADE]||{})[area];if(!ws)return null;const ck=GRADE+':'+area;if(_wcache[ck])return _wcache[ck];
@@ -1973,9 +1973,9 @@ function frHTML(t){t=String(t);const m=t.match(/^(\d*)(?:_(\d*)(\/(\d*))?|\/(\d*
   if(t.includes('_'))return `<span class="frw">${m[1]}</span>${sp(m[2],m[4])}`;if(t.includes('/'))return sp(m[1],m[5]);return m[1]||'';}
 function answer(v){
   if(!L||L.lock)return;const p0=L.set[L.i];
-  if(p0&&p0.fin&&typeof v==='string'){const a=frParse(v),b=frParse(p0.ans);if(a&&b&&a.n*b.d===b.n*a.d&&a.d>0){if(a.d!==1&&!a.red&&b.d!==1){fb(a.mixed&&a.n%a.d&&(+String(v).split('_')[1]?.split('/')[0]>=a.d)?'帯分数の 分子は 分母より 小さく しよう':'やくぶん できるよ',true);return;}v=p0.ans;}else if(a&&b&&b.d===1&&a.n===b.n*a.d&&a.d>1){fb('整数で 答えよう',true);return;}}
+  if(p0&&p0.fin&&typeof v==='string'){const a=frParse(v),b=frParse(p0.ans);if(a&&b&&a.n*b.d===b.n*a.d&&a.d>0){if(a.d!==1&&!a.red&&b.d!==1&&(GRADE>=5||(a.mixed&&a.n%a.d&&(+String(v).split('_')[1]?.split('/')[0]>=a.d)))){fb(a.mixed&&a.n%a.d&&(+String(v).split('_')[1]?.split('/')[0]>=a.d)?'帯分数の 分子は 分母より 小さく しよう':'やくぶん できるよ',true);return;}v=p0.ans;}else if(a&&b&&b.d===1&&a.n===b.n*a.d&&a.d>1){fb('整数で 答えよう',true);return;}}
   L.buf='';clearTimeout(L.kt);
-  const p=L.set[L.i];setBox(v);
+  const p=L.set[L.i];if(typeof v==='number'&&typeof p.ans==='number'&&Math.abs(v-p.ans)<1e-9)v=p.ans;setBox(v);
   if(v===p.ans){
     L.lock=true;updHintBtn();$('#qcard').classList.add('ok');
     const status=(L.reveal||L.stage>=3)?'review':(L.stage>0||L.wrong>0)?'hint':'self',ms=Math.round(performance.now()-L.q0);
@@ -3099,7 +3099,7 @@ const frCh=(n,d,mixed,wr)=>{const [k,h]=lab(n,d,mixed),seen=new Set([k]),o=[{v:k
   for(let t=1;o.length<4&&t<9;t++){const [k2,h2]=lab(n+t*gcd(n,d),d,mixed);if(!seen.has(k2)){seen.add(k2);o.push({v:k2,label:h2});}}for(let i=o.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[o[i],o[j]]=[o[j],o[i]];}return {ans:k,choices:o};};
 const S5={
  g5si:{id:'math.g5.A.seisu',name:'小数と 整数',digits:true,dec:true,all:GN(i=>{const k=i%2,n=R(101,9999)/1000,m=[10,100,1000][R(0,2)];
-   return k?T('up',`u${n}_${m}`,`${ds(n)} の ${m}倍は ${BX}`,`${ds(n)}の ${m}ばいは`,n*m,m):T('dn',`d${n}_${m}`,`${ds(n*10)} の ${FR(1,m)}は ${BX}`,`${ds(n*10)}の ${m}ぶんの1は`,n*10/m,m);},200),hint:HN('10倍すると 小数点が 右に 1けた うつるよ。','1/10に すると 小数点が 左に 1けた うつるよ。'),reveal:()=>''},
+   return k?T('up',`u${n}_${m}`,`${ds(n)} の ${m}倍は ${BX}`,`${ds(n)}の ${m}ばいは`,Math.round(n*m*1e6)/1e6,m):T('dn',`d${n}_${m}`,`${ds(n*10)} の ${FR(1,m)}は ${BX}`,`${ds(n*10)}の ${m}ぶんの1は`,Math.round(n*10/m*1e7)/1e7,m);},200),hint:HN('10倍すると 小数点が 右に 1けた うつるよ。','1/10に すると 小数点が 左に 1けた うつるよ。'),reveal:()=>''},
  g5bs:{id:'math.g5.A.multiple',name:'倍数と 約数',digits:true,all:GN(i=>{const k=i%6;
    if(k===0){const n=R(10,99);return T('eo',`e${n}`,`${n}は ぐう数？ き数？`,`${n}は ぐうすう？ きすう？`,null,n,{choices:[{v:'e',label:'ぐう数'},{v:'o',label:'き数'}],ans:n%2?'o':'e'});}
    if(k===1){const a=R(3,12),t=R(2,6);return T('bai',`b${a}_${t}`,`${a}の 倍数で、小さい ほうから ${t}番目の 数は ${BX}`,`${a}の ばいすうで ちいさいほうから ${t}ばんめの かずは`,a*t,a);}
