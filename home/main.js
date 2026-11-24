@@ -1,14 +1,14 @@
 // ホームアイランド v0.2
 // 島を歩く・建物を調べる・掲示板・気球で島めぐり・島から戻ったときの「おかえり」
 
-import * as store from '../common/store.js?v=0.17.2';
-import * as books from '../common/books.js?v=0.17.2';
-import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.17.2';
-import * as classroom from '../common/classroom.js?v=0.17.2';
-import { showPicker } from '../common/book-picker.js?v=0.17.2';
-import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, RESERVED, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD, GACHA } from './data.js?v=0.17.2';
+import * as store from '../common/store.js?v=0.17.3';
+import * as books from '../common/books.js?v=0.17.3';
+import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.17.3';
+import * as classroom from '../common/classroom.js?v=0.17.3';
+import { showPicker } from '../common/book-picker.js?v=0.17.3';
+import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, RESERVED, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD, GACHA } from './data.js?v=0.17.3';
 
-export const HOME_VERSION = '0.17.2';
+export const HOME_VERSION = '0.17.3';
 const PREVIEW = !!window.GI_PREVIEW; // アーティファクトでの試作表示（島へは移動しない）
 
 // 主人公の画像（仕様書2-4の規格：1コマ 384×512、足元 x=192, y=488。縮小した画像でも同じ比率で扱う）
@@ -252,7 +252,7 @@ function resize() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const w = window.innerWidth, h = window.innerHeight;
   T = Math.max(56, Math.min(96, Math.floor(Math.min(w / 10, h / 7.5))));
-  if (zoomed && landBox && scene !== 'room') { // 🔍 しま ぜんたい（v0.17.2）
+  if (zoomed && landBox && scene !== 'room') { // 🔍 しま ぜんたい（v0.17.3）
     T = Math.max(16, Math.min(T, Math.floor(Math.min(w / (landBox.x1 - landBox.x0 + 3), (h - 60) / (landBox.y1 - landBox.y0 + 3)))));
   }
   canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
@@ -769,12 +769,64 @@ function drawBuildFx(now, cx, cy) {
 }
 
 // こうかんじょ：ほかの素材3こ → ほしい素材1こ
+// うる（v0.17.3）：そざいは 1こ 🪙2、服・アクセサリーは 店の ねだんの はんぶん（もっていて きていない もの。景品・ただの ものは うれない）
+const SELL_MAT = 2;
+const coinOf = (c) => (typeof c === 'number' ? c : (c && c.coin) || 0);
+function sellableParts() {
+  const worn = resolveHero(profile?.hero || {}), out = [];
+  for (const key of wardrobe.owned || []) {
+    const [kind, id] = key.split(':'); const P = PARTS[kind]?.[id];
+    if (!P || isFreePart(kind, id) || WARDROBE_REWARD[key] || worn[kind] === id) continue;
+    const v = Math.floor(coinOf(partCost(kind, id)) / 2); if (v > 0) out.push({ key, kind, id, name: P.name, coin: v });
+  }
+  return out;
+}
+function openSell() {
+  const mats = Object.keys(MATERIALS).filter((k) => !MATERIALS[k].rare);
+  const have = (k) => wallet?.materials?.[k] || 0;
+  openModal((m) => {
+    m.className = 'modal build';
+    m.append(h('h2', {}, '⚖️ こうかんじょ'),
+      h('div', { class: 'row', style: 'justify-content:center;gap:8px' }, h('button', { class: 'btn', onclick: () => openExchange() }, '🔁 こうかん'), h('button', { class: 'btn on', 'data-act': 'selltab' }, '🪙 うる')),
+      h('p', { class: 'body small' }, `あまった そざいは 1こ 🪙${SELL_MAT}、つかわない 服や アクセサリーは おみせの ねだんの はんぶんで うれるよ。`),
+      h('div', { class: 'xlabel' }, 'そざい（1こ うる）'),
+      h('div', { class: 'xmats' }, ...mats.map((k) => h('button', { class: 'btn xmat', 'data-sell': k, ...(have(k) < 1 ? { disabled: '' } : {}), onclick: () => sellMat(k) }, matIcon(k), ` ${have(k)} → 🪙${SELL_MAT}`))));
+    const ps = sellableParts();
+    m.append(h('div', { class: 'xlabel' }, '服・アクセサリー'),
+      ps.length ? h('div', { class: 'xmats', 'data-scroll': '1', style: 'max-height:24vh;overflow:auto' }, ...ps.map((x) => h('button', { class: 'btn xmat', 'data-sellpart': x.key, onclick: () => sellPart(x) }, `${x.name} → 🪙${x.coin}`)))
+        : h('p', { class: 'body small' }, 'うれる 服は ないよ（きている 服・はじめの 服・ごほうびの 服は うれないよ）。'),
+      h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', 'data-default': '', onclick: closeModal }, 'とじる')));
+  });
+}
+async function sellMat(k) {
+  try {
+    wallet = await store.update(`${book.id}/wallet`, (w) => {
+      const x = structuredClone(w || { coin: 0, materials: {} }); x.materials = x.materials || {};
+      if ((x.materials[k] || 0) < 1) throw new Error('none');
+      x.materials[k] -= 1; x.coin = (x.coin || 0) + SELL_MAT; return x;
+    }, { fallback: { coin: 0, materials: {} } });
+  } catch { return; }
+  renderHud(); openSell();
+}
+function sellPart(x) {
+  openModal((m) => {
+    m.className = 'modal';
+    m.append(h('h2', {}, '🪙 うる？'), h('p', { class: 'body' }, `「${x.name}」を 🪙${x.coin}で うるよ。うったら もう きられないよ。`),
+      h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-default': '', onclick: openSell }, 'やめる'),
+        h('button', { class: 'btn go', 'data-act': 'sellok', onclick: async () => {
+          wardrobe = await store.update(`${book.id}/wardrobe`, (w) => ({ ...(w || {}), owned: (w?.owned || []).filter((k) => k !== x.key) }), { fallback: { owned: [] } });
+          wallet = await store.update(`${book.id}/wallet`, (w) => ({ ...(w || { materials: {} }), coin: ((w && w.coin) || 0) + x.coin }), { fallback: { coin: 0, materials: {} } });
+          renderHud(); openSell();
+        } }, 'うる')));
+  });
+}
 function openExchange(give = null, get = null) {
   const mats = Object.keys(MATERIALS).filter((k) => !MATERIALS[k].rare); // めずらしい 素材は ふつうの こうかんに つかわない
   const have = (k) => wallet?.materials?.[k] || 0;
   openModal((m) => {
     m.className = 'modal build';
     m.append(h('h2', {}, '⚖️ こうかんじょ'),
+      h('div', { class: 'row', style: 'justify-content:center;gap:8px' }, h('button', { class: 'btn on' }, '🔁 こうかん'), h('button', { class: 'btn', 'data-act': 'selltab', onclick: openSell }, '🪙 うる')),
       h('p', { class: 'body small' }, `そざい ${EXCHANGE_RATE}こを、べつの そざい 1こと こうかんできるよ。`));
     const row = (label, pick, sel, isGive) => h('div', { class: 'xrow' }, h('div', { class: 'xlabel' }, label),
       h('div', { class: 'xmats' }, ...mats.map((k) => {
@@ -853,7 +905,8 @@ function openIslandMenu() {
       h('div', { class: 'menu2' },
         h('button', { class: 'btn big', 'data-act': 'expand', onclick: () => { closeModal(); startEdit('expand'); } }, '🏝 とちを ひろげる'),
         h('button', { class: 'btn big', 'data-act': 'move', 'data-default': '', onclick: () => { closeModal(); startEdit('move'); } }, '🪴 もようがえ'),
-        h('button', { class: 'btn big', 'data-act': 'lawn', onclick: () => { closeModal(); startEdit('lawn'); } }, '🌱 あきち ⇄ しばふ')),
+        h('button', { class: 'btn big', 'data-act': 'lawn', onclick: () => { closeModal(); startEdit('lawn'); } }, '🌱 あきち ⇄ しばふ'),
+        h('button', { class: 'btn big', 'data-act': 'decos', onclick: () => { closeModal(); startEdit('deco'); } }, '🪨 かざりを かたづける・おく')),
       h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-act': 'close', onclick: closeModal }, 'とじる')));
   });
 }
@@ -904,6 +957,10 @@ function updateEditBar() {
     const parts = Object.entries(expandCost()).map(([k, n]) => `${k === 'coin' ? '🪙' : matIconHtml(k)} ${n}`).join('　');
     text.innerHTML = `🏝 ひろげる ばしょを えらんでね　<span class="cost">${parts}</span>`;
     check.textContent = 'ひろげる';
+  } else if (editMode.kind === 'deco') {
+    const st = home.decoStock || {}, n = Object.values(st).reduce((a, b) => a + b, 0);
+    text.textContent = `🪨 かたづけたい かざり（いわ・はな・き）を えらんでね。あいた ところを えらぶと しまった かざりを おけるよ（しまってある：${n}こ）`;
+    check.textContent = 'えらぶ';
   } else if (editMode.kind === 'lawn') {
     text.textContent = '🌱 しばふに したい あきち（または あきちに もどしたい しばふ）を えらんでね';
     check.textContent = 'かえる';
@@ -1009,6 +1066,27 @@ async function doExpand(c) {
 // ---- もようがえ
 function editSelect() {
   const [x, y] = editMode.cur;
+  if (editMode.kind === 'deco') {
+    const DECO = ['rock', 'flowers', 'palm', 'tree'];
+    const o = objectAt(x, y);
+    if (o && DECO.includes(o.type)) {
+      home.objects.splice(home.objects.indexOf(o), 1);
+      home.decoStock = home.decoStock || {}; home.decoStock[o.type] = (home.decoStock[o.type] || 0) + 1;
+      flashEdit(`${OBJECT_TYPES[o.type].name}を しまったよ`); saveHome(); updateEditBar(); return;
+    }
+    if (o) { flashEdit('いわ・はな・きを えらんでね'); return; }
+    const stock = Object.entries(home.decoStock || {}).filter(([, n]) => n > 0);
+    if (!stock.length) { flashEdit('しまってある かざりは ないよ'); return; }
+    if (isWater(x, y) || (x === player.x && y === player.y)) { flashEdit('そこには おけないよ'); return; }
+    openModal((m) => {
+      m.className = 'modal';
+      m.append(h('h2', {}, 'どれを おく？'), h('div', { class: 'row', style: 'justify-content:center;flex-wrap:wrap;gap:8px' }, ...stock.map(([t, n]) => h('button', { class: 'btn', 'data-deco': t, onclick: () => {
+        const prob = placeProblem({ type: t, x, y }); if (prob) { closeModal(); flashEdit(prob); return; }
+        home.objects.push({ id: 'd' + Date.now().toString(36), type: t, x, y }); home.decoStock[t]--; saveHome(); closeModal(); updateEditBar(); flashEdit(`${OBJECT_TYPES[t].name}を おいたよ`);
+      } }, `${OBJECT_TYPES[t].name} ×${n}`))), h('div', { class: 'row end' }, h('button', { class: 'btn', 'data-default': '', onclick: closeModal }, 'やめる')));
+    });
+    return;
+  }
   if (editMode.kind === 'lawn') {
     const o = objectAt(x, y);
     if (!o || (o.type !== 'lot' && o.type !== 'lawn')) { flashEdit('あきちか しばふを えらんでね'); return; }
@@ -1071,7 +1149,7 @@ function placeProblem(o) {
   return null;
 }
 let editFlash = null;
-// 画面の 上に 数秒 出る お知らせ（v0.17.2）
+// 画面の 上に 数秒 出る お知らせ（v0.17.3）
 function note(text) {
   const el = h('div', { class: 'note', role: 'status' }, text); document.body.append(el);
   setTimeout(() => el.classList.add('out'), 4200); setTimeout(() => el.remove(), 4800);
@@ -1094,7 +1172,7 @@ function drawEditUnder(now, cx, cy) {
   }
 }
 function drawEditOver(now, cx, cy) {
-  if (editMode?.kind === 'move' || editMode?.kind === 'lawn') {
+  if (editMode?.kind === 'move' || editMode?.kind === 'lawn' || editMode?.kind === 'deco') {
     const p = editMode.picked;
     if (p) {
       const t = OBJECT_TYPES[p.o.type], bad = placeProblem(p.o);
@@ -1345,7 +1423,7 @@ const isGate = (x, y) => { const g = gateTile(); if (g && g[0] === x && g[1] ===
 const GATE = { type: 'gate', gate: true };
 function unclaimedEvent() { return doneEvents().find((e) => !claimedEvents.includes(e.id)); }
 const eventImgs = {};
-for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.17.2'], ['t0', 'assets/home/xmas_tree0.webp?v=0.17.2'], ['t1', 'assets/home/xmas_tree1.webp?v=0.17.2'], ['t2', 'assets/home/xmas_tree2.webp?v=0.17.2'], ['t3', 'assets/home/xmas_tree3.webp?v=0.17.2']]) {
+for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.17.3'], ['t0', 'assets/home/xmas_tree0.webp?v=0.17.3'], ['t1', 'assets/home/xmas_tree1.webp?v=0.17.3'], ['t2', 'assets/home/xmas_tree2.webp?v=0.17.3'], ['t3', 'assets/home/xmas_tree3.webp?v=0.17.3']]) {
   const im = new Image(); im.onload = () => { eventImgs[k] = im; }; im.src = new URL('../' + src, import.meta.url).href;
 }
 function drawGate(now) {
@@ -2330,7 +2408,7 @@ async function backup() {
 // ------------------------------------------------------------------ 持ち物の表示
 function renderHud() {
   const wm = document.getElementById('whoami');
-  if (wm) { // 画面の 下：どの クラスの しまか（v0.17.2）
+  if (wm) { // 画面の 下：どの クラスの しまか（v0.17.3）
     // 学年で ならった 漢字だけ つかう（年・生・子＝1年、組・用＝2年、島＝3年）
     const g = Number(cls?.settings?.grade || book.grade) || 1;
     const cname = (cls?.className || '').replace(/(\d+)\s*(?:ねん|年)\s*(\d+)\s*(?:くみ|組)/, (m, a, b) => `${a}年${b}${g >= 2 || cls?.teacher ? '組' : 'くみ'}`).replace(/(\d+)\s*ねん/, '$1年');
@@ -2346,7 +2424,7 @@ function renderHud() {
   document.getElementById('coins').innerHTML = `<span class="coin">🪙 ${wallet?.coin || 0}</span>${mats}`;
 }
 
-// ------------------------------------------------------------------ ガチャ「ふしぎの たまご」（v0.17.2）
+// ------------------------------------------------------------------ ガチャ「ふしぎの たまご」（v0.17.3）
 const TICKET = 'gacha-ticket';
 const gDay = (d = new Date()) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 const tickets = () => wallet?.materials?.[TICKET] || 0;
@@ -2550,7 +2628,7 @@ function heroGender() { return profile?.hero?.gender === 'girl' ? 'girl' : 'boy'
 
 // ------------------------------------------------------------------ タイトル画面
 // ブラウザを開いて最初の1回だけ出す（島から戻ったときや、同じタブで開き直したときは出さない）
-const LOGO_SRC = 'assets/home/logo.webp?v=0.17.2';
+const LOGO_SRC = 'assets/home/logo.webp?v=0.17.3';
 function titleShownThisSession() { try { return sessionStorage.getItem('hatenaria-title') === '1'; } catch { return false; } }
 function markTitleShown() { try { sessionStorage.setItem('hatenaria-title', '1'); } catch { /* 使えなくても動く */ } }
 function showTitle(curBook) {
@@ -2596,7 +2674,7 @@ function showTitle(curBook) {
 async function start() {
   store.requestPersist();
   book = await books.getCurrent();
-  // 先生用ページの「先生として ホームへ」（v0.17.2）：先生の 冒険の書を つかう（なければ つくる）
+  // 先生用ページの「先生として ホームへ」（v0.17.3）：先生の 冒険の書を つかう（なければ つくる）
   const tl = classroom.readTeacherLink();
   if (tl) {
     classroom.clearTeacherLink();
@@ -2657,6 +2735,6 @@ async function start() {
   classroom.refresh(book.id).then((c) => { if (c) { cls = c; refreshHomework(); } });
   classroom.flush(book.id);
   // テスト用
-  window.__home = { player, get home() { return home; }, get T() { return T; }, camera, version: HOME_VERSION, get editMode() { return editMode; }, expandCandidates, get scene() { return scene; }, get room() { return room; }, get roomEdit() { return roomEdit; }, enterRoom, exitRoom, roomPt, roomTileAt, walkable, openEvent, gateTile, treeTile, openKisekae, openSchool, refreshHomework, openMissions, refreshCrowns, get crownTotal() { return crownTotal; }, get hwProg() { return hwProg; }, get wardrobe() { return wardrobe; }, openGacha, pullGacha, grantDailyTickets };
+  window.__home = { player, get home() { return home; }, get T() { return T; }, camera, version: HOME_VERSION, get editMode() { return editMode; }, expandCandidates, get scene() { return scene; }, get room() { return room; }, get roomEdit() { return roomEdit; }, enterRoom, exitRoom, roomPt, roomTileAt, walkable, openEvent, gateTile, treeTile, openKisekae, openSchool, refreshHomework, openMissions, refreshCrowns, get crownTotal() { return crownTotal; }, get hwProg() { return hwProg; }, get wardrobe() { return wardrobe; }, openGacha, pullGacha, grantDailyTickets, openExchange, openSell };
 }
 start();
