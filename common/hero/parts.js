@@ -49,6 +49,11 @@ export const OUTFITS = {
   'sports-h':     { name: 'スポーツ ウェア', src: 'outfit_sports_h.webp' },
   'yukata-g':     { name: 'ゆかた', src: 'outfit_yukata_g.webp' },
   'santa':        { name: 'サンタの ふく', src: 'outfit_santa.webp' },
+  'spring':       { name: 'さくらいろの カーディガン', src: 'outfit_spring.webp' },
+  'rain':         { name: 'レインコート', src: 'outfit_rain.webp' },
+  'summer':       { name: 'なつの Tシャツ', src: 'outfit_summer.webp' },
+  'autumn-knit':  { name: 'あきの ニット', src: 'outfit_autumn_knit.webp' },
+  'setsubun':     { name: 'おにの ふく', src: 'outfit_setsubun.webp' },
   'reindeer':     { name: 'トナカイの セーター', src: 'outfit_reindeer.webp' },
   'hakama':       { name: 'はかま', src: 'outfit_hakama.webp' },
   'rq-explorer':  { name: 'たんけんかの ふく', src: 'outfit_rq_explorer.webp' },
@@ -71,6 +76,13 @@ export const ACCESSORIES = {
   'santa-hat': { name: 'サンタの ぼうし', src: 'accessory_santa_hat.webp', at: 'head' },
   'kanzashi':  { name: 'かんざし', src: 'accessory_kanzashi.webp', at: 'head' },
   'halloween-hat': { name: 'まほうつかいの ぼうし', src: 'accessory_halloween_hat.webp', at: 'head' },
+  'kabuto':     { name: 'しんぶんしの かぶと', src: 'accessory_kabuto.webp', at: 'head' },
+  'strawhat':   { name: 'むぎわらぼうし', src: 'accessory_strawhat.webp', at: 'head' },
+  'usamimi':    { name: 'うさみみ', src: 'accessory_usamimi.webp', at: 'head' },
+  'oni':        { name: 'おにの つの', src: 'accessory_oni.webp', at: 'head' },
+  'sakura-pin': { name: 'さくらの ヘアピン', src: 'accessory_sakura_pin.webp', at: 'head' },
+  'heart':      { name: 'ハートの ブローチ', src: 'accessory_heart.webp' },
+  'corsage':    { name: 'おはなの コサージュ', src: 'accessory_corsage.webp' },
 };
 
 /** profile.hero で null（まだ決めていない）のときに使う値 */
