@@ -1,14 +1,14 @@
 // ホームアイランド v0.2
 // 島を歩く・建物を調べる・掲示板・気球で島めぐり・島から戻ったときの「おかえり」
 
-import * as store from '../common/store.js?v=0.19.0';
-import * as books from '../common/books.js?v=0.19.0';
-import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.19.0';
-import * as classroom from '../common/classroom.js?v=0.19.0';
-import { showPicker } from '../common/book-picker.js?v=0.19.0';
-import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, RESERVED, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD, GACHA } from './data.js?v=0.19.0';
+import * as store from '../common/store.js?v=0.19.1';
+import * as books from '../common/books.js?v=0.19.1';
+import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.19.1';
+import * as classroom from '../common/classroom.js?v=0.19.1';
+import { showPicker } from '../common/book-picker.js?v=0.19.1';
+import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, RESERVED, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD, GACHA } from './data.js?v=0.19.1';
 
-export const HOME_VERSION = '0.19.0';
+export const HOME_VERSION = '0.19.1';
 const PREVIEW = !!window.GI_PREVIEW; // アーティファクトでの試作表示（島へは移動しない）
 
 // 主人公の画像（仕様書2-4の規格：1コマ 384×512、足元 x=192, y=488。縮小した画像でも同じ比率で扱う）
@@ -241,7 +241,7 @@ function update(now) {
     } else if (pendingInteract) {
       const o = pendingInteract; pendingInteract = null;
       if (scene === 'room') { if (roomFaceDir) player.dir = roomFaceDir; roomInteract(o); }
-      else if (o.gate) { player.dir = 'up'; interact(o); }
+      else if (o.gate) { const g = gateTile(); player.dir = g && player.y === g[1] ? (player.x < g[0] ? 'right' : 'left') : 'up'; interact(o); }
       else { player.dir = (player.y >= o.y + OBJECT_TYPES[o.type].h) ? 'up' : player.dir; interact(o); }
     }
   }
@@ -435,9 +435,10 @@ function drawPlaza(o, t, px, py, now) {
   ctx.strokeStyle = '#d8c6a4'; ctx.lineWidth = T * .07; ctx.stroke();
   ctx.fillStyle = '#e4d3b2';
   for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; ctx.beginPath(); ctx.ellipse(cx + Math.cos(a) * W * .32, cy + Math.sin(a) * H * .28, T * .12, T * .08, a, 0, 7); ctx.fill(); }
+  if (!monImgs[monMonth()] && !treeTile()) { // まんなかの かざり（モニュメントが ないときだけ）
   ctx.fillStyle = '#f7c8d6'; ctx.beginPath(); ctx.ellipse(cx, cy, T * .32, T * .24, 0, 0, 7); ctx.fill();
-  ctx.fillStyle = '#fff6d8'; ctx.font = `${Math.round(T * .3)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('✦', cx, cy + 1);
-  if (!gateTile()) drawLabel('イベントひろば', cx, py + H * .12); // もんが たつ あいだは もんの 名前を 出す
+  ctx.fillStyle = '#fff6d8'; ctx.font = `${Math.round(T * .3)}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('✦', cx, cy + 1); }
+  if (!gateTile()) drawLabel('イベントひろば', cx, py + H * .9); // イベントの あいだは モニュメントの 上の ふだに 名前が 出る
 }
 
 function drawLot(o, t, px, py) {
@@ -480,7 +481,7 @@ function draw(now) {
   // 奥から順に描く（足元の y が小さい順）
   const items = home.objects.map((o) => ({ o, z: o.y + OBJECT_TYPES[o.type].h - (OBJECT_TYPES[o.type].solid ? 0 : 5) }));
   items.push({ hero: true, z: player.fy + 1 - 0.01 });
-  const mt = monTile(); if (mt && monImgs[monMonth()]) items.push({ mon: mt, z: mt[1] + 1 - 0.02 });
+  const mt = monTile(); if (mt && monImgs[monMonth()] && !treeTile()) items.push({ mon: mt, z: mt[1] + 1 - 0.02 });
   items.sort((a, b) => a.z - b.z);
   labelQueue = [];
   for (const it of items) {
@@ -508,7 +509,7 @@ function draw(now) {
   // 調べられる建物の名前
   const f = !editMode && !player.moving && !modalOpen && facingObject();
   const hint = document.getElementById('hint');
-  if (f) { hint.textContent = `${f.gate ? 'イベントの もん' : OBJECT_TYPES[f.type].name}を しらべる`; hint.classList.add('show'); }
+  if (f) { hint.textContent = `${f.gate ? 'イベントの モニュメント' : OBJECT_TYPES[f.type].name}を しらべる`; hint.classList.add('show'); }
   else hint.classList.remove('show');
 }
 
@@ -1405,24 +1406,24 @@ async function openSchool() {
 }
 
 // ------------------------------------------------------------------ クラスイベント（みんなで もくひょう。仕様書11-3）
-// 先生の シート「イベント」の 期間中は、イベントひろばの おくに「イベントの もん」が たつ
+// 先生の シート「イベント」の 期間中は、イベントひろばの モニュメントに イベントの ふだが でる
 const activeEvent = () => (cls && !cls.invalid ? (cls.events || []).find((e) => e.open) : null);
 const doneEvents = () => (cls && !cls.invalid ? (cls.events || []).filter((e) => e.done >= e.goal) : []);
 let claimedEvents = [];
 function gateTile() {
   if (scene !== 'island' || !activeEvent()) return null;
   const pz = home.objects.find((o) => o.type === 'plaza');
-  return pz ? [pz.x + 1, pz.y] : null;
+  return pz ? [pz.x + 1, pz.y + 1] : null; // v0.19.1：もんは なくなり、まんなかの モニュメントが イベントの しるし
 }
 // ツリーの イベント（名前に「ツリー」「クリスマス」）は、ひろばに ツリーが たち、みんなの 数で かざりが ふえる
 const isTreeEvent = (ev) => !!ev && /ツリー|クリスマス/.test(ev.name);
 function treeTile() {
   const g = gateTile(); if (!g || !isTreeEvent(activeEvent())) return null;
-  return [g[0] + 1, g[1] + 1];
+  return g; // ツリーの イベントの あいだは、ツリーが その月の モニュメントの かわりに たつ
 }
 const treeStage = (ev) => { const k = ev.done / ev.goal; return k >= 1 ? 3 : k >= .6 ? 2 : k >= .3 ? 1 : 0; };
 const isGate = (x, y) => { const g = gateTile(); if (g && g[0] === x && g[1] === y) return true; const t = treeTile(); return !!t && t[0] === x && t[1] === y; };
-// 月の モニュメント（v0.19.0）：イベントひろばの ひだりに、その月の かざりが たつ（もんの まえは あけておく）
+// 月の モニュメント（v0.19.0）：イベントひろばの まんなかに、その月の かざりが たつ。イベントの あいだは 上に 名前と すすみぐあいの ふだが でる（v0.19.1。もんの 絵は つかわない）
 const MON_FILES = ['mon_01_kadomatsu', 'mon_02_setsubun', 'mon_03_hinamatsuri', 'mon_04_sakura', 'mon_05_koinobori', 'mon_06_ajisai', 'mon_07_tanabata', 'mon_08_natsu', 'mon_09_tsukimi', 'mon_10_halloween', 'mon_11_aki', 'mon_12_snowman'];
 const monImgs = {};
 const monMonth = () => new Date().getMonth();
@@ -1431,19 +1432,19 @@ function monTile() {
   if (scene !== 'island') return null;
   const pz = home.objects.find((o) => o.type === 'plaza');
   if (!pz) return null; loadMon(monMonth());
-  return [pz.x, pz.y + 1];
+  return [pz.x + 1, pz.y + 1];
 }
 const isMon = (x, y) => { const m = monTile(); return !!m && m[0] === x && m[1] === y && !!monImgs[monMonth()]; };
 function drawMon(m, cx, cy) {
   const im = monImgs[monMonth()]; if (!im) return;
-  const mw = T * 1.75, mh = im.height * mw / im.width, x = m[0] * T - cx + T * .5 - mw / 2 + T * .05, y = m[1] * T - cy + T * .98 - mh;
+  const mw = T * 1.9, mh = im.height * mw / im.width, x = m[0] * T - cx + T * .5 - mw / 2, y = m[1] * T - cy + T * .92 - mh;
   ctx.fillStyle = 'rgba(60,40,20,.14)'; ctx.beginPath(); ctx.ellipse(x + mw / 2, y + mh - T * .05, T * .55, T * .14, 0, 0, 7); ctx.fill();
   ctx.drawImage(im, x, y, mw, mh);
 }
 const GATE = { type: 'gate', gate: true };
 function unclaimedEvent() { return doneEvents().find((e) => !claimedEvents.includes(e.id)); }
 const eventImgs = {};
-for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.19.0'], ['t0', 'assets/home/xmas_tree0.webp?v=0.19.0'], ['t1', 'assets/home/xmas_tree1.webp?v=0.19.0'], ['t2', 'assets/home/xmas_tree2.webp?v=0.19.0'], ['t3', 'assets/home/xmas_tree3.webp?v=0.19.0']]) {
+for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.19.1'], ['t0', 'assets/home/xmas_tree0.webp?v=0.19.1'], ['t1', 'assets/home/xmas_tree1.webp?v=0.19.1'], ['t2', 'assets/home/xmas_tree2.webp?v=0.19.1'], ['t3', 'assets/home/xmas_tree3.webp?v=0.19.1']]) {
   const im = new Image(); im.onload = () => { eventImgs[k] = im; }; im.src = new URL('../' + src, import.meta.url).href;
 }
 function drawGate(now) {
@@ -1452,33 +1453,32 @@ function drawGate(now) {
   const x = g[0] * T - cx, y = g[1] * T - cy, w = T;
   const ev = activeEvent();
   const tt = treeTile();
-  if (tt && eventImgs['t' + treeStage(ev)]) { // ツリー（もんの みぎ まえ）
-    const im = eventImgs['t' + treeStage(ev)], tw = T * 1.15, th = im.height * tw / im.width;
+  if (tt && eventImgs['t' + treeStage(ev)]) { // ツリー（ひろばの まんなか）
+    const im = eventImgs['t' + treeStage(ev)], tw = T * 1.7, th = im.height * tw / im.width;
     const tx = tt[0] * T - cx + (T - tw) / 2, ty = tt[1] * T - cy + T * .95 - th;
     ctx.fillStyle = 'rgba(60,40,20,.16)'; ctx.beginPath(); ctx.ellipse(tx + tw / 2, ty + th - T * .04, T * .45, T * .12, 0, 0, 7); ctx.fill();
     ctx.drawImage(im, tx, ty, tw, th);
   }
-  ctx.fillStyle = 'rgba(60,40,20,.16)'; ctx.beginPath(); ctx.ellipse(x + w / 2, y + T * .92, T * .8, T * .14, 0, 0, 7); ctx.fill();
+  // イベントの ふだ（モニュメントの 上）。名前と みんなの すすみぐあい
   const k = Math.min(1, ev.done / ev.goal);
-  let barY = y + T * .5;
-  if (eventImgs.gate) {
-    const im = eventImgs.gate, gw = T * 1.9, gh = im.height * gw / im.width, gx = x + (w - gw) / 2, gy = y + T * .97 - gh;
-    ctx.drawImage(im, gx, gy, gw, gh);
-    // かんばんに イベントの 名前
-    const sx = gx + gw * .5, sy = gy + gh * .245, maxW = gw * .74;
-    let fs = Math.round(T * .3); ctx.font = `bold ${fs}px "Zen Maru Gothic", sans-serif`;
-    while (ctx.measureText(ev.name).width > maxW && fs > 9) { fs--; ctx.font = `bold ${fs}px "Zen Maru Gothic", sans-serif`; }
-    ctx.fillStyle = '#7a3e1c'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ev.name, sx, sy);
-    barY = gy + gh * .4;
-  } else { // 絵が まだのときの かんたんな もん
-    ctx.fillStyle = '#e8916f'; roundRect(x - T * .18, y - T * .55, T * .2, T * 1.45, T * .08); ctx.fill(); roundRect(x + w - T * .02, y - T * .55, T * .2, T * 1.45, T * .08); ctx.fill();
-    ctx.fillStyle = '#f6c26b'; roundRect(x - T * .32, y - T * .78, w + T * .64, T * .3, T * .14); ctx.fill();
-    drawLabelNow(ev.name, x + w / 2, y - T * 1.0, '#7a3e1c');
-  }
-  // すすみぐあいの バー
-  ctx.fillStyle = 'rgba(255,255,255,.92)'; roundRect(x + T * .05, barY, w - T * .1, T * .16, T * .08); ctx.fill();
-  ctx.fillStyle = '#7cc6a4'; roundRect(x + T * .05, barY, Math.max(T * .16, (w - T * .1) * k), T * .16, T * .08); ctx.fill();
-  if (unclaimedEvent()) drawUnreadBadge(x + w / 2 + T * .8, y - T * 1.2, now);
+  const ti = tt && eventImgs['t' + treeStage(ev)], im = monImgs[monMonth()];
+  const top = ti ? y + T * .95 - ti.height * T * 1.7 / ti.width : im ? y + T * .92 - im.height * T * 1.9 / im.width : y - T * .2;
+  let fs = Math.round(T * .28); ctx.font = `bold ${fs}px "Zen Maru Gothic", sans-serif`;
+  while (ctx.measureText(ev.name).width > T * 2.6 && fs > 9) { fs--; ctx.font = `bold ${fs}px "Zen Maru Gothic", sans-serif`; }
+  const sw = Math.max(T * 1.6, ctx.measureText(ev.name).width + T * .5), sh = T * .72, sx = x + w / 2 - sw / 2, sy = top - sh - T * .04;
+  // 主人公が ふだの うしろに いるときは うすくする（体が かくれないように）
+  const hx = (player.fx + .5) * T - cx, hy = (player.fy + .92) * T - cy;
+  const behind = hx > sx - T * .3 && hx < sx + sw + T * .3 && hy > sy && hy - T * 1.1 < sy + sh;
+  ctx.save(); if (behind) ctx.globalAlpha = .35;
+  ctx.fillStyle = 'rgba(60,40,20,.18)'; roundRect(sx + 2, sy + 4, sw, sh, T * .2); ctx.fill();
+  ctx.fillStyle = '#fff4dc'; roundRect(sx, sy, sw, sh, T * .2); ctx.fill();
+  ctx.strokeStyle = '#d9a86a'; ctx.lineWidth = Math.max(2, T * .05); ctx.stroke();
+  ctx.fillStyle = '#7a3e1c'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ev.name, sx + sw / 2, sy + sh * .36);
+  const bx = sx + T * .2, bw = sw - T * .4, by = sy + sh * .64, bh = T * .14;
+  ctx.fillStyle = '#ead9b8'; roundRect(bx, by, bw, bh, bh / 2); ctx.fill();
+  ctx.fillStyle = '#7cc6a4'; roundRect(bx, by, Math.max(bh, bw * k), bh, bh / 2); ctx.fill();
+  ctx.restore();
+  if (unclaimedEvent()) drawUnreadBadge(sx + sw, sy, now);
 }
 function eventCard(ev) {
   const k = Math.min(1, ev.done / ev.goal);
@@ -1513,7 +1513,7 @@ function openEvent() {
   openModal((m) => {
     m.className = 'modal build ev';
     const canClaim = ev.done >= ev.goal && !claimedEvents.includes(ev.id);
-    m.append(h('h2', {}, '🎪 イベントの もん'), eventCard(ev),
+    m.append(h('h2', {}, '🎪 イベント'), eventCard(ev),
       h('p', { class: 'body small' }, canClaim ? 'みんなで たっせい した！ ごほうびを うけとろう。' : 'しまで もんだいを とくと、みんなの かずが ふえるよ。'),
       h('div', { class: 'row end' },
         h('button', { class: 'btn', 'data-act': 'close', onclick: closeModal }, 'とじる'),
@@ -2643,7 +2643,10 @@ function bindControls() {
     const [cx, cy] = camera();
     const tx = Math.floor((e.clientX + cx) / T), ty = Math.floor((e.clientY + cy) / T);
     if (editMode) { editTap(tx, ty); return; }
-    if (isGate(tx, ty)) { const g = gateTile(), fr = [g[0], g[1] + 1]; pathQueue = findPath(player.x, player.y, fr[0], fr[1]) || []; pendingInteract = GATE; return; }
+    if (isGate(tx, ty)) { // もんの まえ（まんなかに モニュメントが あるときは もんの よこ）へ あるく
+      const g = gateTile(), cand = [[g[0], g[1] + 1], [g[0] - 1, g[1]], [g[0] + 1, g[1]]].filter(([x, y]) => walkable(x, y) || (x === player.x && y === player.y));
+      let best = null; for (const [x, y] of cand) { const p = x === player.x && y === player.y ? [] : findPath(player.x, player.y, x, y); if (p && (!best || p.length < best.length)) best = p; }
+      pathQueue = best || []; pendingInteract = GATE; return; }
     let o = objectAt(tx, ty);
     if (o && OBJECT_TYPES[o.type].ground) o = null; // ひろばは 地面と同じ
     if (o && OBJECT_TYPES[o.type].deco) return; // 飾りをタップしても動かない
@@ -2676,7 +2679,7 @@ function heroGender() { return profile?.hero?.gender === 'girl' ? 'girl' : 'boy'
 
 // ------------------------------------------------------------------ タイトル画面
 // ブラウザを開いて最初の1回だけ出す（島から戻ったときや、同じタブで開き直したときは出さない）
-const LOGO_SRC = 'assets/home/logo.webp?v=0.19.0';
+const LOGO_SRC = 'assets/home/logo.webp?v=0.19.1';
 function titleShownThisSession() { try { return sessionStorage.getItem('hatenaria-title') === '1'; } catch { return false; } }
 function markTitleShown() { try { sessionStorage.setItem('hatenaria-title', '1'); } catch { /* 使えなくても動く */ } }
 function showTitle(curBook) {

@@ -3,7 +3,7 @@
 // showPicker({ mode: 'manage' })  … ホーム用。作る・消す・選ぶ
 // 戻り値：選ばれた冒険の書 {id, name, createdAt}（ホームへ移るときは null）
 
-import * as books from './books.js?v=0.19.0';
+import * as books from './books.js?v=0.19.1';
 
 const CSS = `
 .gi-picker{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
