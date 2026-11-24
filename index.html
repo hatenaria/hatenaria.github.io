@@ -6,9 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ハテナリア">
 <title>ハテナリア</title>
-<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png?v=0.17.3">
-<link rel="apple-touch-icon" href="assets/icons/icon-180.png?v=0.17.3">
-<link rel="manifest" href="manifest.json?v=0.17.3">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png?v=0.19.0">
+<link rel="apple-touch-icon" href="assets/icons/icon-180.png?v=0.19.0">
+<link rel="manifest" href="manifest.json?v=0.19.0">
 <style>
   :root{--ink:#3a3226;--paper:#fffaf0;--gold:#ffd66b;--gold-d:#d9a93a;--green:#9be3a8;--green-d:#5fb06d}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -43,7 +43,7 @@
   .modal .body{font-size:22px;line-height:1.8;white-space:pre-line;text-align:left;width:fit-content;max-width:100%;margin:8px auto 22px;
     word-break:keep-all;overflow-wrap:anywhere;line-break:strict}
   .modal h2,.notice h3,.notice p,.info .title,.info .sub,.iname{word-break:keep-all;overflow-wrap:anywhere;line-break:strict}
-  .modal .small{font-size:17px;color:#5c5140;text-align:center;line-height:1.5} /* v0.17.3：小さく うすくて よみにくかった（14px #8a7e6c） */
+  .modal .small{font-size:17px;color:#5c5140;text-align:center;line-height:1.5} /* v0.18.0：小さく うすくて よみにくかった（14px #8a7e6c） */
   .row{display:flex;gap:14px;align-items:center}.row.end{justify-content:flex-end}.row.center{justify-content:center}.row.between{justify-content:space-between;margin-top:14px}
   .col{display:flex;flex-direction:column;gap:14px;margin-bottom:14px}
   .notices{display:flex;flex-direction:column;gap:12px;margin-bottom:18px}
@@ -94,6 +94,8 @@
   @keyframes gxspin{to{transform:rotate(360deg)}}
   @keyframes gxgrow{0%{transform:scale(.3);opacity:0}100%{transform:scale(1);opacity:1}}
   @media (prefers-reduced-motion:reduce){.gacha .gx-egg,.gacha .gx-fx{animation:none!important}}
+  .hud #who.tap{pointer-events:auto;cursor:pointer}
+  .hud #who.tap::after{content:' ▾';font-size:.8em;opacity:.7}
   .whoami{position:fixed;left:50%;bottom:6px;transform:translateX(-50%);z-index:5;background:rgba(255,255,255,.78);color:#4a4032;font-size:14px;padding:3px 12px;border-radius:999px;pointer-events:none;white-space:nowrap;max-width:70vw;overflow:hidden;text-overflow:ellipsis}
   body.in-room .whoami{display:none}
   .note{position:fixed;left:50%;top:70px;transform:translateX(-50%);z-index:60;background:#fffaf0;border:3px solid #ffd66b;border-radius:16px;padding:10px 18px;font-size:18px;box-shadow:0 6px 18px rgba(0,0,0,.18);max-width:90vw;text-align:center;transition:opacity .5s}.note.out{opacity:0}
@@ -264,6 +266,6 @@
 </div>
 <div id="hint"></div>
 <div id="layer"></div>
-<script type="module" src="home/main.js?v=0.17.3"></script>
+<script type="module" src="home/main.js?v=0.19.0"></script>
 </body>
 </html>
