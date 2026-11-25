@@ -190,6 +190,7 @@ ruby rt{font-size:.45em}
 #fluEnd .best{font-size:30px;font-weight:bold;color:#d9a020}
 #fluEnd .btns{display:flex;gap:12px}
 #fluPad{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:900px}
+#fluPad.kpad{display:grid;grid-template-columns:repeat(3,92px);gap:8px}#fluPad.kpad .okk{background:#e2a500;color:#fff}#fluPad.kpad .num{width:92px;white-space:nowrap;font-size:26px}#fluQ .b2{min-width:1.4em}
 .ltop{display:flex;align-items:center;justify-content:space-between;gap:12px}
 #dots{display:flex;gap:12px;align-items:center}
 .dot{width:24px;height:24px;border-radius:50%;background:#fff;border:3px solid #e0c49a;box-sizing:border-box}
@@ -512,6 +513,7 @@ body.kb .mcard:focus{outline:4px solid #ff7a2a;outline-offset:2px}
     </div>
     <h3>教科書（ヒントで最初に見せる計算のしかたが変わります）</h3>
     <div>教科書：<select id="tBook"><option value="tosho">東京書籍</option><option value="gakuto">学校図書</option></select></div>
+    <div>けいさん スタジアムの しゅもく：<select id="tStad"><option value="grade">その学年の しゅもくだけ</option><option value="upto">その学年までの しゅもく</option><option value="all">ぜんぶの 学年</option></select></div>
     <div>いま学習中の単元：<select id="tNow"></select><br><small>えらんだ単元までの どうくつの 単元が ひらき、「みちのり」に しんちょくが 出ます。</small></div>
     <h3>学習時間の上限（端末を使っている時間で数えます。30秒操作がないと止まります）</h3>
     <div>1日の上限：<select id="tLimit"><option value="0">なし</option><option value="5">5分</option><option value="10">10分</option><option value="15">15分</option><option value="20">20分</option><option value="30">30分</option></select>
@@ -2287,21 +2289,31 @@ function startFluency(w,from){if(overLimit()){startDialog([{n:HK,t:'きょうの
   const b=fluBest(w.skill);$('#fluRule').textContent=`1ぷんで なんもん とけるかな？\nせいかい ひく まちがい が てんすうだよ。\n${b==null?'':'いままでの さいこう：'+b+'てん'}`;
   $('#fluStart').classList.add('on');$('#fluEnd').classList.remove('on');$('#fluPad').style.visibility='hidden';$('#fluQ').style.display='none';
   updFlu();buildFluPad();$('#flu').classList.add('on');$('#fluGo').focus({preventScroll:true});}
-function buildFluPad(){const pad=$('#fluPad');pad.innerHTML='';const [lo,hi]=SKILLS[F.skill].pad;
+function fluKey(k){if(!F||!F.run)return;const D=SKILLS[F.skill],rem=F.p&&F.p.rem!=null;
+  if(k==='del'){F.f2?F.buf2=F.buf2.slice(0,-1):F.buf=F.buf.slice(0,-1);}
+  else if(k==='ok'){if(rem&&!F.f2){if(F.buf!=='')F.f2=true;}else if(F.buf!==''&&(!rem||F.buf2!==''))return fluAnswer(+F.buf,rem?+F.buf2:null);}
+  else if(k==='tab'){if(rem)F.f2=!F.f2;}
+  else if(/^\d$/.test(k)){if(F.f2){if(F.buf2.length<5)F.buf2=(F.buf2==='0'?'':F.buf2)+k;}else if(F.buf.length<6)F.buf=(F.buf==='0'?'':F.buf)+k;}
+  const b=$('#fluQ .box:not(.b2)'),b2=$('#fluQ .b2');if(b){b.textContent=F.buf;b.style.outline=rem&&!F.f2?'3px solid #e2a500':'';}if(b2){b2.textContent=F.buf2||'';b2.style.outline=F.f2?'3px solid #e2a500':'';}
+  const ok=$('#fluPad .okk');if(ok)ok.textContent=rem&&!F.f2?'あまり→':'OK';}
+function buildFluPad(){const pad=$('#fluPad');pad.innerHTML='';
+  if(!SKILLS[F.skill].pad){pad.classList.add('kpad');for(const k of ['7','8','9','4','5','6','1','2','3','del','0','ok']){const b=document.createElement('button');b.type='button';b.className='num'+(k==='ok'?' okk':'');b.textContent=k==='del'?'けす':k==='ok'?'OK':k;
+      b.addEventListener('pointerdown',e=>{e.preventDefault();fluKey(k);});b.addEventListener('click',e=>{if(e.detail===0)fluKey(k);});pad.appendChild(b);}return;}
+  pad.classList.remove('kpad');const [lo,hi]=SKILLS[F.skill].pad;
   for(let v=lo;v<=hi;v++){const b=document.createElement('button');b.type='button';b.className='num';b.textContent=v;
     b.addEventListener('pointerdown',e=>{e.preventDefault();fluAnswer(v);});b.addEventListener('click',e=>{if(e.detail===0)fluAnswer(v);});pad.appendChild(b);}}
 function updFlu(){$('#fluC').textContent=F.c;$('#fluW').textContent=F.wr;$('#fluT').textContent=Math.ceil(F.left);$('#fluBar').style.width=(F.left/60*100)+'%';}
-function fluNext(){let p;do{p=pick(F.pool);}while(F.p&&p.key===F.p.key&&F.pool.length>1);F.p=p;F.buf='';
+function fluNext(){let p;do{p=pick(F.pool);}while(F.p&&p.key===F.p.key&&F.pool.length>1);F.p=p;F.buf='';F.buf2='';F.f2=false;
   $('#fluQ').innerHTML=p.html;}
 function fluGo(){$('#fluStart').classList.remove('on');$('#fluQ').style.display='';$('#fluPad').style.visibility='visible';F.run=true;F.t0=performance.now();fluNext();
   const tick=()=>{if(!F||!F.run)return;F.left=Math.max(0,60-(performance.now()-F.t0)/1000);updFlu();if(F.left<=0){fluEnd();return;}requestAnimationFrame(tick);};requestAnimationFrame(tick);}
-function fluAnswer(v){if(!F||!F.run)return;clearTimeout(F.kt);const p=F.p,ok=v===p.ans,q=$('#fluQ');
+function fluAnswer(v,r){if(!F||!F.run)return;clearTimeout(F.kt);const p=F.p,ok=v===p.ans&&(p.rem==null||r===p.rem),q=$('#fluQ');if(p.rem!=null)v=`${v} あまり ${r}`;
   F.log.push({key:p.key,ok,you:v});if(ok){F.c++;tone([784],0.06);}else{F.wr++;tone([196],0.12);}
   q.className=ok?'ok':'ng';const b=q.querySelector('.box');if(b)b.textContent=v;updFlu();
   setTimeout(()=>{if(F&&F.run){q.className='';fluNext();}},ok?120:450);}
 async function fluEnd(){F.run=false;$('#fluPad').style.visibility='hidden';$('#fluQ').style.display='none';
   const sc=Math.max(0,F.c-F.wr),prev=fluBest(F.skill),today=dayKey();fluOf(F.skill).push({d:today,c:F.c,w:F.wr,s:sc,ts:Date.now()});
-  const k=addStamp(F.w);saveSoon();
+  const k=F.w.k1m?null:addStamp(F.w);saveSoon();
   const best=prev==null||sc>prev,miss=F.log.filter(x=>!x.ok);
   $('#fluEnd').innerHTML=`<div>せいかい ${F.c}　まちがい ${F.wr}</div><div class="score">${sc}てん</div>`+
     (best&&prev!=null?'<div class="best">🎉 しんきろく！</div>':`<div>さいこう：${Math.max(prev||0,sc)}てん</div>`)+`<div><span class="rank ${fluRank(F.skill,sc)}">${fluRank(F.skill,sc)}</span> ランク${(n=>n?`　あと ${n.need}てんで ${n.rk}ランク`:'')(fluNextRank(F.skill,Math.max(prev||0,sc)))}</div>`+
@@ -2316,6 +2328,7 @@ function fluClose(){const back=F&&F.from==='stadium';if(F)F.run=false;F=null;$('
 $('#fluGo').addEventListener('click',()=>{if(F&&!F.run)fluGo();});
 $('#fluQuit').addEventListener('click',fluClose);
 addEventListener('keydown',e=>{if(!F||!F.run)return;
+  if(!SKILLS[F.skill].pad){const k=/^[0-9]$/.test(e.key)?e.key:e.key==='Enter'?'ok':e.key==='Backspace'?'del':(e.key==='Tab'||e.key===' '||e.key==='ArrowRight'||e.key==='ArrowLeft')?'tab':null;if(k){e.preventDefault();e.stopPropagation();fluKey(k);}return;}
   if(/^[0-9]$/.test(e.key)){e.preventDefault();e.stopPropagation();clearTimeout(F.kt);const hi=SKILLS[F.skill].pad[1];F.buf+=e.key;let n=+F.buf;
     if(n>hi){F.buf=e.key;n=+e.key;}const b=$('#fluQ .box');if(b)b.textContent=F.buf;
     if(F.buf.length===1&&n*10<=hi)F.kt=setTimeout(()=>fluAnswer(+F.buf),700);else fluAnswer(n);}},true);
@@ -2503,14 +2516,67 @@ $('#tbRoad').addEventListener('click',()=>{closeTablet();openRoad();});
    ========================================================= */
 /* 「けいさん 1分チャレンジ」と おなじ きじゅん：Sライン（1分の めやす）、A＝75%、B＝50%、それより下＝C
    しゅもくの たいおう：add＝add1、addcarry＝add2、sub＝sub1、subborrow＝sub2（2〜4年の しゅもくも あとで ここに ふやす） */
+
 const S_LINE={add:30,addcarry:25,sub:28,subborrow:22};
 const FLU_MODE={add:'たしざん①',addcarry:'たしざん②',sub:'ひきざん①',subborrow:'ひきざん②'};
+/* けいさん 1ぷんチャレンジ（先生の 自作アプリ「けいさん 1分チャレンジ」）の 17しゅもく（v0.15.9）
+   もんだいの つくりかた・ランクの きじゅん（S_LINE）は アプリと おなじ。どの 学年の しゅもくを 出すかは 先生の せってい（Island.settings.stadium：grade／upto／all） */
+const K1M_P=(a,s,b,q,r)=>({text:`${a} ${s} ${b}`,q,r:(r===undefined?null:r)});
+const K1M_MODES=[
+ {id:"add1",op:"add",n:"①",grades:[1],title:"1けた＋1けた（くり上がりなし）",ex:"3＋4",
+  gen(){let a,b;do{a=rnd(1,8);b=rnd(1,8);}while(a+b>9);return K1M_P(a,"+",b,a+b);}},
+ {id:"add2",op:"add",n:"②",grades:[1],title:"1けた＋1けた（くり上がりあり）",ex:"8＋5",
+  gen(){let a,b;do{a=rnd(2,9);b=rnd(2,9);}while(a+b<10);return K1M_P(a,"+",b,a+b);}},
+ {id:"add3",op:"add",n:"③",grades:[2],title:"2けた＋2けた（くり上がりなし）",ex:"23＋45",
+  gen(){let a,b;do{a=rnd(10,88);b=rnd(10,88);}while(a%10+b%10>9||a+b>99);return K1M_P(a,"+",b,a+b);}},
+ {id:"add4",op:"add",n:"④",grades:[2],title:"2けた＋2けた（くり上がりあり）",ex:"38＋47",
+  gen(){let a,b;do{a=rnd(11,99);b=rnd(11,99);}while(a%10+b%10<10);return K1M_P(a,"+",b,a+b);}},
+ {id:"sub1",op:"sub",n:"①",grades:[1],title:"19までの数−1けた（くり下がりなし）",ex:"17−5　8−3",
+  gen(){let a,b;do{a=rnd(2,19);b=rnd(1,9);}while(a%10<b);return K1M_P(a,"−",b,a-b);}},
+ {id:"sub2",op:"sub",n:"②",grades:[1],title:"19までの数−1けた（くり下がりあり）",ex:"13−8",
+  gen(){let a,b;do{a=rnd(11,18);b=rnd(2,9);}while(b<=a%10||a-b>9);return K1M_P(a,"−",b,a-b);}},
+ {id:"sub3",op:"sub",n:"③",grades:[2],title:"2けた−2けた（くり下がりなし）",ex:"68−25",
+  gen(){let a,b;do{a=rnd(11,99);b=rnd(10,a-1);}while(a%10<b%10);return K1M_P(a,"−",b,a-b);}},
+ {id:"sub4",op:"sub",n:"④",grades:[2],title:"2けた−2けた（くり下がりあり）",ex:"62−37",
+  gen(){let a,b;do{a=rnd(21,98);b=rnd(11,a-1);}while(a%10>=b%10);return K1M_P(a,"−",b,a-b);}},
+ {id:"mul1",op:"mul",n:"①",grades:[2],title:"九九",ex:"7×8",
+  gen(){const a=rnd(1,9),b=rnd(1,9);return K1M_P(a,"×",b,a*b);}},
+ {id:"mul2",op:"mul",n:"②",grades:[3],title:"何十・何百×1けた",ex:"40×3　300×6",
+  gen(){const s=pick([10,100]),a=rnd(1,9)*s,b=rnd(2,9);return K1M_P(a,"×",b,a*b);}},
+ {id:"mul3",op:"mul",n:"③",grades:[3],title:"何十・何百×何十",ex:"30×40　200×30",
+  gen(){const a=rnd(1,9)*pick([10,10,100]),b=rnd(1,9)*10;return Math.random()<.5?K1M_P(a,"×",b,a*b):K1M_P(b,"×",a,a*b);}},
+ {id:"div1",op:"div",n:"①",grades:[3],title:"九九のぎゃく（わり切れる）",ex:"24÷6",
+  gen(){const d=rnd(2,9),q=rnd(1,9);return K1M_P(d*q,"÷",d,q);}},
+ {id:"div2",op:"div",n:"②",grades:[3,4],title:"何十・何百÷1けた（わり切れる）",ex:"80÷4　240÷6",
+  gen(){const d=rnd(2,9),q=rnd(1,9),s=pick([10,100]);return K1M_P(d*q*s,"÷",d,q*s);}},
+ {id:"div3",op:"div",n:"③",grades:[4],title:"何十・何百÷何十・何百（わり切れる）",ex:"80÷20　600÷30",
+  gen(){const d=rnd(1,9),q=rnd(2,9),t=rnd(0,2);
+   if(t===0)return K1M_P(d*q*10,"÷",d*10,q);
+   if(t===1)return K1M_P(d*q*100,"÷",d*100,q);
+   return K1M_P(d*q*100,"÷",d*10,q*10);}},
+ {id:"div4",op:"div",n:"④",grades:[3],title:"九九のぎゃく（あまりあり）",ex:"26÷4",rem:true,
+  gen(){const d=rnd(2,9),q=rnd(1,9),r=rnd(1,d-1);return K1M_P(d*q+r,"÷",d,q,r);}},
+ {id:"div5",op:"div",n:"⑤",grades:[4],title:"何十÷1けた（あまりあり）",ex:"70÷4",rem:true,
+  gen(){let a,d;do{a=rnd(2,9)*10;d=rnd(3,9);}while(a%d===0);return K1M_P(a,"÷",d,Math.floor(a/d),a%d);}},
+ {id:"div6",op:"div",n:"⑥",grades:[4],title:"何十・何百÷何十（あまりあり）",ex:"90÷20　250÷30",rem:true,
+  gen(){const d=rnd(2,9),q=rnd(1,9),r=rnd(1,d-1);return K1M_P((d*q+r)*10,"÷",d*10,q,r*10);}}
+];
+const K1M_S={add1:30,add2:25,add3:15,add4:12,sub1:28,sub2:22,sub3:14,sub4:10,mul1:30,mul2:20,mul3:16,div1:25,div2:18,div3:15,div4:15,div5:8,div6:10};
+const K1M_OP={add:'たし算',sub:'ひき算',mul:'かけ算',div:'わり算'};
+K1M_MODES.forEach(m=>{const k='k1m_'+m.id;FLU_MODE[k]=K1M_OP[m.op]+m.n;S_LINE[k]=K1M_S[m.id];
+  SKILLS[k]={id:'math.k1m.'+m.id,name:m.title,k1m:m,pad:null,all(){const o=[],seen=new Set();for(let t=0;t<600&&o.length<240;t++){const p=m.gen();if(seen.has(p.text))continue;seen.add(p.text);
+    o.push({key:p.text,ans:p.q,rem:p.r,html:`${p.text.replace('+','＋').replace('−','－')} ＝ ${BOX}${p.r!==null?' <small>あまり</small> <span class="box b2"></span>':''}`});}return o;}};});
+function k1mScope(){let v=null;try{v=Island.settings&&Island.settings.stadium;}catch(e){}return v||S.stadiumScope||'grade';}
+function k1mWorlds(){const sc=k1mScope();let ms=K1M_MODES.filter(m=>sc==='all'?true:sc==='upto'?m.grades[0]<=GRADE:m.grades.includes(GRADE));
+  if(GRADE===1)ms=ms.filter(m=>sc==='all'||m.grades[0]>1); // 1年は 島の 4しゅもくが あるので アプリの 1年モードは 出さない
+  if(!ms.length&&sc==='grade')ms=K1M_MODES.filter(m=>m.grades[0]<=GRADE&&m.grades[0]>=3); // 5・6年：3・4年の しゅもくを ふくしゅうに
+  return ms.map(m=>({id:'math.k1m.'+m.id,name:m.title,skill:'k1m_'+m.id,k1m:m,boss:{id:'math.k1m.'+m.id+'#boss',pred:null}}));}
 const RANKS=[{k:'S',r:1},{k:'A',r:.75},{k:'B',r:.5},{k:'C',r:0}];
 const FLU_RANK=Object.fromEntries(Object.entries(S_LINE).map(([k,v])=>[k,[v,Math.ceil(v*.75),Math.ceil(v*.5)]]));
 function fluRank(skill,sc){if(sc==null||sc<=0)return sc==null?null:'C';const sl=S_LINE[skill]||30;for(const x of RANKS)if(sc>=Math.ceil(sl*x.r))return x.k;return 'C';}
 function fluNextRank(skill,sc){const sl=S_LINE[skill]||30,rk=fluRank(skill,sc);if(rk==='S')return null;const i=RANKS.findIndex(x=>x.k===rk),nx=RANKS[Math.max(0,i-1)];return {rk:nx.k,need:Math.ceil(sl*nx.r)-(sc||0)};}
-function fluWorlds(){return AREA_ORDER.flatMap(a=>worldsOf(a)||[]).filter(w=>FLUENCY.has(w.skill));}
-const fluOpen=w=>S.cleared.includes(w.boss.id);
+function fluWorlds(){return AREA_ORDER.flatMap(a=>worldsOf(a)||[]).filter(w=>FLUENCY.has(w.skill)).concat(k1mWorlds());}
+const fluOpen=w=>true; // けいさん スタジアムは はじめから ぜんぶ ひらく（v0.15.9）
 let ST_TAB='play';
 function openStadium(){busy=true;held=null;$('#hud').classList.remove('on');$('#stadium').style.backgroundImage=IMG.stadium_bg?`url(${IMG.stadium_bg.src})`:'';$('#stadium').classList.add('on');stTab(ST_TAB);}
 function closeStadium(){$('#stadium').classList.remove('on');busy=false;$('#hud').classList.add('on');}
@@ -2518,7 +2584,7 @@ function stTab(t){ST_TAB=t;document.querySelectorAll('.sttabs button').forEach(b
   const ico=(n,e)=>IMG[n]?`<img src="${IMG[n].src}" alt="" style="height:1.3em;vertical-align:middle">`:e;
   if(t==='play'){const ws=fluWorlds();if(!ws.some(fluOpen))B.insertAdjacentHTML('beforeend','<div class="stcard"><div class="nm">まだ ひらいている しゅもくが ないよ。<small>けいさんどうくつで たんげんの まとめに ☆を とると、ここで 1ぷんチャレンジが できるように なるよ。</small></div></div>');
     ws.forEach(w=>{const op=fluOpen(w),b=fluBest(w.skill),rk=fluRank(w.skill,b),nx=fluNextRank(w.skill,b),d=document.createElement('div');d.className='stcard'+(op?'':' lock');
-      d.innerHTML=`<div class="nm">${ico('icon_stopwatch','⏱')} ${w.name}<small>${op?(nx?`あと ${nx.need}てんで ${nx.rk}ランク`:'さいこうの Sランク！'):'まとめに ☆を とると ひらくよ'}</small></div><canvas width="360" height="120"></canvas><div class="best">${ico('icon_trophy','🏆')} ${b==null?'―':b+'てん'} ${rk?`<span class="rank ${rk}">${rk}</span>`:''}</div>`;
+      d.innerHTML=`<div class="nm">${ico('icon_stopwatch','⏱')} ${w.k1m?FLU_MODE[w.skill]+'　':''}${w.name}<small>${op?(nx?`あと ${nx.need}てんで ${nx.rk}ランク`:'さいこうの Sランク！'):'まとめに ☆を とると ひらくよ'}</small></div><canvas width="360" height="120"></canvas><div class="best">${ico('icon_trophy','🏆')} ${b==null?'―':b+'てん'} ${rk?`<span class="rank ${rk}">${rk}</span>`:''}</div>`;
       if(op){const g=document.createElement('button');g.type='button';g.className='go';g.textContent='ちょうせん';g.addEventListener('click',()=>{$('#stadium').classList.remove('on');startFluency(w,'stadium');});d.appendChild(g);}
       B.appendChild(d);spark(d.querySelector('canvas'),fluOf(w.skill));});
     B.insertAdjacentHTML('beforeend','<div class="stnote">てんすう ＝ せいかい － まちがい。ランクの きじゅんは かりの ものです。</div>');}
@@ -2547,7 +2613,7 @@ function stTab(t){ST_TAB=t;document.querySelectorAll('.sttabs button').forEach(b
     if(!played.length)msg='まずは どれか 1つ チャレンジしてみよう！';
     else{const low=played.slice().sort((p,q)=>p.v-q.v)[0],high=played.slice().sort((p,q)=>q.v-p.v)[0];
       msg=`💪 とくい：<b>${high.w.name}</b>　🌱 のびしろ：<b>${played.length>1&&low!==high?low.w.name:untried.length?untried[0].w.name+'に チャレンジ':'もっと Sを めざそう'}</b>`;}
-    B.innerHTML=`<div class="stcard" style="flex-direction:column;align-items:stretch"><div class="nm">🌟 1ねんせいの けいさんりょく</div><div style="display:grid;grid-template-columns:minmax(240px,1fr) 1fr;gap:12px;align-items:center">${radarSVG(data)}<div>`+
+    B.innerHTML=`<div class="stcard" style="flex-direction:column;align-items:stretch"><div class="nm">🌟 ${GRADE}ねんせいの けいさんりょく</div><div style="display:grid;grid-template-columns:minmax(240px,1fr) 1fr;gap:12px;align-items:center">${radarSVG(data)}<div>`+
       data.map(d=>{const nx=d.b?fluNextRank(d.w.skill,d.b):null;return `<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #e8dcc4"><span style="width:2em">${d.rk?`<span class="rank ${d.rk}">${d.rk}</span>`:'―'}</span><span style="flex:1"><b>${FLU_MODE[d.w.skill]||''}</b> <small style="color:#7a6a5a">${d.w.name}</small></span><span style="font-size:13px;color:#7a6a5a">${d.b==null?(fluOpen(d.w)?'まだ':'🔒'):nx?`あと ${nx.need}てんで ${nx.rk}`:'さいこう！'}</span></div>`;}).join('')+
       `<p style="font-size:15px;margin:10px 0 0">${msg}</p><p class="stnote" style="margin:4px 0 0">ランクは 1ぷんの じこベストで きまるよ（めやす）。</p></div></div></div>`;}}
 let ST_MON=null,ST_GM=null,TB_LOCK=null;
@@ -2842,13 +2908,13 @@ $('#tLong').addEventListener('pointerdown',e=>{e.preventDefault();$('#tLong').cl
 $('#tLong').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.repeat){e.preventDefault();$('#tLong').classList.add('hold');longT=setTimeout(openTeacher,1500);}});
 $('#tLong').addEventListener('keyup',e=>{if(e.key==='Enter'){clearTimeout(longT);$('#tLong').classList.remove('hold');}});
 function openTeacher(){$('#tLong').classList.remove('hold');$('#tRep').innerHTML=teacherHTML();$('#tSolo').style.display=Island.connected?'none':'';
-  $('#tGrade').value=String(S.soloGrade||1);$('#tRule').value=S.clearRule==='all'?'all':'h4';$('#tBook').value=S.textbook||'tosho';$('#tBook').disabled=!!TB_LOCK;$('#tBook').title=TB_LOCK?'ホームの 先生用ページで えらんだ 教科書を つかっています':'';fillNowSel();$('#tLimit').value=String(S.limitMin);$('#tMode').value=S.limitMode;updUse();$('#tArea').classList.add('on');}
+  $('#tGrade').value=String(S.soloGrade||1);$('#tRule').value=S.clearRule==='all'?'all':'h4';$('#tBook').value=S.textbook||'tosho';{let L=null;try{L=Island.settings&&Island.settings.stadium;}catch(e){}$('#tStad').value=k1mScope();$('#tStad').disabled=!!L;$('#tStad').title=L?'ホームの 先生用ページの せっていを つかっています':'';}$('#tBook').disabled=!!TB_LOCK;$('#tBook').title=TB_LOCK?'ホームの 先生用ページで えらんだ 教科書を つかっています':'';fillNowSel();$('#tLimit').value=String(S.limitMin);$('#tMode').value=S.limitMode;updUse();$('#tArea').classList.add('on');}
 function teacherHTML(){
   const per=days=>{let ms=0,n=0,self=0;for(const d of days){const x=REC.daily[d];if(!x)continue;ms+=x.ms;n+=x.n;for(const k in x.s)self+=x.s[k].self;}
     return `<td>${(ms/60000).toFixed(1)}分</td><td>${n}</td><td>${n?Math.round(self/n*100)+'%':'―'}</td>`;};
   const prow=`<table><tr><th>期間</th><th>学習時間</th><th>問題数</th><th>自力正答率</th></tr><tr><td>今日</td>${per([dayKey()])}</tr><tr><td>昨日</td>${per([dayKey(-1)])}</tr>
     <tr><td>直近7日</td>${per(Array.from({length:7},(_,i)=>dayKey(-i)))}</tr><tr><td>累計</td>${per(Object.keys(REC.daily))}</tr></table>`;
-  const rows=Object.keys(SKILLS).map(k=>{const m=mastery(k),id=skillId(k);return `<tr><td>${SKILLS[k].name}</td><td>${id}</td><td>${STLABEL[m.st]}</td><td>${m.self} / ${m.n}</td><td>${m.total}</td><td>${S.mastered.includes(id)?'★ 定着':S.cleared.includes(id)?'☆ クリア'+(S.clearDay[id]?'（'+S.clearDay[id]+'）':''):''}</td></tr>`;}).join('');
+  const rows=Object.keys(SKILLS).filter(k=>!SKILLS[k].k1m).map(k=>{const m=mastery(k),id=skillId(k);return `<tr><td>${SKILLS[k].name}</td><td>${id}</td><td>${STLABEL[m.st]}</td><td>${m.self} / ${m.n}</td><td>${m.total}</td><td>${S.mastered.includes(id)?'★ 定着':S.cleared.includes(id)?'☆ クリア'+(S.clearDay[id]?'（'+S.clearDay[id]+'）':''):''}</td></tr>`;}).join('');
   return `<b>期間別</b>${prow}<b>技能ごとの状況</b>（☆クリア＝1セット5問中4問以上を自力。★定着＝☆の日と別の日に、もう一度4問以上を自力。状態は直近5問）
     <table><tr><th>技能</th><th>技能ID</th><th>状態</th><th>直近5問の自力</th><th>累計</th><th>☆／★</th></tr>${rows}</table>
     モード：${Island.connected?(MODE==='school'?'学校（先生が開けた単元だけ）':'自習（☆で次の石が開く）'):'単独（☆で次の石が開く）'}　学年：${GRADE}年
@@ -2859,6 +2925,7 @@ $('#tGrade').addEventListener('change',e=>{S.soloGrade=+e.target.value;GRADE=S.s
 $('#tLimit').addEventListener('change',e=>{S.limitMin=+e.target.value;saveSoon();updUse();});
 function fillNowSel(){const sel=$('#tNow'),ns=roadNodes();sel.innerHTML='<option value="">（きめない：☆で じゅんに すすむ）</option>'+ns.map((n,i)=>`<option value="${n.ids[0]}">${i+1}. ${n.name}${n.soon?'（じゅんびちゅう）':''}</option>`).join('');sel.value=S.nowUnit||'';}
 $('#tNow').addEventListener('change',e=>{S.nowUnit=e.target.value||null;saveSoon();buildMaps();$('#tMsg').textContent=e.target.value?`いま学習中の単元を「${e.target.selectedOptions[0].textContent}」にしました。`:'いま学習中の単元を きめない ように しました。';});
+$('#tStad').addEventListener('change',e=>{S.stadiumScope=e.target.value;saveSoon();$('#tMsg').textContent=`けいさん スタジアムの しゅもくを「${e.target.selectedOptions[0].textContent}」にしました。`;});
 $('#tBook').addEventListener('change',e=>{S.textbook=e.target.value;saveSoon();fillNowSel();$('#tMsg').textContent=`教科書を「${e.target.selectedOptions[0].textContent}」にしました。`;});
 $('#tMode').addEventListener('change',e=>{S.limitMode=e.target.value;saveSoon();});
 $('#tClear').addEventListener('click',()=>{for(const a of AREA_ORDER){for(const s of stagesOf(a))if(s.play){if(!S.cleared.includes(s.id))S.cleared.push(s.id);if(!S.mastered.includes(s.id))S.mastered.push(s.id);}for(const w of worldsOf(a)||[])syncWorld(w);}saveSoon();$('#tMsg').textContent='すべて★にしました（試験用）。';});
@@ -4030,7 +4097,7 @@ window.__g19build=function g19Build(){const G19=window.G19;if(!G19)return;const 
   return O[g]?{tosho:O[g].tosho.map(row),gakuto:O[g].gakuto.map(row)}:{tosho:L,gakuto:L};};for(const g of [2,3,4,5,6])ROAD[g]=mk(g);})();
 
 })();
-window.__sq={get AM(){return AM},get P(){return P},poolOf,lvOf,get mapId(){return map&&map.id},get g(){return GRADE},set g(v){GRADE=v},get L(){return L},openAreaMap,amGo,get S(){return S},goTo,floorId,get MAPS(){return MAPS},startLesson,worldsOf,genStageSet,roadNodes,unitNo,AREA_ORDER};
+window.__sq={get AM(){return AM},get P(){return P},poolOf,lvOf,get mapId(){return map&&map.id},get g(){return GRADE},set g(v){GRADE=v},get L(){return L},openAreaMap,amGo,get S(){return S},goTo,floorId,get MAPS(){return MAPS},startLesson,worldsOf,genStageSet,roadNodes,unitNo,AREA_ORDER,openStadium,stTab,startFluency,fluWorlds,fluKey,get F(){return F}};
 (async()=>{try{const r=await fetch('data/g19.json');if(r.ok){window.G19=await r.json();window.__g19build();}}catch(e){console.warn('g19',e);}
   resize();requestAnimationFrame(loop);
   await Island.init({appId:APP_ID,subject:'math'});
