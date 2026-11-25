@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ハテナリアの あそびかた</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/icon-32.png">
+<style>
+  /* こどもよう あそびかた（ホーム 0.25.0）。かんじは 1年生で ならう ものだけ */
+  :root{--ink:#3a3226;--paper:#fffaf0;--gold:#ffd66b;--gold-d:#d9a93a;--sky:#bfe6ff;--sky-d:#7fb6d9;--green:#9be3a8;--green-d:#5fb06d}
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:#5ec3e8 linear-gradient(#8fd8f2,#5ec3e8 420px);font-family:"Hiragino Maru Gothic ProN","BIZ UDPGothic","Meiryo",sans-serif;color:var(--ink);line-height:1.9;font-size:19px}
+  header{position:sticky;top:0;z-index:5;background:rgba(255,250,240,.96);box-shadow:0 3px 0 rgba(0,0,0,.08);padding:10px 16px}
+  .top{display:flex;align-items:center;gap:12px;max-width:980px;margin:0 auto}
+  .top h1{font-size:24px;margin:0;flex:1}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:52px;padding:0 18px;border:none;border-radius:16px;background:var(--gold);color:var(--ink);
+    font:inherit;font-size:19px;font-weight:bold;box-shadow:0 5px 0 var(--gold-d);cursor:pointer;text-decoration:none}
+  .btn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--gold-d)}
+  .btn.sky{background:var(--sky);box-shadow:0 5px 0 var(--sky-d)}
+  .btn:focus-visible{outline:4px solid #3b82f6;outline-offset:3px}
+  nav{display:flex;gap:8px;overflow-x:auto;max-width:980px;margin:8px auto 2px;padding-bottom:6px}
+  nav a{flex:none;background:#fff;border-radius:14px;padding:6px 14px;font-size:16px;font-weight:bold;color:var(--ink);text-decoration:none;box-shadow:0 3px 0 #e2d6bf}
+  main{max-width:980px;margin:0 auto;padding:18px 14px 60px}
+  section{background:var(--paper);border-radius:24px;padding:20px 24px;margin:18px 0;box-shadow:0 6px 0 rgba(0,0,0,.10);scroll-margin-top:130px}
+  h2{font-size:26px;margin:0 0 8px}
+  h3{font-size:21px;margin:16px 0 4px}
+  p{margin:6px 0}
+  img.shot{display:block;width:100%;max-width:760px;margin:12px auto;border-radius:16px;box-shadow:0 4px 0 #e2d6bf}
+  .places{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px;margin-top:10px}
+  .place{background:#fff;border-radius:18px;padding:12px 16px;box-shadow:0 3px 0 #eadfca}
+  .place b{font-size:20px}
+  .steps{counter-reset:s;list-style:none;padding:0;margin:8px 0}
+  .steps li{counter-increment:s;position:relative;padding:8px 0 8px 52px}
+  .steps li::before{content:counter(s);position:absolute;left:0;top:6px;width:38px;height:38px;border-radius:50%;background:var(--gold);box-shadow:0 3px 0 var(--gold-d);
+    display:flex;align-items:center;justify-content:center;font-weight:bold}
+  .key{display:inline-block;min-width:34px;padding:0 8px;border-radius:8px;background:#fff;border:2px solid #d8cdb8;font-weight:bold;text-align:center;line-height:1.5}
+  .yakusoku{background:#fff3d1}
+  .yakusoku li{margin:6px 0}
+  .tip{background:#e9f7ef;border-radius:14px;padding:8px 14px;margin:10px 0}
+  .end{text-align:center;margin:28px 0 0}
+  @media (max-width:600px){body{font-size:17px}.top h1{font-size:20px}h2{font-size:22px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <h1>📘 ハテナリアの あそびかた</h1>
+    <a class="btn sky" href="../index.html" id="back">🏝 ハテナリアへ もどる</a>
+  </div>
+  <nav aria-label="もくじ">
+    <a href="#nani">ハテナリアって なに？</a>
+    <a href="#hajime">はじめかた</a>
+    <a href="#ugoki">うごきかた</a>
+    <a href="#basho">しまの ばしょ</a>
+    <a href="#coin">コインと そざい</a>
+    <a href="#tanoshimi">おたのしみ</a>
+    <a href="#yakusoku">やくそく</a>
+    <a href="#komatta">こまった ときは</a>
+  </nav>
+</header>
+<main>
+  <section id="nani">
+    <h2>🏝 ハテナリアって なに？</h2>
+    <p>ハテナリアは、<b>じぶんだけの しま</b>を そだてる 学しゅうの せかいです。</p>
+    <p>ききゅうに のって「さんすうの しま」や「りかの しま」へ いき、もんだいを とくと <b>コイン</b>や <b>そざい</b>が もらえます。もらった もので、たてものを たてたり、へやに かぐを おいたり、ふくを きがえたり できます。</p>
+    <img class="shot" src="guide/overview.webp" alt="しま ぜんたいの えだよ">
+    <p class="tip">💡 べんきょうを がんばるほど、じぶんの しまが にぎやかに なっていくよ。</p>
+  </section>
+
+  <section id="hajime">
+    <h2>🚀 はじめかた</h2>
+    <ol class="steps">
+      <li><b>ぼうけんの しょを つくる</b>：なまえ（ニックネーム）を きめます。ほんとうの なまえは つかわないでね。1つの たんまつで 3人まで つくれます。</li>
+      <li><b>学年を えらぶ</b>：じぶんの 学年を えらびます。</li>
+      <li><b>しゅじんこうを えらぶ</b>：かみがたや かみの いろを えらびます。</li>
+      <li><b>クラスに 入る</b>：先生から もらった リンクを ひらき、<b>しゅっせき ばんごう</b>と <b>あいことば（4けたの かず）</b>を 入れます。</li>
+    </ol>
+    <img class="shot" src="guide/book.webp" alt="ぼうけんの しょを えらぶ がめん">
+  </section>
+
+  <section id="ugoki">
+    <h2>🕹 うごきかた</h2>
+    <h3>タブレット・タッチで</h3>
+    <p>いきたい ところを <b>タッチ</b>すると、そこまで あるきます。がめんの <b>▲▼◀▶</b>でも うごけます。たてものの まえで <b>「しらべる」</b>を おすと 中に 入ったり、おみせを ひらいたり できます。</p>
+    <h3>キーボードで</h3>
+    <p><span class="key">↑</span> <span class="key">↓</span> <span class="key">←</span> <span class="key">→</span> で あるく、<span class="key">Enter</span> で しらべる・きめる、<span class="key">Esc</span> で とじる・もどる。</p>
+    <p class="tip">💡 右上の 🔍 を おすと、しま ぜんたいを 見られるよ。</p>
+  </section>
+
+  <section id="basho">
+    <h2>🗺 しまの ばしょ</h2>
+    <img class="shot" src="guide/island.webp" alt="しまの 中の えだよ">
+    <div class="places">
+      <div class="place"><b>🏫 学校</b><p>先生が 出した しゅくだいを とけます。しゅくだいを 出すと ごほうびが もらえます。</p></div>
+      <div class="place"><b>📋 けいじばん</b><p>先生からの おしらせや じかんわりが 見られます。</p></div>
+      <div class="place"><b>🎈 ききゅう のりば</b><p>べんきょうの しまへ 出ぱつ！ 先生が よいと いったら、ともだちの しまも 見に いけます。</p></div>
+      <div class="place"><b>🏠 じぶんの いえ</b><p>中に 入って、かぐを おいたり、かべと ゆかを かえたり できます。コインで へやを ひろげられます。</p></div>
+      <div class="place"><b>👕 きせかえや</b><p>ふくや ぼうしを かったり、きがえたり できます。きせつの ふくも 出るよ。</p></div>
+      <div class="place"><b>⚖️ こうかんじょ</b><p>そざいを ほかの そざいや コインに かえたり、つかわない ものを うったり できます。</p></div>
+      <div class="place"><b>🥚 ふしぎの たまごや</b><p>ガチャけんで たまごを ひくと、めずらしい かぐや ふくが 出るかも！</p></div>
+      <div class="place"><b>🟫 あきち</b><p>そざいを つかって、すきな たてものを たてられます。しばふに する ことも できます。</p></div>
+      <div class="place"><b>🎪 イベントひろば</b><p>まん中に、月ごとの かざり（モニュメント）が たちます。イベントの ときは クラスの みんなで もくひょうを めざします。</p></div>
+      <div class="place"><b>📝 やること</b><p>おうかんを あつめる ミッションが あります。</p></div>
+    </div>
+  </section>
+
+  <section id="coin">
+    <h2>🪙 コインと そざい</h2>
+    <h3>もらえる とき</h3>
+    <p>べんきょうの しまで もんだいを とくと、<b>コイン</b>と、その きょうかの <b>そざい</b>（さんすうの いし、りかの しずく など）が もらえます。しゅくだいを 出したときも もらえます。</p>
+    <h3>つかう とき</h3>
+    <p>たてものを たてる・しまを ひろげる・かぐや ふくを かう・へやを ひろげる ときに つかいます。いろいろな きょうかの そざいが いるので、いろいろな しまで べんきょうしてね。</p>
+    <img class="shot" src="guide/build.webp" alt="しまづくりの がめん">
+    <p>右上の <b>🛠 しまづくり</b>で、とちを ひろげたり、たてものや かざりを うごかしたり できます。</p>
+  </section>
+
+  <section id="tanoshimi">
+    <h2>🎉 おたのしみ</h2>
+    <h3>🎟 ガチャけん</h3>
+    <p>しまで べんきょうした日と、しゅくだいを 出した日に、1まいずつ もらえます。「ふしぎの たまごや」で つかおう。</p>
+    <h3>🏆 グランプリ</h3>
+    <p>先生が ひらいた 日だけ、右上に「🏆 グランプリ」が 出ます。1ぷんで なんもん とけるか ちょうせん！ なんかいでも できて、いちばん よい きろくが のこります。</p>
+    <h3>👫 ともだちの しま</h3>
+    <p>先生が よいと いった ときだけ、ききゅう のりばから ともだちの しまを 見に いけます。<b>見るだけ</b>で、ものを うごかしたり とったりは できません。すてきだったら「🌟 すてき！」を おくろう。</p>
+    <h3>🛋 じぶんの へや</h3>
+    <img class="shot" src="guide/room.webp" alt="じぶんの へやの え">
+    <p>「🛋 もようがえ」で、かぐを うごかしたり、しまったり、かったり できます。</p>
+  </section>
+
+  <section id="yakusoku" class="yakusoku">
+    <h2>🤝 やくそく</h2>
+    <ul>
+      <li><b>あいことばは ひみつ。</b>ともだちにも おしえないでね。</li>
+      <li><b>ほんとうの なまえや じゅうしょは 入れない。</b>ニックネームを つかおう。</li>
+      <li><b>じかんを きめて あそぼう。</b>おうちの 人と やくそくした じかんを まもろう。</li>
+      <li><b>ともだちの しまは やさしい 気もちで 見よう。</b>人の しまの わる口は いわないよ。</li>
+      <li><b>じゅぎょう中は 先生の はなしを よく きこう。</b></li>
+    </ul>
+  </section>
+
+  <section id="komatta">
+    <h2>🆘 こまった ときは</h2>
+    <ul>
+      <li><b>うごかない・へんな がめんに なった</b>：がめんを よみこみなおして（ページの 上の ⟳）みよう。</li>
+      <li><b>クラスに 入れない</b>：しゅっせき ばんごうと あいことばを たしかめよう。なんかいも まちがえた ときは、すこし まってから もういちど ためしてね。</li>
+      <li><b>きろくが きえないか しんぱい</b>：きろくは その たんまつに のこります。ほかの たんまつでは つづきから できないので、いつも おなじ たんまつで あそぼう。</li>
+      <li>それでも こまったら、<b>先生に きいてね。</b></li>
+    </ul>
+    <p class="end"><a class="btn sky" href="../index.html">🏝 ハテナリアへ もどる</a></p>
+    <p class="end" style="font-size:15px"><a href="sensei.html">先生・おうちの 人へ（せつめい）</a></p>
+  </section>
+</main>
+</body>
+</html>

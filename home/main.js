@@ -1,14 +1,14 @@
 // ホームアイランド v0.2
 // 島を歩く・建物を調べる・掲示板・気球で島めぐり・島から戻ったときの「おかえり」
 
-import * as store from '../common/store.js?v=0.24.1';
-import * as books from '../common/books.js?v=0.24.1';
-import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.24.1';
-import * as classroom from '../common/classroom.js?v=0.24.1';
-import { showPicker } from '../common/book-picker.js?v=0.24.1';
-import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, RESERVED, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_SMALL, ROOM_BIG, ROOM_EXPAND_COST, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD, GACHA } from './data.js?v=0.24.1';
+import * as store from '../common/store.js?v=0.25.0';
+import * as books from '../common/books.js?v=0.25.0';
+import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.25.0';
+import * as classroom from '../common/classroom.js?v=0.25.0';
+import { showPicker } from '../common/book-picker.js?v=0.25.0';
+import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, RESERVED, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_SMALL, ROOM_BIG, ROOM_EXPAND_COST, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD, GACHA } from './data.js?v=0.25.0';
 
-export const HOME_VERSION = '0.24.1';
+export const HOME_VERSION = '0.25.0';
 const PREVIEW = !!window.GI_PREVIEW; // アーティファクトでの試作表示（島へは移動しない）
 
 // 主人公の画像（仕様書2-4の規格：1コマ 384×512、足元 x=192, y=488。縮小した画像でも同じ比率で扱う）
@@ -1446,7 +1446,7 @@ function drawMon(m, cx, cy) {
 const GATE = { type: 'gate', gate: true };
 function unclaimedEvent() { return doneEvents().find((e) => !claimedEvents.includes(e.id)); }
 const eventImgs = {};
-for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.24.1'], ['t0', 'assets/home/xmas_tree0.webp?v=0.24.1'], ['t1', 'assets/home/xmas_tree1.webp?v=0.24.1'], ['t2', 'assets/home/xmas_tree2.webp?v=0.24.1'], ['t3', 'assets/home/xmas_tree3.webp?v=0.24.1']]) {
+for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.25.0'], ['t0', 'assets/home/xmas_tree0.webp?v=0.25.0'], ['t1', 'assets/home/xmas_tree1.webp?v=0.25.0'], ['t2', 'assets/home/xmas_tree2.webp?v=0.25.0'], ['t3', 'assets/home/xmas_tree3.webp?v=0.25.0']]) {
   const im = new Image(); im.onload = () => { eventImgs[k] = im; }; im.src = new URL('../' + src, import.meta.url).href;
 }
 function drawGate(now) {
@@ -2429,6 +2429,8 @@ function openSettings() {
     m.append(h('h2', {}, '⚙ せってい'),
       h('p', { class: 'body' }, `いまの ぼうけんの しょ：📖 ${book.name}`),
       h('div', { class: 'col' },
+        h('button', { class: 'btn sky', 'data-act': 'guide', onclick: openGuide }, '📘 あそびかた'),
+        cls?.teacher ? h('button', { class: 'btn sky', 'data-act': 'tguide', onclick: () => { location.href = new URL('./sensei.html', import.meta.url).href; } }, '📖 先生用ガイド') : null,
         h('button', { class: 'btn', 'data-act': 'hero', onclick: openHeroEditor }, '🧒 しゅじんこうを かえる'),
         h('button', { class: 'btn', 'data-act': 'furigana', onclick: async () => {
           const on = !(settings?.furigana !== false);
@@ -2994,9 +2996,10 @@ function heroGender() { return profile?.hero?.gender === 'girl' ? 'girl' : 'boy'
 
 // ------------------------------------------------------------------ タイトル画面
 // ブラウザを開いて最初の1回だけ出す（島から戻ったときや、同じタブで開き直したときは出さない）
-const LOGO_SRC = 'assets/home/logo.webp?v=0.24.1';
+const LOGO_SRC = 'assets/home/logo.webp?v=0.25.0';
 function titleShownThisSession() { try { return sessionStorage.getItem('hatenaria-title') === '1'; } catch { return false; } }
 function markTitleShown() { try { sessionStorage.setItem('hatenaria-title', '1'); } catch { /* 使えなくても動く */ } }
+const openGuide = () => { location.href = new URL('./asobikata.html', import.meta.url).href; };
 function showTitle(curBook) {
   return new Promise((resolve) => {
     const wrap = h('div', { class: 'tscreen', role: 'dialog', 'aria-label': 'ハテナリア' });
@@ -3004,7 +3007,8 @@ function showTitle(curBook) {
     const who = h('div', { class: 'who' }, curBook ? `📖 ${curBook.name} の ぼうけんの しょ` : '');
     const go = h('button', { class: 'go' }, 'はじめる');
     const sw = h('button', { class: 'sw' }, curBook ? 'ぼうけんの しょを かえる・つくる' : 'ぼうけんの しょを つくる');
-    const btns = curBook ? [go, sw] : [go];
+    const guide = h('button', { class: 'sw guide' }, '📘 あそびかた'); // 0.25.0：こどもよう あそびかた
+    const btns = curBook ? [go, sw, guide] : [go, guide];
     wrap.append(logo, who, h('div', { class: 'tbtns' }, ...btns));
     document.body.append(wrap);
     let idx = 0, keyMode = false, done = false;
@@ -3023,6 +3027,7 @@ function showTitle(curBook) {
       }
       if ((k === 'Enter' || k === ' ') && !e.repeat) {
         e.preventDefault(); e.stopPropagation();
+        if (btns[idx] === guide) { openGuide(); return; }
         finish(btns[idx] === go ? 'start' : 'switch');
       }
     };
@@ -3030,6 +3035,7 @@ function showTitle(curBook) {
     wrap.addEventListener('pointerdown', () => { keyMode = false; paint(); }, true);
     go.addEventListener('click', () => finish('start'));
     sw.addEventListener('click', () => finish('switch'));
+    guide.addEventListener('click', openGuide);
     go.focus({ preventScroll: true });
     // 最初から Enter だけで はじめられるよう、「はじめる」を選んだ状態にしておく（2-8）
     keyMode = true; paint();

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ハテナリア 先生用ガイド</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/icon-32.png">
+<style>
+  /* 先生用ガイド（ホーム 0.25.0）。機能が かわったら ここも なおす */
+  :root{--ink:#3a3226;--paper:#fffaf0;--gold:#ffd66b;--gold-d:#d9a93a;--sky:#bfe6ff;--sky-d:#7fb6d9;--line:#eadfca}
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:#eef6f8;font-family:"Hiragino Maru Gothic ProN","BIZ UDPGothic","Meiryo",sans-serif;color:var(--ink);line-height:1.85;font-size:17px}
+  header{position:sticky;top:0;z-index:5;background:rgba(255,250,240,.97);box-shadow:0 2px 0 rgba(0,0,0,.07);padding:10px 16px}
+  .top{display:flex;align-items:center;gap:12px;max-width:1020px;margin:0 auto}
+  .top h1{font-size:22px;margin:0;flex:1}
+  .btn{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 16px;border:none;border-radius:14px;background:var(--gold);color:var(--ink);
+    font:inherit;font-size:16px;font-weight:bold;box-shadow:0 4px 0 var(--gold-d);cursor:pointer;text-decoration:none}
+  .btn.sky{background:var(--sky);box-shadow:0 4px 0 var(--sky-d)}
+  nav{display:flex;gap:6px;overflow-x:auto;max-width:1020px;margin:8px auto 0;padding-bottom:6px}
+  nav a{flex:none;background:#fff;border-radius:12px;padding:4px 12px;font-size:14px;font-weight:bold;color:var(--ink);text-decoration:none;box-shadow:0 2px 0 #e2d6bf}
+  main{max-width:1020px;margin:0 auto;padding:14px 14px 60px}
+  section{background:var(--paper);border-radius:20px;padding:18px 24px;margin:16px 0;box-shadow:0 4px 0 rgba(0,0,0,.07);scroll-margin-top:120px}
+  h2{font-size:23px;margin:0 0 8px;border-bottom:3px solid var(--gold);display:inline-block;padding-bottom:2px}
+  h3{font-size:19px;margin:18px 0 4px}
+  p{margin:6px 0}
+  table{border-collapse:collapse;width:100%;margin:8px 0;font-size:15.5px;background:#fff;border-radius:12px;overflow:hidden}
+  th,td{border-bottom:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:#fbf1da;white-space:nowrap}
+  img.shot{display:block;width:100%;max-width:820px;margin:12px auto;border-radius:12px;border:1px solid var(--line)}
+  .steps{counter-reset:s;list-style:none;padding:0;margin:8px 0}
+  .steps>li{counter-increment:s;position:relative;padding:8px 0 8px 48px;border-bottom:1px dashed var(--line)}
+  .steps>li::before{content:counter(s);position:absolute;left:0;top:8px;width:34px;height:34px;border-radius:50%;background:var(--gold);box-shadow:0 3px 0 var(--gold-d);
+    display:flex;align-items:center;justify-content:center;font-weight:bold}
+  .note{background:#fff3d1;border-radius:12px;padding:8px 14px;margin:10px 0}
+  .ok{background:#e9f7ef;border-radius:12px;padding:8px 14px;margin:10px 0}
+  .flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:8px;align-items:center;text-align:center;margin:10px 0}
+  .flow div.box{background:#fff;border-radius:14px;padding:10px;box-shadow:0 3px 0 var(--line);font-size:15px}
+  .flow .arw{font-size:22px}
+  code{background:#f3ecdd;border-radius:6px;padding:1px 6px;font-size:.92em}
+  details{background:#fff;border-radius:12px;padding:8px 14px;margin:8px 0;box-shadow:0 2px 0 var(--line)}
+  summary{font-weight:bold;cursor:pointer}
+  @media (max-width:700px){.flow{grid-template-columns:1fr}.flow .arw{transform:rotate(90deg)}body{font-size:16px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <h1>📖 ハテナリア 先生用ガイド</h1>
+    <a class="btn sky" href="asobikata.html">📘 子ども用 あそびかた</a>
+    <a class="btn" href="../index.html">🏝 ハテナリアへ</a>
+  </div>
+  <nav aria-label="目次">
+    <a href="#about">ハテナリアとは</a>
+    <a href="#safe">しくみと安全</a>
+    <a href="#setup">はじめる準備</a>
+    <a href="#first">最初の授業</a>
+    <a href="#page">先生用ページ</a>
+    <a href="#play">先生も遊ぶ</a>
+    <a href="#tips">機能のコツ</a>
+    <a href="#update">更新のしかた</a>
+    <a href="#faq">よくある質問</a>
+  </nav>
+</header>
+<main>
+  <section id="about">
+    <h2>ハテナリアとは</h2>
+    <p>ハテナリアは、小学生向けの<b>全教科共通の学習アプリ</b>です。子どもは「じぶんの島（ホームアイランド）」を育てながら、気球で「さんすうの島」「りかの島」などに出かけて学習します。問題を解くとコインと教科ごとの素材がもらえ、それで建物を建てたり、部屋を飾ったり、服を着がえたりできます。</p>
+    <img class="shot" src="guide/overview.webp" alt="ホームアイランドの全体">
+    <table>
+      <tr><th>無料</th><td>有料サービスは使いません。アプリは GitHub Pages、先生側の記録は先生自身の Google スプレッドシートを使います。</td></tr>
+      <tr><th>実名不要</th><td>子どもは「出席番号」と「ニックネーム」と「あいことば（4けた）」だけで参加します。</td></tr>
+      <tr><th>先生が調整</th><td>宿題、開く島・単元、イベント、グランプリ、友達の島の使用などを、先生用ページで決められます。</td></tr>
+      <tr><th>学習が中心</th><td>素材は教科ごとに分かれていて、いろいろな教科を学ぶほど島づくりが進むしくみです。</td></tr>
+    </table>
+  </section>
+
+  <section id="safe">
+    <h2>しくみと安全</h2>
+    <div class="flow">
+      <div class="box">🧒 子どもの端末<br><small>島・コイン・学習の記録は<br>端末のブラウザに保存</small></div>
+      <div class="arw">⇄</div>
+      <div class="box">⚙ 先生の GAS（ウェブアプリ）<br><small>クラスの設定・宿題・イベントを渡す<br>学習の要約を受け取る</small></div>
+      <div class="arw">⇄</div>
+      <div class="box">📊 先生のスプレッドシート<br><small>名簿（番号・ニックネーム）<br>学習の要約・宿題・グランプリ</small></div>
+    </div>
+    <ul>
+      <li>先生のところに届くのは、<b>出席番号・ニックネーム・学習の要約</b>（いつ、どの単元を、何問解いたか など）だけです。</li>
+      <li>記録は<b>先生の Google ドライブの中だけ</b>に残ります。開発者のサーバーには送られません。</li>
+      <li>参加用リンクとあいことばを知らないと、クラスには入れません。リンクが外に広まったときは「クラスの設定」でクラスコードを作り直せます。</li>
+      <li>「友達の島」は、先生が使うと決めたときだけ開きます。見るだけで、チャットはなく、気持ちは「すてき！」スタンプだけです（数や順位は出ません）。</li>
+      <li>グランプリで子どもの画面に出るのは、自分の記録とクラスの合計だけです。順位は、先生が発表画面で見せるときだけ出ます。</li>
+    </ul>
+    <p class="note">⚠ 子どもの記録は端末のブラウザに保存されます。ブラウザの履歴やデータを消すと、島やコインが消えます。共用端末では注意してください。</p>
+  </section>
+
+  <section id="setup">
+    <h2>はじめる準備（約20分）</h2>
+    <p>先生の Google アカウント（学校のアカウントがおすすめ）で行います。</p>
+    <ol class="steps">
+      <li><b>スプレッドシートを用意する</b><br>新しい Google スプレッドシートを作り、［拡張機能］→［Apps Script］を開きます。配布されている「先生用GAS」のコードをすべて貼りつけて保存します。</li>
+      <li><b>さいしょの準備</b><br>スプレッドシートを開き直すと、メニューに［ハテナリア］が出ます。［ハテナリア］→［さいしょの じゅんび］を押し、Google の確認画面で許可します。必要なシートが自動で作られます。</li>
+      <li><b>子ども用のウェブアプリを公開する</b><br>Apps Script で［デプロイ］→［新しいデプロイ］→ 種類「ウェブアプリ」。<br>実行するユーザー：<b>自分</b>、アクセスできるユーザー：<b>全員</b> にしてデプロイします。出てきた <code>…/exec</code> で終わる URL を控えます。</li>
+      <li><b>先生用ページを開く</b><br>［デプロイ］→［デプロイをテスト］に出る <code>…/dev</code> で終わる URL をコピーし、スプレッドシートの［ハテナリア］→［先生用ページを ひらく］で貼りつけます。出てきたリンクから先生用ページを開き、<b>ブックマーク</b>しておきます。</li>
+      <li><b>クラスの設定</b><br>先生用ページの「⚙ クラスの設定」で、クラス名・学年・教科書を決め、「🔗 参加用リンク」の欄に手順3の <code>…/exec</code> の URL を一度だけ貼りつけます。参加用リンクと QR コードができます。</li>
+      <li><b>あいことばカードを作る</b><br>「🧒 子どものようす」→「🔑 あいことば」で、出席番号のいちばん大きい数を入れて［あいことばを つくる］→［🖨 カードを いんさつ］。切って一人ずつ配ります。</li>
+      <li><b>開く島・単元を決める</b><br>「🗺 しま・単元」で、子どもが入れる島と単元を選びます。習っていない単元は閉じておけます。</li>
+    </ol>
+    <p class="ok">✅ 複数のクラスを持つときは、先生用ページ上の［＋ クラス］で増やします。コードの貼りつけやデプロイは<b>最初の1回だけ</b>で、すべてのクラスを1つの先生用ページで扱えます。</p>
+  </section>
+
+  <section id="first">
+    <h2>最初の授業の例（45分）</h2>
+    <table>
+      <tr><th>5分</th><td>ハテナリアの紹介。子ども用「あそびかた」を見せながら、島を育てる学習の世界であることを伝える。<b>やくそく</b>（あいことばはひみつ、本当の名前は入れない、時間を決める）を確認。</td></tr>
+      <tr><th>10分</th><td>参加用リンク（QR コード・クラスルームなど）を開き、冒険の書を作る → 学年 → 主人公 → 出席番号とあいことばでクラスに入る。<br><small>※ 全員が同時に押すと少し待つことがあります。入れない子は、少しずらしてもう一度。</small></td></tr>
+      <tr><th>20分</th><td>気球で「さんすうの島」などへ行き、学習。もらったコインと素材で、島づくりを少し体験。</td></tr>
+      <tr><th>10分</th><td>ふり返り。どの教科の素材が何に使えるかを話し合い、次回の学習の見通しをもつ。</td></tr>
+    </table>
+    <p class="note">💡 子ども用「あそびかた」は、タイトル画面の［📘 あそびかた］と、ゲーム中の［⚙ せってい］から開けます。</p>
+  </section>
+
+  <section id="page">
+    <h2>先生用ページの使い方</h2>
+    <img class="shot" src="guide/teacher_cal.webp" alt="先生用ページのカレンダー">
+    <table>
+      <tr><th>📅 カレンダー</th><td>日にちを押して、宿題・イベント・お知らせを入れます。先の日にちの分もまとめて入れられます。</td></tr>
+      <tr><th>🎉 イベント</th><td>年間イベント（こいのぼり、七夕、ハロウィン、クリスマスなど）の一覧と結果。［基本の 年間イベントを 入れる］で1年分がそろいます。目標は「1人あたりの数×人数」で自動で入り、手で直すこともできます。</td></tr>
+      <tr><th>📚 宿題</th><td>単元・コースの表から宿題を選び、期間を決めて出せます。</td></tr>
+      <tr><th>🏆 グランプリ</th><td>計算1分グランプリなどを、日時を決めて開きます。結果の確認と、プロジェクター向けの「📣 はっぴょう」（個人・グループ・のびのびのベスト3／5）もここから。グループ（班）もここで作ります。</td></tr>
+      <tr><th>🧒 子どものようす</th><td>宿題の進み具合、学習の記録、あいことばの作成・カードの印刷。</td></tr>
+      <tr><th>🗺 しま・単元</th><td>子どもが行ける島と単元を開け閉めします。</td></tr>
+      <tr><th>⚙ クラスの設定</th><td>クラス名・学年・教科書、時間割、島づくりのきまり、学校の時間、理科クエスト連携、友達の島、参加用リンク、クラスの並び替え・はずす。</td></tr>
+    </table>
+    <img class="shot" src="guide/teacher_gp.webp" alt="グランプリのタブ">
+  </section>
+
+  <section id="play">
+    <h2>先生も遊ぶ</h2>
+    <p>先生用ページ上の［🏝 先生として ホームへ］で、先生用の冒険の書（出席番号 0）でホームに入れます。<b>先生の学習は成績やイベントの数には入りません。</b>閉じている島にも入れるので、授業の前に確かめるのに使えます。</p>
+    <ul>
+      <li>先生の島は1つです。左上の［👩‍🏫 先生（○年○組）▾］でクラスを切りかえると、イベント・宿題・お知らせ・学年だけが変わり、建物やコインは同じままです。</li>
+      <li>同じメニューの［👩‍🏫 先生用ページを ひらく］で、そのクラスの先生用ページを開けます。</li>
+      <li>クラスを増やしたら、もう一度［先生として ホームへ］を押してください。</li>
+    </ul>
+  </section>
+
+  <section id="tips">
+    <h2>機能のコツ</h2>
+    <h3>宿題</h3>
+    <p>宿題はホームの「学校」からすぐ解けます。島を歩く手間がないので、短い時間でも取り組めます。出すとごほうび（島で解いたのと同じ量）とガチャけんがもらえます。</p>
+    <h3>年間イベント</h3>
+    <p>クラスみんなで目標の問題数をめざします。達成するとクラス全員に季節の家具などが届きます。イベントひろばのモニュメントの上に、名前と進み具合が出ます。</p>
+    <h3>グランプリ</h3>
+    <p>期間中は何回でも挑戦でき、いちばんよい記録が残ります。発表では「のびのび（前の大会からの伸び）」も選べるので、いろいろな子に光が当たります。</p>
+    <h3>友達の島</h3>
+    <p>「⚙ クラスの設定」でオン・オフと、1日に見に行ける島の数を決めます。使い始める前に、見るときのマナー（やさしい気持ちで、わる口は言わない）を学級で確認しておくと安心です。</p>
+    <h3>島づくりの時間</h3>
+    <p>「島づくりのきまり」を「学校の時間はできない」にすると、平日の授業時間は島づくりが止まり、学習だけができます。</p>
+  </section>
+
+  <section id="update">
+    <h2>更新のしかた</h2>
+    <p>ホームや各島（子どもの画面）は、更新すると<b>自動で全員に届きます</b>。先生の作業はいりません。</p>
+    <p>先生用GASに新しい版が出たときだけ、次の手順で更新します。</p>
+    <ol class="steps">
+      <li>Apps Script のコードをすべて新しい版に貼りかえて保存。</li>
+      <li>［デプロイ］→［デプロイを管理］→ 鉛筆マーク（編集）→ バージョン「新バージョン」→［デプロイ］。<br><b>「新しいデプロイ」は作らないでください。</b>子ども用の URL が変わってしまいます。</li>
+    </ol>
+  </section>
+
+  <section id="faq">
+    <h2>よくある質問</h2>
+    <details><summary>子どもがクラスに入れません。</summary><p>出席番号とあいことばを確かめてください。何回か続けて間違えると、少しの間入れなくなります。全員が同時に入ると混み合うので、少しずつずらすと通りやすくなります。リンクを作り直した場合は、新しいリンクで入り直します。</p></details>
+    <details><summary>端末を変えたら、島が消えました。</summary><p>島やコインは端末のブラウザに保存されるため、別の端末ではつづきから遊べません。同じ端末・同じブラウザで使ってください。（「⚙ せってい」からバックアップのファイルを保存できます。別の端末への移しかえは、今後の版で対応する予定です。）</p></details>
+    <details><summary>先生の学習は成績に入りますか？</summary><p>入りません。先生の冒険の書（出席番号 0）の学習は、成績にもイベントの数にもグランプリの記録にも入りません。</p></details>
+    <details><summary>家でも使えますか？</summary><p>使えます。同じ端末なら、学校と家で同じ島のつづきができます。家庭での使い方は、各家庭のきまりに合わせてください。</p></details>
+    <details><summary>学校と家のパソコンで、先生用ページの内容は同じですか？</summary><p>同じです。先生の Google アカウントでログインしていれば、どのパソコンからでも同じクラスのデータを見られます。</p></details>
+    <details><summary>子どもの記録を消して、新しい年度で始めたいです。</summary><p>先生用ページで新しいクラスを作り、新しい参加用リンクとあいことばを配ります。子どもの端末の島は残るので、新しいクラスでもつづきから遊べます。</p></details>
+  </section>
+  <p style="text-align:center;margin-top:24px"><a class="btn sky" href="asobikata.html">📘 子ども用 あそびかた</a> <a class="btn" href="../index.html">🏝 ハテナリアへ</a></p>
+</main>
+</body>
+</html>
