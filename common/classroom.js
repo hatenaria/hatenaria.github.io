@@ -1,7 +1,7 @@
 // 先生とのつながり（共通仕様書 4章）
 // 児童の端末 → 先生のGAS：参加の登録、学習の要約（片道）。先生のGAS → 端末：クラス設定とお知らせだけ。
 // 児童の記録は先生から返ってこない。実名は送らない（出席番号とハンドルネームだけ）。
-import * as store from './store.js?v=0.21.0';
+import * as store from './store.js?v=0.21.1';
 
 const REFRESH_MS = 2 * 60 * 1000;   // クラス設定（おしらせ・宿題など）はホームを開くたびに読む。続けて開いたときだけ2分あける
 const SEND_MAX = 50;                     // 1回に送る要約の数
@@ -76,7 +76,7 @@ async function get(url, params, timeoutMs = 15000) {
 
 /** クラスに入る（出席番号とハンドルネームを登録） */
 export async function join(bookId, { url, code }, { number, pin, handle, grade }) {
-  const res = await post(url, { action: 'join', code, number: Number(number), pin: String(pin || ''), handle, grade });
+  const res = await post(url, { action: 'join', code, number: Number(number), pin: String(pin || ''), handle, grade }, 45000); // クラス全員が いっせいに 押しても まてるように（0.21.1）
   if (!res || !res.ok) throw new Error(res?.message || 'とうろく できなかったよ');
   const cls = { code, url, number: Number(number), handle, token: res.token, className: res.className || '',
     settings: res.settings || {}, notices: res.notices || [], timetable: res.timetable || null, events: res.events || [], homework: res.homework || [], grandprix: res.grandprix || [], skew: res.now ? res.now - Date.now() : 0, fetchedAt: Date.now(), joinedAt: new Date().toISOString() };

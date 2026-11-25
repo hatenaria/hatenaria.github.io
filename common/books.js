@@ -3,7 +3,7 @@
 // ・パスワードは付けない。消すときの確認は画面側（book-picker.js）で行う
 // ・作成と削除はホームで行う。各島は「選ぶ」だけ（設計書5章）
 
-import * as store from './store.js?v=0.21.0';
+import * as store from './store.js?v=0.21.1';
 
 export const MAX_BOOKS = 3;
 export const BOOK_IDS = ['p1', 'p2', 'p3'];
