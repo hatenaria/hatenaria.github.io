@@ -1,14 +1,14 @@
 // ホームアイランド v0.2
 // 島を歩く・建物を調べる・掲示板・気球で島めぐり・島から戻ったときの「おかえり」
 
-import * as store from '../common/store.js?v=0.24.0';
-import * as books from '../common/books.js?v=0.24.0';
-import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.24.0';
-import * as classroom from '../common/classroom.js?v=0.24.0';
-import { showPicker } from '../common/book-picker.js?v=0.24.0';
-import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, RESERVED, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_SMALL, ROOM_BIG, ROOM_EXPAND_COST, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD, GACHA } from './data.js?v=0.24.0';
+import * as store from '../common/store.js?v=0.24.1';
+import * as books from '../common/books.js?v=0.24.1';
+import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.24.1';
+import * as classroom from '../common/classroom.js?v=0.24.1';
+import { showPicker } from '../common/book-picker.js?v=0.24.1';
+import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, RESERVED, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_SMALL, ROOM_BIG, ROOM_EXPAND_COST, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD, GACHA } from './data.js?v=0.24.1';
 
-export const HOME_VERSION = '0.24.0';
+export const HOME_VERSION = '0.24.1';
 const PREVIEW = !!window.GI_PREVIEW; // アーティファクトでの試作表示（島へは移動しない）
 
 // 主人公の画像（仕様書2-4の規格：1コマ 384×512、足元 x=192, y=488。縮小した画像でも同じ比率で扱う）
@@ -1446,7 +1446,7 @@ function drawMon(m, cx, cy) {
 const GATE = { type: 'gate', gate: true };
 function unclaimedEvent() { return doneEvents().find((e) => !claimedEvents.includes(e.id)); }
 const eventImgs = {};
-for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.24.0'], ['t0', 'assets/home/xmas_tree0.webp?v=0.24.0'], ['t1', 'assets/home/xmas_tree1.webp?v=0.24.0'], ['t2', 'assets/home/xmas_tree2.webp?v=0.24.0'], ['t3', 'assets/home/xmas_tree3.webp?v=0.24.0']]) {
+for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.24.1'], ['t0', 'assets/home/xmas_tree0.webp?v=0.24.1'], ['t1', 'assets/home/xmas_tree1.webp?v=0.24.1'], ['t2', 'assets/home/xmas_tree2.webp?v=0.24.1'], ['t3', 'assets/home/xmas_tree3.webp?v=0.24.1']]) {
   const im = new Image(); im.onload = () => { eventImgs[k] = im; }; im.src = new URL('../' + src, import.meta.url).href;
 }
 function drawGate(now) {
@@ -2639,19 +2639,19 @@ function playK1m(g, practice) {
   const src = new URL(`../apps/keisan-1min/?hgp=1&mode=${encodeURIComponent(mode)}&id=${encodeURIComponent(g.id)}&name=${encodeURIComponent(name)}&input=key&practice=${practice ? 1 : 0}`, import.meta.url).href;
   const wrap = h('div', { class: 'k1m-wrap' });
   const frame = h('iframe', { class: 'k1m-frame', src, title: 'けいさん 1ぷん チャレンジ', allow: 'autoplay' });
-  const back = h('button', { class: 'btn k1m-back', onclick: () => done() }, '✕ もどる');
+  const back = h('button', { class: 'btn k1m-back', hidden: '', onclick: () => done() }, '✕ もどる'); // アプリが ひらけない ときだけ（5びょう まっても ready が こない）
   const msg = h('div', { class: 'k1m-msg' });
   wrap.append(frame, back, msg); document.body.append(wrap);
   modalOpen = true; // うしろの 島は うごかない
+  let ready = false; const guard = setTimeout(() => { if (!ready) back.hidden = false; }, 5000);
   frame.addEventListener('load', () => { try { frame.focus(); } catch { /* なし */ } });
   const onMsg = async (e) => {
     if (e.origin !== location.origin || e.source !== frame.contentWindow) return;
     const d = e.data || {};
     if (d.app !== 'keisan1min' || (d.id && d.id !== g.id)) return;
-    if (d.type === 'hatenaria:k1m-ready') { back.hidden = true; return; }
+    if (d.type === 'hatenaria:k1m-ready') { ready = true; back.hidden = true; return; }
     if (d.type === 'hatenaria:k1m-close') { done(); return; }
-    if (d.type === 'hatenaria:k1m-result') {
-      back.hidden = false;
+    if (d.type === 'hatenaria:k1m-result') { // もどるは アプリの けっか画面の ボタンで（close が とどく）
       if (practice || d.practice) return;
       const score = Math.max(0, Math.floor(Number(d.score) || 0));
       const r = await classroom.grandprix(book.id, g.id, 'send', score);
@@ -2665,7 +2665,7 @@ function playK1m(g, practice) {
   };
   window.addEventListener('message', onMsg);
   function done() {
-    window.removeEventListener('message', onMsg);
+    clearTimeout(guard); window.removeEventListener('message', onMsg);
     wrap.remove(); modalOpen = false; openGp();
   }
 }
@@ -2994,7 +2994,7 @@ function heroGender() { return profile?.hero?.gender === 'girl' ? 'girl' : 'boy'
 
 // ------------------------------------------------------------------ タイトル画面
 // ブラウザを開いて最初の1回だけ出す（島から戻ったときや、同じタブで開き直したときは出さない）
-const LOGO_SRC = 'assets/home/logo.webp?v=0.24.0';
+const LOGO_SRC = 'assets/home/logo.webp?v=0.24.1';
 function titleShownThisSession() { try { return sessionStorage.getItem('hatenaria-title') === '1'; } catch { return false; } }
 function markTitleShown() { try { sessionStorage.setItem('hatenaria-title', '1'); } catch { /* 使えなくても動く */ } }
 function showTitle(curBook) {
