@@ -7,46 +7,46 @@ export const SUBJECT_LABELS = { math: 'さんすう', rika: 'りか', kokugo: '�
 
 // 建物の種類。w×h は占めるマス数。front は「この行の下に立って上を向くと調べられる」
 export const OBJECT_TYPES = {
-  school:   { name: 'がっこう',       w: 5, h: 3, roof: '#d9654b', wall: '#f5ead6', solid: true, sprite: { src: 'assets/home/bld_school.webp?v=0.22.0', w: 4.922 } },
+  school:   { name: 'がっこう',       w: 5, h: 3, roof: '#d9654b', wall: '#f5ead6', solid: true, sprite: { src: 'assets/home/bld_school.webp?v=0.24.0', w: 4.922 } },
   // やることボード（自分の家の前）
-  todo:     { name: 'やること',       w: 1, h: 1, solid: true, sprite: { src: 'assets/home/bld_todo.webp?v=0.22.0', w: 1.0 } },
-  board:    { name: 'けいじばん',     w: 1, h: 1, solid: true, noLabel: true, sprite: { src: 'assets/home/bld_board.webp?v=0.22.0', w: 1.312 } },
+  todo:     { name: 'やること',       w: 1, h: 1, solid: true, sprite: { src: 'assets/home/bld_todo.webp?v=0.24.0', w: 1.0 } },
+  board:    { name: 'けいじばん',     w: 1, h: 1, solid: true, noLabel: true, sprite: { src: 'assets/home/bld_board.webp?v=0.24.0', w: 1.312 } },
   // sprite.w は画像の横幅が何マス分か（土台の幅に合わせて縮小済み）。画像の下端＝土台の下端
-  house:    { name: 'じぶんの いえ',  w: 3, h: 2, roof: '#4d8fd1', wall: '#fbf3e4', solid: true, sprite: { src: 'assets/home/bld_house.webp?v=0.22.0', w: 3.245 } },
-  balloon:  { name: 'ききゅう のりば', w: 2, h: 2, solid: true, sprite: { src: 'assets/home/balloon_pad.webp?v=0.22.0', w: 2.198 },
-              air: { src: 'assets/home/balloon.webp?v=0.22.0', w: 1.448, deck: 0.58 } }, // deck：台の上面（かごを置く高さ）が絵の上から何割の所か
-  kisekae:  { name: 'きせかえや',     w: 3, h: 2, roof: '#c77dbb', wall: '#fbeff7', solid: true, sprite: { src: 'assets/home/bld_kisekae.webp?v=0.22.0', w: 2.589 } },
-  gacha:    { name: 'ふしぎの たまごや', w: 2, h: 2, solid: true, sprite: { src: 'assets/home/bld_gacha.webp?v=0.22.0', w: 2.1 } },
-  exchange: { name: 'こうかんじょ',   w: 3, h: 2, roof: '#e0a43a', wall: '#fdf3df', solid: true, sprite: { src: 'assets/home/bld_exchange.webp?v=0.22.0', w: 2.693 } },
+  house:    { name: 'じぶんの いえ',  w: 3, h: 2, roof: '#4d8fd1', wall: '#fbf3e4', solid: true, sprite: { src: 'assets/home/bld_house.webp?v=0.24.0', w: 3.245 } },
+  balloon:  { name: 'ききゅう のりば', w: 2, h: 2, solid: true, sprite: { src: 'assets/home/balloon_pad.webp?v=0.24.0', w: 2.198 },
+              air: { src: 'assets/home/balloon.webp?v=0.24.0', w: 1.448, deck: 0.58 } }, // deck：台の上面（かごを置く高さ）が絵の上から何割の所か
+  kisekae:  { name: 'きせかえや',     w: 3, h: 2, roof: '#c77dbb', wall: '#fbeff7', solid: true, sprite: { src: 'assets/home/bld_kisekae.webp?v=0.24.0', w: 2.589 } },
+  gacha:    { name: 'ふしぎの たまごや', w: 2, h: 2, solid: true, sprite: { src: 'assets/home/bld_gacha.webp?v=0.24.0', w: 2.1 } },
+  exchange: { name: 'こうかんじょ',   w: 3, h: 2, roof: '#e0a43a', wall: '#fdf3df', solid: true, sprite: { src: 'assets/home/bld_exchange.webp?v=0.24.0', w: 2.693 } },
   // 飾り（調べられない。deco:true）
-  tree:     { name: 'き',       w: 1, h: 1, solid: true, deco: true, noLabel: true, sprite: { src: 'assets/home/deco_tree.webp?v=0.22.0', w: 1.698 } },
-  palm:     { name: 'ヤシのき', w: 1, h: 1, solid: true, deco: true, noLabel: true, sprite: { src: 'assets/home/deco_palm.webp?v=0.22.0', w: 1.599 } },
-  flowers:  { name: 'はな',     w: 1, h: 1, solid: true, deco: true, noLabel: true, sprite: { src: 'assets/home/deco_flowers.webp?v=0.22.0', w: 1.099 } },
-  rock:     { name: 'いわ',     w: 1, h: 1, solid: true, deco: true, noLabel: true, sprite: { src: 'assets/home/deco_rock.webp?v=0.22.0', w: 1.0 } },
-  b_hanabatake: { name: 'はなばたけ',       w: 2, h: 2, solid: true, built: true, sprite: { src: 'assets/home/b_hanabatake.webp?v=0.22.0', w: 2.198 } },
-  b_bench:      { name: 'ベンチと がいとう', w: 2, h: 2, solid: true, built: true, sprite: { src: 'assets/home/b_bench.webp?v=0.22.0', w: 2.198 } },
-  b_library:    { name: 'としょかん',       w: 2, h: 2, solid: true, built: true, sprite: { src: 'assets/home/b_library.webp?v=0.22.0', w: 2.198 } },
-  b_lab:        { name: 'かんさつ ラボ',     w: 2, h: 2, solid: true, built: true, sprite: { src: 'assets/home/b_lab.webp?v=0.22.0', w: 2.198 } },
-  b_cafe:       { name: 'ABC カフェ',        w: 2, h: 2, solid: true, built: true, sprite: { src: 'assets/home/b_cafe.webp?v=0.22.0', w: 2.198 } },
-  b_tenboudai:  { name: 'てんぼうだい',     w: 2, h: 2, solid: true, built: true, sprite: { src: 'assets/home/b_tenboudai.webp?v=0.22.0', w: 2.198 } },
-  b_tower:      { name: 'ハテナの とう',     w: 2, h: 2, solid: true, built: true, sprite: { src: 'assets/home/b_tower.webp?v=0.22.0', w: 1.5 } },
+  tree:     { name: 'き',       w: 1, h: 1, solid: true, deco: true, noLabel: true, sprite: { src: 'assets/home/deco_tree.webp?v=0.24.0', w: 1.698 } },
+  palm:     { name: 'ヤシのき', w: 1, h: 1, solid: true, deco: true, noLabel: true, sprite: { src: 'assets/home/deco_palm.webp?v=0.24.0', w: 1.599 } },
+  flowers:  { name: 'はな',     w: 1, h: 1, solid: true, deco: true, noLabel: true, sprite: { src: 'assets/home/deco_flowers.webp?v=0.24.0', w: 1.099 } },
+  rock:     { name: 'いわ',     w: 1, h: 1, solid: true, deco: true, noLabel: true, sprite: { src: 'assets/home/deco_rock.webp?v=0.24.0', w: 1.0 } },
+  b_hanabatake: { name: 'はなばたけ',       w: 2, h: 2, solid: true, built: true, sprite: { src: 'assets/home/b_hanabatake.webp?v=0.24.0', w: 2.198 } },
+  b_bench:      { name: 'ベンチと がいとう', w: 2, h: 2, solid: true, built: true, sprite: { src: 'assets/home/b_bench.webp?v=0.24.0', w: 2.198 } },
+  b_library:    { name: 'としょかん',       w: 2, h: 2, solid: true, built: true, sprite: { src: 'assets/home/b_library.webp?v=0.24.0', w: 2.198 } },
+  b_lab:        { name: 'かんさつ ラボ',     w: 2, h: 2, solid: true, built: true, sprite: { src: 'assets/home/b_lab.webp?v=0.24.0', w: 2.198 } },
+  b_cafe:       { name: 'ABC カフェ',        w: 2, h: 2, solid: true, built: true, sprite: { src: 'assets/home/b_cafe.webp?v=0.24.0', w: 2.198 } },
+  b_tenboudai:  { name: 'てんぼうだい',     w: 2, h: 2, solid: true, built: true, sprite: { src: 'assets/home/b_tenboudai.webp?v=0.24.0', w: 2.198 } },
+  b_tower:      { name: 'ハテナの とう',     w: 2, h: 2, solid: true, built: true, sprite: { src: 'assets/home/b_tower.webp?v=0.24.0', w: 1.5 } },
   // イベントひろば（島の中央。動かせない・ほかの物を置けない。イベントの期間だけ「イベントの もん」が立つ）
   plaza:    { name: 'イベントひろば', w: 3, h: 3, solid: false, ground: true }, // ground：ふつうの 地面と同じに 歩ける（タップでも そこへ歩く・しらべる 対象に ならない）
   lawn:     { name: 'しばふ',         w: 2, h: 2, solid: false, deco: true, noLabel: true }, // v0.18.0：あきちを ただの しばふに（もとに もどせる）
-  lot:      { name: 'あきち',         w: 2, h: 2, solid: false, sprite: { src: 'assets/home/bld_lot.webp?v=0.22.0', w: 2.151 } },
+  lot:      { name: 'あきち',         w: 2, h: 2, solid: false, sprite: { src: 'assets/home/bld_lot.webp?v=0.24.0', w: 2.151 } },
 };
 
 // 冒険の書を作ったときの、最初の島のようす
 // ---------------------------------------------------------------- 建てられる建物（v0.4）
 // 教科ごとの素材（各島で学ぶと手に入る。仕様書3-5の p1/wallet.materials のキーと同じ）
 export const MATERIALS = {
-  math:   { name: 'かずの いし',     icon: '💎', img: 'assets/home/mat_math.webp?v=0.22.0' },
-  rika:   { name: 'ふしぎの しずく', icon: '💧', img: 'assets/home/mat_rika.webp?v=0.22.0' },
-  kokugo: { name: 'ことばの はね',   icon: '🪶', img: 'assets/home/mat_kokugo.webp?v=0.22.0' },
-  shakai: { name: 'ちずの かけら',   icon: '🗺️', img: 'assets/home/mat_shakai.webp?v=0.22.0' },
-  eigo:   { name: 'ABCの ほし',      icon: '⭐', img: 'assets/home/mat_eigo.webp?v=0.22.0' },
+  math:   { name: 'かずの いし',     icon: '💎', img: 'assets/home/mat_math.webp?v=0.24.0' },
+  rika:   { name: 'ふしぎの しずく', icon: '💧', img: 'assets/home/mat_rika.webp?v=0.24.0' },
+  kokugo: { name: 'ことばの はね',   icon: '🪶', img: 'assets/home/mat_kokugo.webp?v=0.24.0' },
+  shakai: { name: 'ちずの かけら',   icon: '🗺️', img: 'assets/home/mat_shakai.webp?v=0.24.0' },
+  eigo:   { name: 'ABCの ほし',      icon: '⭐', img: 'assets/home/mat_eigo.webp?v=0.24.0' },
   'fushigi-kakera': { name: 'ふしぎの かけら', icon: '🔮', rare: true },
-  'gacha-ticket':   { name: 'ガチャけん', icon: '🎟️', img: 'assets/gacha/ticket.webp?v=0.22.0', rare: true }, // 学習・しゅくだい・島の たからばこで（ふしぎの たまごやで つかう） // ふしぎの あなの クリアで（こうかんじょで つかう）
+  'gacha-ticket':   { name: 'ガチャけん', icon: '🎟️', img: 'assets/gacha/ticket.webp?v=0.24.0', rare: true }, // 学習・しゅくだい・島の たからばこで（ふしぎの たまごやで つかう） // ふしぎの あなの クリアで（こうかんじょで つかう）
 };
 // 空き地（2×2）に建てる建物。段階2からは、2つ以上の教科の素材が必要（同じ教科ばかりにならないように）
 export const BUILDABLES = [
@@ -64,11 +64,11 @@ export const LAYOUT_VERSION = 9;
 
 // 地面の模様（つなぎ目のない画像）と、何マスで1回くり返すか
 export const TEXTURES = {
-  grass: { src: 'assets/home/tex_grass.webp?v=0.22.0', tiles: 3 },
-  path:  { src: 'assets/home/tex_path.webp?v=0.22.0',  tiles: 3 },
-  sea:   { src: 'assets/home/tex_sea.webp?v=0.22.0',   tiles: 4 },
+  grass: { src: 'assets/home/tex_grass.webp?v=0.24.0', tiles: 3 },
+  path:  { src: 'assets/home/tex_path.webp?v=0.24.0',  tiles: 3 },
+  sea:   { src: 'assets/home/tex_sea.webp?v=0.24.0',   tiles: 4 },
 };
-export const ISLANDS_BG = 'assets/home/bg_islands.webp?v=0.22.0';
+export const ISLANDS_BG = 'assets/home/bg_islands.webp?v=0.24.0';
 
 // 最初から島にある飾り
 const DEFAULT_DECOS = [
@@ -270,11 +270,11 @@ export const PATH_TILES = (() => {
 
 // 島の一覧。ready:false の島は霧の中で「じゅんびちゅう」
 export const ISLANDS = [
-  { id: 'math',   name: 'さんすうの しま', subject: 'math',   url: 'math/',   ready: true , color: '#f2b544', icon: '🔢', img: 'assets/home/isle_math.webp?v=0.22.0' },
-  { id: 'rika',   name: 'りかの しま',     subject: 'rika',   url: 'rika/',   ready: true, color: '#5fb4e6', icon: '🔬', img: 'assets/home/isle_rika.webp?v=0.22.0' },
-  { id: 'kokugo', name: 'こくごの しま',   subject: 'kokugo', url: 'kokugo/', ready: false, color: '#e88a8a', icon: '📖', img: 'assets/home/isle_kokugo.webp?v=0.22.0' },
-  { id: 'shakai', name: 'しゃかいの しま', subject: 'shakai', url: 'shakai/', ready: false, color: '#a58fd8', icon: '🗾', img: 'assets/home/isle_shakai.webp?v=0.22.0' },
-  { id: 'eigo',   name: 'えいごの しま',   subject: 'eigo',   url: 'eigo/',   ready: false, color: '#f29e5c', icon: '🔤', img: 'assets/home/isle_eigo.webp?v=0.22.0' },
+  { id: 'math',   name: 'さんすうの しま', subject: 'math',   url: 'math/',   ready: true , color: '#f2b544', icon: '🔢', img: 'assets/home/isle_math.webp?v=0.24.0' },
+  { id: 'rika',   name: 'りかの しま',     subject: 'rika',   url: 'rika/',   ready: true, color: '#5fb4e6', icon: '🔬', img: 'assets/home/isle_rika.webp?v=0.24.0' },
+  { id: 'kokugo', name: 'こくごの しま',   subject: 'kokugo', url: 'kokugo/', ready: false, color: '#e88a8a', icon: '📖', img: 'assets/home/isle_kokugo.webp?v=0.24.0' },
+  { id: 'shakai', name: 'しゃかいの しま', subject: 'shakai', url: 'shakai/', ready: false, color: '#a58fd8', icon: '🗾', img: 'assets/home/isle_shakai.webp?v=0.24.0' },
+  { id: 'eigo',   name: 'えいごの しま',   subject: 'eigo',   url: 'eigo/',   ready: false, color: '#f29e5c', icon: '🔤', img: 'assets/home/isle_eigo.webp?v=0.24.0' },
 ];
 
 // 仮のお知らせ（作業④で先生のスプレッドシートから読み込むようにする）
@@ -285,62 +285,75 @@ export const SAMPLE_NOTICES = [
 
 // ---------------------------------------------------------------- 自分の家の中（v0.11.0、仕様書10章）
 // へやは 横6×奥行き5マス。絵（1536×1024）の 床の上に、遠近に あわせて マスを のせる
-export const ROOM = {
+// v0.23.0：へやを ひろげると 横8×たて6（画像依頼セット03）。ROOM は いまの へやの 大きさ（main.js が きりかえる）
+export const ROOM_SMALL = {
   cols: 6, rows: 5,
-  img: { w: 1536, h: 1024 },
   floor: { y0: 420, y1: 1000, back: [230, 1306], front: [40, 1496] }, // 奥の行の上はし・手前の行の下はしと、その左右
   door: [[2, 4], [3, 4]], // 出入り口の マット（ここから 下へ すすむと そとへ）
 };
+export const ROOM_BIG = {
+  cols: 8, rows: 6,
+  floor: { y0: 360, y1: 1010, back: [150, 1386], front: [0, 1536] },
+  door: [[3, 5], [4, 5]],
+};
+export const ROOM = { ...ROOM_SMALL, img: { w: 1536, h: 1024 } };
+export const ROOM_EXPAND_COST = { coin: 200 };
+const wallOf = (k, name, price) => ({ name, src: `assets/room/room_${k}.webp?v=0.24.0`, big: `assets/room/room_big_${k}.webp?v=0.24.0`, ...(price ? { price } : {}) });
 export const ROOM_WALLS = {
-  stripe: { name: 'みずいろの しま', src: 'assets/room/room_stripe.webp?v=0.22.0' },
-  flower: { name: 'ミントの こばな', src: 'assets/room/room_flower.webp?v=0.22.0' },
+  stripe: wallOf('stripe', 'みずいろの しま'),
+  flower: wallOf('flower', 'ミントの こばな'),
+  forest: wallOf('forest', 'もりの はっぱ', 50),
+  sea:    wallOf('sea', 'うみの かいがら', 50),
+  star:   wallOf('star', 'ほしぞら', 50),
+  sweets: wallOf('sweets', 'ピンクの ドット', 50),
+  wa:     wallOf('wa', 'たたみの わしつ', 80),
 };
 // かぐ。w×h は 床の マス。sw は 絵の よこはばが 何マスぶんか。act は しらべたときの はたらき
 // views：ほかの むきの 絵（up＝うしろむき、left＝ひだりむき。right は left を 左右はんてんして つかう）。左右むきでは w と h が いれかわる
 export const FURNITURE = {
-  bed:         { name: 'ベッド',           w: 2, h: 2, sw: 1.7, src: 'assets/room/bed.webp?v=0.22.0',         act: 'bed',
-                 views: { left: { src: 'assets/room/bed_left.webp?v=0.22.0', sw: 1.9 } } },
-  desk:        { name: 'がくしゅうづくえ', w: 2, h: 1, sw: 1.9, src: 'assets/room/desk.webp?v=0.22.0',        act: 'desk',
-                 views: { left: { src: 'assets/room/desk_left.webp?v=0.22.0', sw: 1.0 } } },
-  chair:       { name: 'いす',             w: 1, h: 1, sw: 0.8, src: 'assets/room/chair.webp?v=0.22.0',
-                 views: { up: { src: 'assets/room/chair_up.webp?v=0.22.0', sw: 0.8 }, left: { src: 'assets/room/chair_left.webp?v=0.22.0', sw: 0.75 } } },
-  bookshelf:   { name: 'ほんだな',         w: 1, h: 1, sw: 1.0, src: 'assets/room/bookshelf.webp?v=0.22.0',   act: 'books' },
-  trophyshelf: { name: 'かざりだな',       w: 2, h: 1, sw: 1.7, src: 'assets/room/trophyshelf.webp?v=0.22.0', act: 'shelf' },
-  sofa:        { name: 'ソファ',           w: 2, h: 1, sw: 1.9, src: 'assets/room/sofa.webp?v=0.22.0',        cost: { coin: 40, eigo: 3 },
-                 views: { up: { src: 'assets/room/sofa_up.webp?v=0.22.0', sw: 1.9 }, left: { src: 'assets/room/sofa_left.webp?v=0.22.0', sw: 1.1 } } },
-  table:       { name: 'まるい テーブル',  w: 1, h: 1, sw: 1.0, src: 'assets/room/table.webp?v=0.22.0',       cost: { coin: 25, math: 2 } },
-  rug:         { name: 'まるい ラグ',      w: 2, h: 2, sw: 2.0, src: 'assets/room/rug.webp?v=0.22.0', flat: true, cost: { coin: 20, kokugo: 2 } },
-  lamp:        { name: 'スタンドライト',   w: 1, h: 1, sw: 0.5, src: 'assets/room/lamp.webp?v=0.22.0',        cost: { coin: 30, rika: 2 } },
-  plant:       { name: 'かんようしょくぶつ', w: 1, h: 1, sw: 0.8, src: 'assets/room/plant.webp?v=0.22.0',     cost: { coin: 20, shakai: 2 } },
+  bed:         { name: 'ベッド',           w: 2, h: 2, sw: 1.7, src: 'assets/room/bed.webp?v=0.24.0',         act: 'bed',
+                 views: { left: { src: 'assets/room/bed_left.webp?v=0.24.0', sw: 1.9 } } },
+  desk:        { name: 'がくしゅうづくえ', w: 2, h: 1, sw: 1.9, src: 'assets/room/desk.webp?v=0.24.0',        act: 'desk',
+                 views: { left: { src: 'assets/room/desk_left.webp?v=0.24.0', sw: 1.0 } } },
+  chair:       { name: 'いす',             w: 1, h: 1, sw: 0.8, src: 'assets/room/chair.webp?v=0.24.0',
+                 views: { up: { src: 'assets/room/chair_up.webp?v=0.24.0', sw: 0.8 }, left: { src: 'assets/room/chair_left.webp?v=0.24.0', sw: 0.75 } } },
+  bookshelf:   { name: 'ほんだな',         w: 1, h: 1, sw: 1.0, src: 'assets/room/bookshelf.webp?v=0.24.0',   act: 'books' },
+  trophyshelf: { name: 'かざりだな',       w: 2, h: 1, sw: 1.7, src: 'assets/room/trophyshelf.webp?v=0.24.0', act: 'shelf' },
+  sofa:        { name: 'ソファ',           w: 2, h: 1, sw: 1.9, src: 'assets/room/sofa.webp?v=0.24.0',        cost: { coin: 40, eigo: 3 },
+                 views: { up: { src: 'assets/room/sofa_up.webp?v=0.24.0', sw: 1.9 }, left: { src: 'assets/room/sofa_left.webp?v=0.24.0', sw: 1.1 } } },
+  table:       { name: 'まるい テーブル',  w: 1, h: 1, sw: 1.0, src: 'assets/room/table.webp?v=0.24.0',       cost: { coin: 25, math: 2 } },
+  rug:         { name: 'まるい ラグ',      w: 2, h: 2, sw: 2.0, src: 'assets/room/rug.webp?v=0.24.0', flat: true, cost: { coin: 20, kokugo: 2 } },
+  lamp:        { name: 'スタンドライト',   w: 1, h: 1, sw: 0.5, src: 'assets/room/lamp.webp?v=0.24.0',        cost: { coin: 30, rika: 2 } },
+  plant:       { name: 'かんようしょくぶつ', w: 1, h: 1, sw: 0.8, src: 'assets/room/plant.webp?v=0.24.0',     cost: { coin: 20, shakai: 2 } },
   // イベントの ごほうび（店では うらない）
-  xmas_tree:   { name: 'クリスマスツリー', w: 1, h: 1, sw: 0.95, src: 'assets/room/xmas_tree.webp?v=0.22.0' },
+  xmas_tree:   { name: 'クリスマスツリー', w: 1, h: 1, sw: 0.95, src: 'assets/room/xmas_tree.webp?v=0.24.0' },
   // 年間イベントの ごほうび（店では うらない。v0.18.0）
-  koinobori: { name: 'こいのぼり', w: 1, h: 1, sw: 0.95, src: 'assets/room/koinobori.webp?v=0.22.0', views: { left: { src: 'assets/room/koinobori_left.webp?v=0.22.0', sw: 0.78 } } },
-  sasa: { name: 'ささかざり', w: 1, h: 1, sw: 0.95, src: 'assets/room/sasa.webp?v=0.22.0', views: { left: { src: 'assets/room/sasa_left.webp?v=0.22.0', sw: 0.51 } } },
-  tsukimi: { name: 'お月見の かざり', w: 1, h: 1, sw: 0.95, src: 'assets/room/tsukimi.webp?v=0.22.0', views: { left: { src: 'assets/room/tsukimi_left.webp?v=0.22.0', sw: 0.63 } } },
-  halloween: { name: 'ハロウィンの かぼちゃ', w: 1, h: 1, sw: 0.95, src: 'assets/room/halloween.webp?v=0.22.0', views: { left: { src: 'assets/room/halloween_left.webp?v=0.22.0', sw: 0.84 } } },
-  hina: { name: 'ひなにんぎょう', w: 1, h: 1, sw: 0.95, src: 'assets/room/hina.webp?v=0.22.0', views: { left: { src: 'assets/room/hina_left.webp?v=0.22.0', sw: 0.84 } } },
-  kagami: { name: 'かがみもち', w: 1, h: 1, sw: 0.95, src: 'assets/room/kagami.webp?v=0.22.0', views: { left: { src: 'assets/room/kagami_left.webp?v=0.22.0', sw: 0.78 } } },
-  cake: { name: 'おいわいの ケーキ', w: 1, h: 1, sw: 0.95, src: 'assets/room/cake.webp?v=0.22.0' },
-  snowglobe: { name: 'スノードーム', w: 1, h: 1, sw: 0.95, src: 'assets/room/snowglobe.webp?v=0.22.0' },
-  randoseru: { name: 'ランドセル', w: 1, h: 1, sw: 0.95, src: 'assets/room/randoseru.webp?v=0.22.0', views: { left: { src: 'assets/room/randoseru_left.webp?v=0.22.0', sw: 0.88 } } },
-  ajisai_pot: { name: 'あじさいの はちうえ', w: 1, h: 1, sw: 0.95, src: 'assets/room/ajisai_pot.webp?v=0.22.0', views: { left: { src: 'assets/room/ajisai_pot_left.webp?v=0.22.0', sw: 0.89 } } },
-  furin: { name: 'ふうりん', w: 1, h: 1, sw: 0.95, src: 'assets/room/furin.webp?v=0.22.0', views: { left: { src: 'assets/room/furin_left.webp?v=0.22.0', sw: 0.92 } } },
-  leaf_wreath: { name: 'おちばの リース', w: 1, h: 1, sw: 0.95, src: 'assets/room/leaf_wreath.webp?v=0.22.0', views: { left: { src: 'assets/room/leaf_wreath_left.webp?v=0.22.0', sw: 0.87 } } },
-  mamemaki: { name: '豆まきの ます', w: 1, h: 1, sw: 0.95, src: 'assets/room/mamemaki.webp?v=0.22.0', views: { left: { src: 'assets/room/mamemaki_left.webp?v=0.22.0', sw: 0.82 } } },
-  choco: { name: 'チョコレートの はこ', w: 1, h: 1, sw: 0.95, src: 'assets/room/choco.webp?v=0.22.0', views: { left: { src: 'assets/room/choco_left.webp?v=0.22.0', sw: 0.95 } } },
-  diploma: { name: 'しょうじょう', w: 1, h: 1, sw: 0.95, src: 'assets/room/diploma.webp?v=0.22.0', views: { left: { src: 'assets/room/diploma_left.webp?v=0.22.0', sw: 0.85 } } },
+  koinobori: { name: 'こいのぼり', w: 1, h: 1, sw: 0.95, src: 'assets/room/koinobori.webp?v=0.24.0', views: { left: { src: 'assets/room/koinobori_left.webp?v=0.24.0', sw: 0.78 } } },
+  sasa: { name: 'ささかざり', w: 1, h: 1, sw: 0.95, src: 'assets/room/sasa.webp?v=0.24.0', views: { left: { src: 'assets/room/sasa_left.webp?v=0.24.0', sw: 0.51 } } },
+  tsukimi: { name: 'お月見の かざり', w: 1, h: 1, sw: 0.95, src: 'assets/room/tsukimi.webp?v=0.24.0', views: { left: { src: 'assets/room/tsukimi_left.webp?v=0.24.0', sw: 0.63 } } },
+  halloween: { name: 'ハロウィンの かぼちゃ', w: 1, h: 1, sw: 0.95, src: 'assets/room/halloween.webp?v=0.24.0', views: { left: { src: 'assets/room/halloween_left.webp?v=0.24.0', sw: 0.84 } } },
+  hina: { name: 'ひなにんぎょう', w: 1, h: 1, sw: 0.95, src: 'assets/room/hina.webp?v=0.24.0', views: { left: { src: 'assets/room/hina_left.webp?v=0.24.0', sw: 0.84 } } },
+  kagami: { name: 'かがみもち', w: 1, h: 1, sw: 0.95, src: 'assets/room/kagami.webp?v=0.24.0', views: { left: { src: 'assets/room/kagami_left.webp?v=0.24.0', sw: 0.78 } } },
+  cake: { name: 'おいわいの ケーキ', w: 1, h: 1, sw: 0.95, src: 'assets/room/cake.webp?v=0.24.0' },
+  snowglobe: { name: 'スノードーム', w: 1, h: 1, sw: 0.95, src: 'assets/room/snowglobe.webp?v=0.24.0' },
+  randoseru: { name: 'ランドセル', w: 1, h: 1, sw: 0.95, src: 'assets/room/randoseru.webp?v=0.24.0', views: { left: { src: 'assets/room/randoseru_left.webp?v=0.24.0', sw: 0.88 } } },
+  ajisai_pot: { name: 'あじさいの はちうえ', w: 1, h: 1, sw: 0.95, src: 'assets/room/ajisai_pot.webp?v=0.24.0', views: { left: { src: 'assets/room/ajisai_pot_left.webp?v=0.24.0', sw: 0.89 } } },
+  furin: { name: 'ふうりん', w: 1, h: 1, sw: 0.95, src: 'assets/room/furin.webp?v=0.24.0', views: { left: { src: 'assets/room/furin_left.webp?v=0.24.0', sw: 0.92 } } },
+  leaf_wreath: { name: 'おちばの リース', w: 1, h: 1, sw: 0.95, src: 'assets/room/leaf_wreath.webp?v=0.24.0', views: { left: { src: 'assets/room/leaf_wreath_left.webp?v=0.24.0', sw: 0.87 } } },
+  mamemaki: { name: '豆まきの ます', w: 1, h: 1, sw: 0.95, src: 'assets/room/mamemaki.webp?v=0.24.0', views: { left: { src: 'assets/room/mamemaki_left.webp?v=0.24.0', sw: 0.82 } } },
+  choco: { name: 'チョコレートの はこ', w: 1, h: 1, sw: 0.95, src: 'assets/room/choco.webp?v=0.24.0', views: { left: { src: 'assets/room/choco_left.webp?v=0.24.0', sw: 0.95 } } },
+  diploma: { name: 'しょうじょう', w: 1, h: 1, sw: 0.95, src: 'assets/room/diploma.webp?v=0.24.0', views: { left: { src: 'assets/room/diploma_left.webp?v=0.24.0', sw: 0.85 } } },
   // ガチャの ごほうび（店では うらない）
-  cloud_sofa: { name: 'くもの ソファ', w: 2, h: 1, sw: 1.9, src: 'assets/room/cloud_sofa.webp?v=0.22.0', views: { left: { src: 'assets/room/cloud_sofa_left.webp?v=0.22.0', sw: 1.1 } } },
-  star_bed: { name: 'ほしぞらの ベッド', w: 2, h: 2, sw: 1.7, src: 'assets/room/star_bed.webp?v=0.22.0', views: { left: { src: 'assets/room/star_bed_left.webp?v=0.22.0', sw: 1.95 } } },
-  planet_mobile: { name: 'わくせいの モビール', w: 1, h: 1, sw: 0.95, src: 'assets/room/planet_mobile.webp?v=0.22.0', views: { left: { src: 'assets/room/planet_mobile_left.webp?v=0.22.0', sw: 0.85 } } },
-  book_tree: { name: '本の なる 木', w: 1, h: 1, sw: 0.95, src: 'assets/room/book_tree.webp?v=0.22.0', views: { left: { src: 'assets/room/book_tree_left.webp?v=0.22.0', sw: 0.82 } } },
-  dragon_egg: { name: 'ドラゴンの たまご', w: 1, h: 1, sw: 0.95, src: 'assets/room/dragon_egg.webp?v=0.22.0', views: { left: { src: 'assets/room/dragon_egg_left.webp?v=0.22.0', sw: 0.92 } } },
-  gold_clock: { name: 'きんの とけい', w: 1, h: 1, sw: 0.95, src: 'assets/room/gold_clock.webp?v=0.22.0', views: { left: { src: 'assets/room/gold_clock_left.webp?v=0.22.0', sw: 0.81 } } },
-  egg_lamp:         { name: 'たまごの ランプ',   w: 1, h: 1, sw: 0.75, src: 'assets/room/egg_lamp.webp?v=0.22.0', views: { left: { src: 'assets/room/egg_lamp_left.webp?v=0.22.0', sw: 0.74 } } },
-  star_globe:       { name: 'ほしぞらの ちきゅうぎ', w: 1, h: 1, sw: 0.84, src: 'assets/room/star_globe.webp?v=0.22.0', views: { left: { src: 'assets/room/star_globe_left.webp?v=0.22.0', sw: 0.67 } } },
-  rainbow_fountain: { name: 'にじの ふんすい',   w: 1, h: 1, sw: 1.0, src: 'assets/room/rainbow_fountain.webp?v=0.22.0', views: { left: { src: 'assets/room/rainbow_fountain_left.webp?v=0.22.0', sw: 0.9 } } },
-  hatena_statue:    { name: 'はてなの おきもの', w: 1, h: 1, sw: 0.8, src: 'assets/room/hatena_statue.webp?v=0.22.0', views: { left: { src: 'assets/room/hatena_statue_left.webp?v=0.22.0', sw: 0.62 } } },
+  cloud_sofa: { name: 'くもの ソファ', w: 2, h: 1, sw: 1.9, src: 'assets/room/cloud_sofa.webp?v=0.24.0', views: { left: { src: 'assets/room/cloud_sofa_left.webp?v=0.24.0', sw: 1.1 } } },
+  star_bed: { name: 'ほしぞらの ベッド', w: 2, h: 2, sw: 1.7, src: 'assets/room/star_bed.webp?v=0.24.0', views: { left: { src: 'assets/room/star_bed_left.webp?v=0.24.0', sw: 1.95 } } },
+  planet_mobile: { name: 'わくせいの モビール', w: 1, h: 1, sw: 0.95, src: 'assets/room/planet_mobile.webp?v=0.24.0', views: { left: { src: 'assets/room/planet_mobile_left.webp?v=0.24.0', sw: 0.85 } } },
+  book_tree: { name: '本の なる 木', w: 1, h: 1, sw: 0.95, src: 'assets/room/book_tree.webp?v=0.24.0', views: { left: { src: 'assets/room/book_tree_left.webp?v=0.24.0', sw: 0.82 } } },
+  dragon_egg: { name: 'ドラゴンの たまご', w: 1, h: 1, sw: 0.95, src: 'assets/room/dragon_egg.webp?v=0.24.0', views: { left: { src: 'assets/room/dragon_egg_left.webp?v=0.24.0', sw: 0.92 } } },
+  gold_clock: { name: 'きんの とけい', w: 1, h: 1, sw: 0.95, src: 'assets/room/gold_clock.webp?v=0.24.0', views: { left: { src: 'assets/room/gold_clock_left.webp?v=0.24.0', sw: 0.81 } } },
+  egg_lamp:         { name: 'たまごの ランプ',   w: 1, h: 1, sw: 0.75, src: 'assets/room/egg_lamp.webp?v=0.24.0', views: { left: { src: 'assets/room/egg_lamp_left.webp?v=0.24.0', sw: 0.74 } } },
+  star_globe:       { name: 'ほしぞらの ちきゅうぎ', w: 1, h: 1, sw: 0.84, src: 'assets/room/star_globe.webp?v=0.24.0', views: { left: { src: 'assets/room/star_globe_left.webp?v=0.24.0', sw: 0.67 } } },
+  rainbow_fountain: { name: 'にじの ふんすい',   w: 1, h: 1, sw: 1.0, src: 'assets/room/rainbow_fountain.webp?v=0.24.0', views: { left: { src: 'assets/room/rainbow_fountain_left.webp?v=0.24.0', sw: 0.9 } } },
+  hatena_statue:    { name: 'はてなの おきもの', w: 1, h: 1, sw: 0.8, src: 'assets/room/hatena_statue.webp?v=0.24.0', views: { left: { src: 'assets/room/hatena_statue_left.webp?v=0.24.0', sw: 0.62 } } },
 };
 export const DEFAULT_ROOM = () => ({
   v: 2,

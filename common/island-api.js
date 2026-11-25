@@ -2,10 +2,10 @@
 // 各アプリは直接これを読み込まず、つなぎ口（island-link.js の中身）から読み込む。
 // つなぎ口がこのファイルを読み込めたら「連携モード」になる。
 
-import * as store from './store.js?v=0.22.0';
-import * as classroom from './classroom.js?v=0.22.0';
-import * as books from './books.js?v=0.22.0';
-import { readHatenariaCode, dayIndex } from './hatenaria-code.js?v=0.22.0';
+import * as store from './store.js?v=0.24.0';
+import * as classroom from './classroom.js?v=0.24.0';
+import * as books from './books.js?v=0.24.0';
+import { readHatenariaCode, dayIndex } from './hatenaria-code.js?v=0.24.0';
 
 export const COMMON_VERSION = '0.3.6';
 /** 島から ふやせる めずらしい 素材（ホームの こうかんじょで つかう） */
