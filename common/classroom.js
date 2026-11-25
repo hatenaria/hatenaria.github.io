@@ -1,7 +1,7 @@
 // 先生とのつながり（共通仕様書 4章）
 // 児童の端末 → 先生のGAS：参加の登録、学習の要約（片道）。先生のGAS → 端末：クラス設定とお知らせだけ。
 // 児童の記録は先生から返ってこない。実名は送らない（出席番号とハンドルネームだけ）。
-import * as store from './store.js?v=0.19.1';
+import * as store from './store.js?v=0.20.0';
 
 const REFRESH_MS = 2 * 60 * 1000;   // クラス設定（おしらせ・宿題など）はホームを開くたびに読む。続けて開いたときだけ2分あける
 const SEND_MAX = 50;                     // 1回に送る要約の数
@@ -79,7 +79,7 @@ export async function join(bookId, { url, code }, { number, pin, handle, grade }
   const res = await post(url, { action: 'join', code, number: Number(number), pin: String(pin || ''), handle, grade });
   if (!res || !res.ok) throw new Error(res?.message || 'とうろく できなかったよ');
   const cls = { code, url, number: Number(number), handle, token: res.token, className: res.className || '',
-    settings: res.settings || {}, notices: res.notices || [], timetable: res.timetable || null, events: res.events || [], homework: res.homework || [], fetchedAt: Date.now(), joinedAt: new Date().toISOString() };
+    settings: res.settings || {}, notices: res.notices || [], timetable: res.timetable || null, events: res.events || [], homework: res.homework || [], grandprix: res.grandprix || [], skew: res.now ? res.now - Date.now() : 0, fetchedAt: Date.now(), joinedAt: new Date().toISOString() };
   await store.set(`${bookId}/class`, cls);
   return cls;
 }
@@ -100,7 +100,7 @@ export async function refresh(bookId, { force = false } = {}) {
     const res = await post(cls.url, { action: 'config', c: cls.code, n: cls.number, t: cls.token }, 15000);
     if (res && res.ok) {
       return await store.update(`${bookId}/class`, (c) => c && ({ ...c, className: res.className ?? c.className,
-        settings: res.settings || {}, notices: res.notices || [], timetable: res.timetable || null, events: res.events || [], homework: res.homework || [], fetchedAt: Date.now() }));
+        settings: res.settings || {}, notices: res.notices || [], timetable: res.timetable || null, events: res.events || [], homework: res.homework || [], grandprix: res.grandprix || [], skew: res.now ? res.now - Date.now() : 0, fetchedAt: Date.now() }));
     }
     if (res && res.code === 'unknown') { // 先生が名簿から消した・クラスを作り直した
       return await store.update(`${bookId}/class`, (c) => c && ({ ...c, invalid: true, fetchedAt: Date.now() }));
@@ -172,6 +172,16 @@ export function buildAllowed(cls, now = new Date()) {
  * ハテナリアコードを クラスで「つかった」ことに する（先生の シートで 60日 おぼえる）。
  * @returns {Promise<'ok'|'used'|'off'|'offline'>}
  */
+/** グランプリ（v0.20.0）：k='read' で 自分の 記録と クラスの 合計、k='send' で 記録を おくる。とどかなければ null */
+export async function grandprix(bookId, id, k, score = 0) {
+  const cls = await store.get(`${bookId}/class`);
+  if (!cls || !cls.url || cls.invalid) return null;
+  try {
+    const res = await post(cls.url, { action: 'gp', c: cls.code, n: cls.number, t: cls.token, id, k, score }, 15000);
+    return res || null;
+  } catch { return null; }
+}
+
 export async function useCode(bookId, key) {
   const cls = await store.get(`${bookId}/class`);
   if (!cls || !cls.url || cls.invalid) return 'offline';

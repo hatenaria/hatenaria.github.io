@@ -1,14 +1,14 @@
 // ホームアイランド v0.2
 // 島を歩く・建物を調べる・掲示板・気球で島めぐり・島から戻ったときの「おかえり」
 
-import * as store from '../common/store.js?v=0.19.1';
-import * as books from '../common/books.js?v=0.19.1';
-import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.19.1';
-import * as classroom from '../common/classroom.js?v=0.19.1';
-import { showPicker } from '../common/book-picker.js?v=0.19.1';
-import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, RESERVED, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD, GACHA } from './data.js?v=0.19.1';
+import * as store from '../common/store.js?v=0.20.0';
+import * as books from '../common/books.js?v=0.20.0';
+import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.20.0';
+import * as classroom from '../common/classroom.js?v=0.20.0';
+import { showPicker } from '../common/book-picker.js?v=0.20.0';
+import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, RESERVED, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD, GACHA } from './data.js?v=0.20.0';
 
-export const HOME_VERSION = '0.19.1';
+export const HOME_VERSION = '0.20.0';
 const PREVIEW = !!window.GI_PREVIEW; // アーティファクトでの試作表示（島へは移動しない）
 
 // 主人公の画像（仕様書2-4の規格：1コマ 384×512、足元 x=192, y=488。縮小した画像でも同じ比率で扱う）
@@ -1231,7 +1231,7 @@ function openJoin(link) {
       go.disabled = true; err.textContent = 'とうろく しているよ…';
       try {
         cls = await classroom.join(book.id, link, { number: num, pin, handle: book.name, grade: profile?.grade });
-        classroom.clearJoinLink();
+        classroom.clearJoinLink(); renderHud();
         closeModal();
         message('クラスに はいったよ！', `${cls.className || ''}の ${cls.number}ばん ${book.name}さん、よろしくね。\nがくしゅうの きろくが せんせいに とどくように なったよ。`);
       } catch (e) { pin = ''; paint(); err.textContent = e.message || 'とうろく できなかったよ。もういちど ためしてね。'; }
@@ -1444,7 +1444,7 @@ function drawMon(m, cx, cy) {
 const GATE = { type: 'gate', gate: true };
 function unclaimedEvent() { return doneEvents().find((e) => !claimedEvents.includes(e.id)); }
 const eventImgs = {};
-for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.19.1'], ['t0', 'assets/home/xmas_tree0.webp?v=0.19.1'], ['t1', 'assets/home/xmas_tree1.webp?v=0.19.1'], ['t2', 'assets/home/xmas_tree2.webp?v=0.19.1'], ['t3', 'assets/home/xmas_tree3.webp?v=0.19.1']]) {
+for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.20.0'], ['t0', 'assets/home/xmas_tree0.webp?v=0.20.0'], ['t1', 'assets/home/xmas_tree1.webp?v=0.20.0'], ['t2', 'assets/home/xmas_tree2.webp?v=0.20.0'], ['t3', 'assets/home/xmas_tree3.webp?v=0.20.0']]) {
   const im = new Image(); im.onload = () => { eventImgs[k] = im; }; im.src = new URL('../' + src, import.meta.url).href;
 }
 function drawGate(now) {
@@ -2441,10 +2441,132 @@ function renderHud() {
   const who = document.getElementById('who');
   who.textContent = cls?.teacher ? `👩‍🏫 先生（${kanjiClass(cls.className)}）` : `📖 ${book.name}`;
   who.classList.toggle('tap', !!cls?.teacher);
+  updateGpBtn();
   const mats = Object.entries(wallet?.materials || {}).filter(([, v]) => v > 0)
     .map(([k, v]) => `<span class="mat" title="${MATERIALS[k]?.name || k}">${matIconHtml(k)} ${v}</span>`).join('');
   document.getElementById('coins').innerHTML = `<span class="coin">🪙 ${wallet?.coin || 0}</span>${mats}`;
 }
+
+// ------------------------------------------------------------------ 計算1分グランプリ（v0.20.0）
+// 先生が きめた 期間（日にちと 時こく）だけ ひらく。何回でも ちょうせんでき、いちばん よい 記録が のこる。
+// 出すのは 自分の 記録と クラスの 合計だけ（じゅんいは 出さない）。期間の まえは れんしゅうだけ できる
+const GP_MODE = {
+  add1: 'たしざん（くりあがり なし）', add2: 'たしざん（くりあがり あり）', sub1: 'ひきざん（くりさがり なし）', sub2: 'ひきざん（くりさがり あり）',
+  mix1: 'たしざん・ひきざん まぜこぜ', add2d: '2けたの たしざん', sub2d: '2けたの ひきざん', mul: 'かけざん 九九', div: 'わりざん（九九の ぎゃく）', mix4: '＋−×÷ まぜこぜ',
+};
+const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+function gpQuestion(mode) {
+  const m = mode === 'mix1' ? (Math.random() < .5 ? (Math.random() < .5 ? 'add1' : 'add2') : (Math.random() < .5 ? 'sub1' : 'sub2'))
+    : mode === 'mix4' ? ['add2', 'sub2', 'mul', 'div'][rnd(0, 3)] : mode;
+  let a, b;
+  switch (m) {
+    case 'add1': a = rnd(0, 9); b = rnd(0, 9 - a); if (Math.random() < .4) { a = rnd(10, 19); b = rnd(0, 19 - a); } return [`${a} ＋ ${b}`, a + b];
+    case 'add2': a = rnd(2, 9); b = rnd(11 - a, 9); return [`${a} ＋ ${b}`, a + b];
+    case 'sub1': a = rnd(1, 19); b = a >= 10 ? rnd(0, a - 10) : rnd(0, a); return [`${a} − ${b}`, a - b];
+    case 'sub2': a = rnd(11, 18); b = rnd(a - 9, 9); return [`${a} − ${b}`, a - b];
+    case 'add2d': a = rnd(10, 89); b = rnd(1, 99 - a); return [`${a} ＋ ${b}`, a + b];
+    case 'sub2d': a = rnd(20, 99); b = rnd(1, a - 1); return [`${a} − ${b}`, a - b];
+    case 'mul': a = rnd(1, 9); b = rnd(1, 9); return [`${a} × ${b}`, a * b];
+    case 'div': b = rnd(1, 9); a = rnd(1, 9); return [`${a * b} ÷ ${b}`, a];
+    default: return gpQuestion('add1');
+  }
+}
+const gpNow = () => Date.now() + (cls?.skew || 0);
+const gpList = () => (cls && !cls.invalid ? cls.grandprix || [] : []);
+// きょう ひらく・ひらいている グランプリが あれば ボタンを 出す
+function gpShown() { const n = gpNow(), end = new Date(n); end.setHours(23, 59, 59, 999); return gpList().filter((g) => g.end >= n && g.start <= end.getTime()); }
+function updateGpBtn() { const b = document.getElementById('btn-gp'); if (b) b.hidden = !gpShown().length; }
+const hhmm = (ms) => { const d = new Date(ms); return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`; };
+const gpWhen = (g) => { const s = new Date(g.start), e = new Date(g.end); const day = (d) => `${d.getMonth() + 1}/${d.getDate()}`; return `${day(s)} ${hhmm(g.start)} 〜 ${s.toDateString() === e.toDateString() ? '' : day(e) + ' '}${hhmm(g.end)}`; };
+const gpBest = {}; // id → { best, total, people }
+async function openGp() {
+  if (modalOpen) return;
+  const list = gpShown();
+  openModal((m) => {
+    m.append(h('h2', {}, '🏆 けいさん 1ぷん グランプリ'),
+      h('p', { class: 'body small' }, '1ぷんで なんもん とけるかな？ じかんの あいだは なんかいでも ちょうせん できるよ。いちばん よい きろくが のこります。'));
+    if (!list.length) m.append(h('p', { class: 'body' }, 'いまは グランプリは ありません。'));
+    for (const g of list) {
+      const open = gpNow() >= g.start && gpNow() <= g.end;
+      const st = h('div', { class: 'gp-stat' });
+      const card = h('div', { class: 'gp-card' }, h('b', {}, g.name), h('div', { class: 'small' }, `${GP_MODE[g.mode] || g.mode}　｜　${gpWhen(g)}`), st,
+        h('div', { class: 'row' }, open
+          ? h('button', { class: 'btn go', 'data-default': '', 'data-gpgo': g.id, onclick: () => playGp(g, false) }, '⏱ 1ぷん ちょうせん！')
+          : h('button', { class: 'btn', 'data-gpgo': g.id, onclick: () => playGp(g, true) }, `れんしゅう（${hhmm(g.start)}から ほんばん）`)));
+      m.append(card);
+      const show = (r) => { st.replaceChildren(h('div', {}, 'じぶんの きろく', h('em', {}, `${r?.best ?? 0}もん`)), h('div', {}, `クラスの ごうけい（${r?.people ?? 0}にん）`, h('em', {}, `${r?.total ?? 0}もん`))); };
+      show(gpBest[g.id]);
+      if (open || gpNow() > g.end) classroom.grandprix(book.id, g.id, 'read').then((r) => { if (r && r.ok) { gpBest[g.id] = { ...gpBest[g.id], ...r, best: cls?.teacher ? gpBest[g.id]?.best || 0 : r.best }; show(gpBest[g.id]); } });
+    }
+    m.append(h('div', { class: 'row' }, h('button', { class: 'btn', onclick: closeModal }, 'とじる')));
+  });
+}
+function playGp(g, practice) {
+  closeModal();
+  let score = 0, ans = '', q = null, left = 60, timer = 0, phase = 'count', keyFn = null;
+  openModal((m) => {
+    m.classList.add('gp-play');
+    const count = h('div', { class: 'gp-count' }, '3');
+    m.append(h('h2', {}, practice ? '✏️ れんしゅう' : `🏆 ${g.name}`), count);
+    m._key = (e) => e.key !== 'Escape' || phase === 'play'; // あそんでいる あいだは Esc でも とじない
+    let c = 3;
+    const tick = setInterval(() => {
+      c--; if (c > 0) { count.textContent = String(c); return; }
+      clearInterval(tick); if (!layer.contains(m)) return; start(m);
+    }, 800);
+  });
+  function start(m) {
+    phase = 'play';
+    const bar = h('i', { style: 'width:100%' }), sc = h('span', {}, '0もん'), tm = h('span', {}, '60びょう');
+    const qEl = h('div', { class: 'gp-q' }), aEl = h('div', { class: 'gp-a' });
+    const pad = h('div', { class: 'numpad' });
+    for (const k of ['7', '8', '9', '4', '5', '6', '1', '2', '3', 'del', '0', '']) {
+      if (!k) { pad.append(h('span')); continue; }
+      pad.append(h('button', { class: 'btn', 'data-num': k, onclick: () => input(k) }, k === 'del' ? 'けす' : k));
+    }
+    m.replaceChildren(h('div', { class: 'gp-top' }, tm, sc), h('div', { class: 'gp-bar' }, bar), qEl, aEl, pad);
+    const next = () => { q = gpQuestion(g.mode); qEl.textContent = `${q[0]} ＝`; ans = ''; aEl.textContent = ''; aEl.className = 'gp-a'; };
+    function input(k) {
+      if (phase !== 'play') return;
+      if (k === 'del') { ans = ans.slice(0, -1); aEl.textContent = ans; return; }
+      if (ans.length >= 3) return;
+      ans += k; aEl.textContent = ans;
+      const want = String(q[1]);
+      if (ans === want) { score++; sc.textContent = `${score}もん`; aEl.className = 'gp-a ok'; phase = 'wait'; setTimeout(() => { if (phase === 'wait') { phase = 'play'; next(); } }, 120); }
+      else if (ans.length >= want.length) { aEl.className = 'gp-a'; void aEl.offsetWidth; aEl.className = 'gp-a ng'; ans = ''; setTimeout(() => { if (aEl.textContent.length >= want.length) aEl.textContent = ''; }, 300); }
+    }
+    keyFn = (e) => { if (/^[0-9]$/.test(e.key)) { e.preventDefault(); input(e.key); } else if (e.key === 'Backspace') { e.preventDefault(); input('del'); } };
+    window.addEventListener('keydown', keyFn);
+    next();
+    const t0 = performance.now();
+    timer = setInterval(() => {
+      left = Math.max(0, 60 - (performance.now() - t0) / 1000);
+      tm.textContent = `${Math.ceil(left)}びょう`; bar.style.width = `${left / 60 * 100}%`;
+      if (left <= 0 || !layer.contains(m)) finish(m);
+    }, 200);
+  }
+  async function finish(m) {
+    clearInterval(timer); phase = 'end'; window.removeEventListener('keydown', keyFn);
+    if (!layer.contains(m)) return;
+    const prev = gpBest[g.id]?.best || 0;
+    const msg = h('p', { class: 'body' }, practice ? 'れんしゅう なので、きろくは のこりません。' : 'きろくを おくっています…');
+    const st = h('div', { class: 'gp-stat' });
+    m.replaceChildren(h('h2', {}, '⏱ おわり！'), h('div', { class: 'gp-count', style: 'font-size:80px;margin:10px 0' }, `${score}もん`), msg, st,
+      h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => { closeModal(); openGp(); } }, 'もどる'),
+        h('button', { class: 'btn go', 'data-default': '', onclick: () => playGp(g, practice) }, 'もういちど')));
+    m._key = null; focusButton(m.querySelector('[data-default]'));
+    if (practice) return;
+    const r = await classroom.grandprix(book.id, g.id, 'send', score);
+    if (r && r.ok) {
+      const best = cls?.teacher ? Math.max(prev, score) : r.best;
+      gpBest[g.id] = { ...r, best };
+      msg.textContent = cls?.teacher ? '先生の ためしなので、きろくには 入りません。' : score > prev && prev > 0 ? `じぶんの きろくを ${score - prev}もん こうしん！` : score >= best ? 'じぶんの いちばんの きろく！' : `じぶんの いちばんは ${best}もん。つぎも がんばろう！`;
+      st.replaceChildren(h('div', {}, 'じぶんの きろく', h('em', {}, `${best}もん`)), h('div', {}, `クラスの ごうけい（${r.people}にん）`, h('em', {}, `${r.total}もん`)));
+    } else msg.textContent = r && r.code === 'closed' ? 'グランプリの じかんでは ないので、きろくは のこりません。' : 'いまは きろくを おくれませんでした。つながる ばしょで もういちど ためしてね。';
+  }
+}
+document.getElementById('btn-gp')?.addEventListener('click', openGp);
+setInterval(updateGpBtn, 30000);
 
 // ------------------------------------------------------------------ 先生：クラスの きりかえ（v0.19.0）
 // 先生の 島は 1つ。きりかえて かわるのは クラスの ぶぶん（イベントひろば・宿題・おしらせ・時間割・ひらいている 島と 学年）だけ
@@ -2679,7 +2801,7 @@ function heroGender() { return profile?.hero?.gender === 'girl' ? 'girl' : 'boy'
 
 // ------------------------------------------------------------------ タイトル画面
 // ブラウザを開いて最初の1回だけ出す（島から戻ったときや、同じタブで開き直したときは出さない）
-const LOGO_SRC = 'assets/home/logo.webp?v=0.19.1';
+const LOGO_SRC = 'assets/home/logo.webp?v=0.20.0';
 function titleShownThisSession() { try { return sessionStorage.getItem('hatenaria-title') === '1'; } catch { return false; } }
 function markTitleShown() { try { sessionStorage.setItem('hatenaria-title', '1'); } catch { /* 使えなくても動く */ } }
 function showTitle(curBook) {
@@ -2786,6 +2908,6 @@ async function start() {
   classroom.refresh(book.id).then((c) => { if (c) { cls = c; refreshHomework(); } });
   classroom.flush(book.id);
   // テスト用
-  window.__home = { player, get home() { return home; }, get T() { return T; }, camera, version: HOME_VERSION, get editMode() { return editMode; }, expandCandidates, get scene() { return scene; }, get room() { return room; }, get roomEdit() { return roomEdit; }, enterRoom, exitRoom, roomPt, roomTileAt, walkable, openEvent, gateTile, treeTile, openKisekae, openSchool, refreshHomework, openMissions, refreshCrowns, get crownTotal() { return crownTotal; }, get hwProg() { return hwProg; }, get wardrobe() { return wardrobe; }, openGacha, pullGacha, grantDailyTickets, openExchange, openSell, monTile, isMon, openTeacherClasses };
+  window.__home = { player, get home() { return home; }, get T() { return T; }, camera, version: HOME_VERSION, get editMode() { return editMode; }, expandCandidates, get scene() { return scene; }, get room() { return room; }, get roomEdit() { return roomEdit; }, enterRoom, exitRoom, roomPt, roomTileAt, walkable, openEvent, gateTile, treeTile, openKisekae, openSchool, refreshHomework, openMissions, refreshCrowns, get crownTotal() { return crownTotal; }, get hwProg() { return hwProg; }, get wardrobe() { return wardrobe; }, openGacha, pullGacha, grantDailyTickets, openExchange, openSell, monTile, isMon, openTeacherClasses, openGp, gpQuestion };
 }
 start();
