@@ -1,14 +1,14 @@
 // ホームアイランド v0.2
 // 島を歩く・建物を調べる・掲示板・気球で島めぐり・島から戻ったときの「おかえり」
 
-import * as store from '../common/store.js?v=0.20.0';
-import * as books from '../common/books.js?v=0.20.0';
-import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.20.0';
-import * as classroom from '../common/classroom.js?v=0.20.0';
-import { showPicker } from '../common/book-picker.js?v=0.20.0';
-import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, RESERVED, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD, GACHA } from './data.js?v=0.20.0';
+import * as store from '../common/store.js?v=0.21.0';
+import * as books from '../common/books.js?v=0.21.0';
+import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.21.0';
+import * as classroom from '../common/classroom.js?v=0.21.0';
+import { showPicker } from '../common/book-picker.js?v=0.21.0';
+import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, RESERVED, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD, GACHA } from './data.js?v=0.21.0';
 
-export const HOME_VERSION = '0.20.0';
+export const HOME_VERSION = '0.21.0';
 const PREVIEW = !!window.GI_PREVIEW; // アーティファクトでの試作表示（島へは移動しない）
 
 // 主人公の画像（仕様書2-4の規格：1コマ 384×512、足元 x=192, y=488。縮小した画像でも同じ比率で扱う）
@@ -152,6 +152,7 @@ const pathSet = new Set(PATH_TILES.map(([x, y]) => `${x},${y}`));
 
 // ------------------------------------------------------------------ 保存
 async function saveHome() {
+  if (visiting) return; // ともだちの しまを 見ている あいだは ほぞんしない
   if (scene !== 'room') home.player = { x: player.x, y: player.y, dir: player.dir }; // へやの中では 島の 場所を そのままに
   await store.set(`${book.id}/home`, home);
 }
@@ -659,6 +660,7 @@ function openTimetable() {
 
 function interact(o) {
   const t = OBJECT_TYPES[o.type];
+  if (visiting) return message(`${visiting.name}の しま`, `${t?.name || ''}だね。ともだちの しまは みるだけ だよ。`);
   if (o.type === 'board') return openBoard();
   if (o.type === 'todo') return openTodo();
   if (o.type === 'balloon') return openIslands();
@@ -1444,7 +1446,7 @@ function drawMon(m, cx, cy) {
 const GATE = { type: 'gate', gate: true };
 function unclaimedEvent() { return doneEvents().find((e) => !claimedEvents.includes(e.id)); }
 const eventImgs = {};
-for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.20.0'], ['t0', 'assets/home/xmas_tree0.webp?v=0.20.0'], ['t1', 'assets/home/xmas_tree1.webp?v=0.20.0'], ['t2', 'assets/home/xmas_tree2.webp?v=0.20.0'], ['t3', 'assets/home/xmas_tree3.webp?v=0.20.0']]) {
+for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.21.0'], ['t0', 'assets/home/xmas_tree0.webp?v=0.21.0'], ['t1', 'assets/home/xmas_tree1.webp?v=0.21.0'], ['t2', 'assets/home/xmas_tree2.webp?v=0.21.0'], ['t3', 'assets/home/xmas_tree3.webp?v=0.21.0']]) {
   const im = new Image(); im.onload = () => { eventImgs[k] = im; }; im.src = new URL('../' + src, import.meta.url).href;
 }
 function drawGate(now) {
@@ -2310,7 +2312,7 @@ function openIslands(prefer) {
     go.addEventListener('click', () => depart(ISLANDS[idx]));
     m.append(h('h2', {}, '🎈 どの しまへ いく？'), sea,
       h('div', { class: 'row center' }, prev, info, next),
-      h('div', { class: 'row between' }, back, go));
+      h('div', { class: 'row between' }, back, ...(cls?.settings?.visit && !cls.invalid ? [h('button', { class: 'btn sky', 'data-act': 'friends', onclick: () => { closeModal(); openFriends(); } }, '👫 ともだちの しま')] : []), go));
 
     function render() {
       const is = ISLANDS[idx], open = islandOpen(is);
@@ -2568,6 +2570,89 @@ function playGp(g, practice) {
 document.getElementById('btn-gp')?.addEventListener('click', openGp);
 setInterval(updateGpBtn, 30000);
 
+// ------------------------------------------------------------------ ともだちの しま（v0.21.0）
+// 先生が「つかう」に したときだけ。見るだけ（ほぞん・たてる・うごかす は できない）。気もちは すてき！スタンプだけ（数は 出さない）
+let visiting = null; // { n, name, stash: { home, player } }
+const visitDay = () => new Date().toISOString().slice(0, 10);
+function snapOf(hm) { const { player: _p, readNotices: _r, decoStock: _d, ...rest } = hm; return JSON.stringify(rest); }
+async function uploadIsland() {
+  if (!cls?.settings?.visit || cls.teacher || cls.invalid || PREVIEW) return;
+  const s = snapOf(home); let hsh = 0; for (let i = 0; i < s.length; i++) hsh = (hsh * 31 + s.charCodeAt(i)) | 0;
+  const key = `${s.length}:${hsh}`;
+  if ((await store.get(`${book.id}/visitSent`)) === key) return;
+  const r = await classroom.visit(book.id, 'put', { snap: s });
+  if (r && r.ok) await store.set(`${book.id}/visitSent`, key);
+}
+async function openFriends() {
+  if (modalOpen || visiting) return;
+  const used = (await store.get(`${book.id}/visitLog`)) || {};
+  const seen = used.day === visitDay() ? used.seen || [] : [];
+  const max = cls?.settings?.visitMax || 5;
+  openModal((m) => {
+    const box = h('div', { class: 'friends' }, h('p', { class: 'body small' }, 'よみこみちゅう…'));
+    const left = h('p', { class: 'body small' }, '');
+    const stamps = h('p', { class: 'body small' });
+    m.append(h('h2', {}, '👫 ともだちの しまへ いく'), h('p', { class: 'body small' }, 'ともだちの しまを 見に いけるよ。見るだけで、ものを うごかしたり とったり できないよ。'), left, box, stamps,
+      h('div', { class: 'row' }, h('button', { class: 'btn', 'data-default': '', onclick: closeModal }, 'とじる')));
+    const paintLeft = () => { left.textContent = `きょう 見に いける しま：あと ${Math.max(0, max - seen.length)}けん（いちど 見た しまは なんかいでも いけるよ）`; };
+    paintLeft();
+    classroom.visit(book.id, 'list').then((r) => {
+      if (!layer.contains(m)) return;
+      if (!r || !r.ok) { box.replaceChildren(h('p', { class: 'body' }, r?.code === 'off' ? 'いまは ともだちの しまへ いけないよ。' : 'いまは つながらないよ。あとで もういちど ためしてね。')); return; }
+      if (!r.list.length) { box.replaceChildren(h('p', { class: 'body' }, 'まだ 見に いける しまが ないよ。')); }
+      else box.replaceChildren(...r.list.map((f) => {
+        const name = f.handle ? `${f.handle}さん` : `${f.n}ばんさん`, was = seen.includes(f.n);
+        return h('button', { class: 'btn' + (was ? ' seen' : ''), 'data-friend': f.n, disabled: !was && seen.length >= max, onclick: () => startVisit(f.n, name) }, `🏝 ${name}`);
+      }));
+      const from = [...new Set((r.stamps || []).map((s) => s.from))];
+      stamps.textContent = from.length ? `🌟 さいきん「すてき！」を くれた ともだち：${from.map((x) => x + 'さん').join('、')}` : '';
+    });
+  });
+}
+async function startVisit(n, name) {
+  const r = await classroom.visit(book.id, 'get', { who: n });
+  if (!r || !r.ok || !r.snap) { message('ともだちの しま', 'いまは 見に いけないよ。あとで もういちど ためしてね。'); return; }
+  let snap; try { snap = JSON.parse(r.snap); } catch { message('ともだちの しま', 'しまを よみこめなかったよ。'); return; }
+  if (!snap?.map?.land || !Array.isArray(snap.objects)) return;
+  closeModal();
+  const used = (await store.get(`${book.id}/visitLog`)) || {};
+  const seen = used.day === visitDay() ? used.seen || [] : [];
+  if (!seen.includes(n)) seen.push(n);
+  await store.set(`${book.id}/visitLog`, { day: visitDay(), seen });
+  if (editMode) return;
+  if (scene === 'room') exitRoom();
+  await saveHome();
+  visiting = { n, name, stash: { home, player: { x: player.x, y: player.y, dir: player.dir } } };
+  home = { ...DEFAULT_HOME(), ...snap, player: { x: 7, y: 8, dir: 'up' } };
+  migrateHome(home); refreshLand();
+  const b = home.objects.find((o) => o.type === 'balloon');
+  if (b) Object.assign(player, { x: b.x, y: b.y + OBJECT_TYPES.balloon.h, dir: 'down' }); else Object.assign(player, home.player);
+  player.fx = player.x; player.fy = player.y; pathQueue = [];
+  document.getElementById('visitname').textContent = `👫 ${name}の しま`;
+  const sb = document.getElementById('v-stamp'); const st = (await store.get(`${book.id}/stampLog`)) || {};
+  sb.disabled = st.day === visitDay() && (st.to || []).includes(n); sb.textContent = sb.disabled ? '🌟 おくったよ' : '🌟 すてき！';
+  document.body.classList.add('visiting');
+  note(`${name}の しまに ついたよ！ 見るだけ だよ`);
+}
+function endVisit() {
+  if (!visiting) return;
+  home = visiting.stash.home; refreshLand();
+  Object.assign(player, visiting.stash.player); player.fx = player.x; player.fy = player.y; pathQueue = [];
+  visiting = null; document.body.classList.remove('visiting'); renderHud();
+}
+document.getElementById('v-home')?.addEventListener('click', endVisit);
+document.getElementById('v-stamp')?.addEventListener('click', async (e) => {
+  const b = e.currentTarget; if (!visiting || b.disabled) return;
+  b.disabled = true; const n = visiting.n;
+  const r = await classroom.visit(book.id, 'stamp', { who: n });
+  if (r && r.ok) {
+    const st = (await store.get(`${book.id}/stampLog`)) || {};
+    const to = st.day === visitDay() ? st.to || [] : []; to.push(n);
+    await store.set(`${book.id}/stampLog`, { day: visitDay(), to });
+    b.textContent = '🌟 おくったよ'; note(`${visiting?.name || 'ともだち'}に「すてき！」を おくったよ`);
+  } else { b.disabled = false; note('いまは おくれなかったよ'); }
+});
+
 // ------------------------------------------------------------------ 先生：クラスの きりかえ（v0.19.0）
 // 先生の 島は 1つ。きりかえて かわるのは クラスの ぶぶん（イベントひろば・宿題・おしらせ・時間割・ひらいている 島と 学年）だけ
 const kanjiClass = (s) => String(s || '').replace(/(\d+)\s*(?:ねん|年)\s*(\d+)\s*(?:くみ|組)/, '$1年$2組');
@@ -2801,7 +2886,7 @@ function heroGender() { return profile?.hero?.gender === 'girl' ? 'girl' : 'boy'
 
 // ------------------------------------------------------------------ タイトル画面
 // ブラウザを開いて最初の1回だけ出す（島から戻ったときや、同じタブで開き直したときは出さない）
-const LOGO_SRC = 'assets/home/logo.webp?v=0.20.0';
+const LOGO_SRC = 'assets/home/logo.webp?v=0.21.0';
 function titleShownThisSession() { try { return sessionStorage.getItem('hatenaria-title') === '1'; } catch { return false; } }
 function markTitleShown() { try { sessionStorage.setItem('hatenaria-title', '1'); } catch { /* 使えなくても動く */ } }
 function showTitle(curBook) {
@@ -2905,9 +2990,9 @@ async function start() {
     if (modalOpen) { const wait = setInterval(() => { if (!modalOpen) { clearInterval(wait); openJoin(link); } }, 300); } else openJoin(link);
   }
   // 先生の設定とお知らせを読み直し、送れていない要約を送る（待たずに うしろで）
-  classroom.refresh(book.id).then((c) => { if (c) { cls = c; refreshHomework(); } });
+  classroom.refresh(book.id).then((c) => { if (c) { cls = c; refreshHomework(); uploadIsland(); } });
   classroom.flush(book.id);
   // テスト用
-  window.__home = { player, get home() { return home; }, get T() { return T; }, camera, version: HOME_VERSION, get editMode() { return editMode; }, expandCandidates, get scene() { return scene; }, get room() { return room; }, get roomEdit() { return roomEdit; }, enterRoom, exitRoom, roomPt, roomTileAt, walkable, openEvent, gateTile, treeTile, openKisekae, openSchool, refreshHomework, openMissions, refreshCrowns, get crownTotal() { return crownTotal; }, get hwProg() { return hwProg; }, get wardrobe() { return wardrobe; }, openGacha, pullGacha, grantDailyTickets, openExchange, openSell, monTile, isMon, openTeacherClasses, openGp, gpQuestion };
+  window.__home = { player, get home() { return home; }, get T() { return T; }, camera, version: HOME_VERSION, get editMode() { return editMode; }, expandCandidates, get scene() { return scene; }, get room() { return room; }, get roomEdit() { return roomEdit; }, enterRoom, exitRoom, roomPt, roomTileAt, walkable, openEvent, gateTile, treeTile, openKisekae, openSchool, refreshHomework, openMissions, refreshCrowns, get crownTotal() { return crownTotal; }, get hwProg() { return hwProg; }, get wardrobe() { return wardrobe; }, openGacha, pullGacha, grantDailyTickets, openExchange, openSell, monTile, isMon, openTeacherClasses, openGp, gpQuestion, openFriends, startVisit, endVisit, uploadIsland, get visiting() { return visiting; } };
 }
 start();

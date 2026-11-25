@@ -1,7 +1,7 @@
 // 先生とのつながり（共通仕様書 4章）
 // 児童の端末 → 先生のGAS：参加の登録、学習の要約（片道）。先生のGAS → 端末：クラス設定とお知らせだけ。
 // 児童の記録は先生から返ってこない。実名は送らない（出席番号とハンドルネームだけ）。
-import * as store from './store.js?v=0.20.0';
+import * as store from './store.js?v=0.21.0';
 
 const REFRESH_MS = 2 * 60 * 1000;   // クラス設定（おしらせ・宿題など）はホームを開くたびに読む。続けて開いたときだけ2分あける
 const SEND_MAX = 50;                     // 1回に送る要約の数
@@ -180,6 +180,13 @@ export async function grandprix(bookId, id, k, score = 0) {
     const res = await post(cls.url, { action: 'gp', c: cls.code, n: cls.number, t: cls.token, id, k, score }, 15000);
     return res || null;
   } catch { return null; }
+}
+
+/** ともだちの しま（v0.21.0）：k = put（じぶんの しまを あずける）・list・get（who の しま）・stamp（who に すてき！） */
+export async function visit(bookId, k, extra = {}) {
+  const cls = await store.get(`${bookId}/class`);
+  if (!cls || !cls.url || cls.invalid) return null;
+  try { return (await post(cls.url, { action: 'visit', c: cls.code, n: cls.number, t: cls.token, k, ...extra }, 15000)) || null; } catch { return null; }
 }
 
 export async function useCode(bookId, key) {

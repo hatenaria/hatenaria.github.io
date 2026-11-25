@@ -6,9 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ハテナリア">
 <title>ハテナリア</title>
-<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png?v=0.20.0">
-<link rel="apple-touch-icon" href="assets/icons/icon-180.png?v=0.20.0">
-<link rel="manifest" href="manifest.json?v=0.20.0">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png?v=0.21.0">
+<link rel="apple-touch-icon" href="assets/icons/icon-180.png?v=0.21.0">
+<link rel="manifest" href="manifest.json?v=0.21.0">
 <style>
   :root{--ink:#3a3226;--paper:#fffaf0;--gold:#ffd66b;--gold-d:#d9a93a;--green:#9be3a8;--green-d:#5fb06d}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -258,6 +258,13 @@
   .gp-a.ng{animation:gpng .3s}.gp-a.ok{color:#2f9e5b}
   @keyframes gpng{0%,100%{transform:none}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
   .gp-count{font-size:120px;font-weight:bold;color:#c0661c;margin:40px 0}
+  /* ともだちの しま（v0.21.0） */
+  .visitbar{display:none;position:fixed;top:12px;right:12px;gap:10px;align-items:center}
+  body.visiting .visitbar{display:flex}body.visiting .tr{display:none}
+  .visitbar #visitname{background:#fff;border-radius:16px;padding:10px 16px;font-weight:bold;font-size:20px;box-shadow:0 3px 0 #e2d6bf}
+  .visitbar .btn{display:inline-flex;align-items:center;justify-content:center}
+  .friends{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;max-height:44vh;overflow:auto;padding:4px}
+  .friends .btn{min-height:56px;font-size:18px}.friends .btn.seen{background:#e9f4ff;box-shadow:0 4px 0 #b9d4ee}
 </style>
 </head>
 <body>
@@ -274,6 +281,7 @@
   <button class="btn sky" id="btn-out">🚪 そとへ</button>
   <button class="btn" id="btn-settings" aria-label="せってい">⚙</button>
 </div>
+<div class="visitbar" id="visitbar"><span id="visitname"></span><button class="btn" id="v-stamp">🌟 すてき！</button><button class="btn sky" id="v-home">🏠 じぶんの しまへ かえる</button></div>
 <button class="btn" id="check">しらべる</button>
 <div class="pad" aria-label="いどう">
   <button data-dir="up" aria-label="うえ">▲</button>
@@ -283,6 +291,6 @@
 </div>
 <div id="hint"></div>
 <div id="layer"></div>
-<script type="module" src="home/main.js?v=0.20.0"></script>
+<script type="module" src="home/main.js?v=0.21.0"></script>
 </body>
 </html>
