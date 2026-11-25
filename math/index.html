@@ -386,7 +386,7 @@ body.kb .mcard:focus{outline:4px solid #ff7a2a;outline-offset:2px}
   <div id="coin" class="pill">🪙 0</div>
   <div id="timeLeft" class="pill"></div>
   <div id="tr"><button id="furi" class="pill" type="button">ふりがな</button><button id="tts" class="pill" type="button">🔊 よみあげ</button><button id="btnSet" class="pill" type="button">⚙ せってい</button></div>
-  <div id="proto">さんすう アイランド v0.15.7</div>
+  <div id="proto">さんすう アイランド v0.15.8</div>
   <button id="act" class="off" type="button">しらべる</button>
   <button id="guide" class="pill" type="button">🧭 つぎの いしへ</button>
   <button id="wide" class="pill" type="button">🔍 ぜんたいを みる</button>
@@ -4012,10 +4012,17 @@ window.__g19build=function g19Build(){const G19=window.G19;if(!G19)return;const 
       const st=U.c.filter(C=>qs.filter(p=>p.kind==='c'+C.k).length>=5).map(C=>[C.n,sk,(k=>p=>p.kind===k)('c'+C.k)]);
       if(st.length<1)continue;(WORLDS[G][U.area]=WORLDS[G][U.area]||[]).push({id:wid,name:U.name,st,g19u:U.u});}}
   const KN={2:{add:4,sub:5,num1000:8,kufu:8.5,add3d:9,kuku1:12,kuku2:13,kuku3:14,num10000:17},3:{kake:1,div:3,add4:4,rem:8,mul1:10,big:11,dec:12,mul2:14,frac:15},4:{big:1,div0:3,div:6,rem:8,round:10,rule:11,dec:12,decmd:16,frac:17},5:{seisu:1,multiple:5,decmul:7,decdiv:8,frac:11,fdec:12},6:{moji:2,fint:3,fracmul:4,fracdiv:5,mixcalc:8,hi:11}};
+  /* 東京書籍の 単元の じゅんばん（教科書の 目次どおり。学図だけの 単元は さいごに） */
+  const TOSHO={2:['D.u1','A.add','A.sub','C.u7','C.u6','A.num1000','C.u10','C.u2','C.u16','A.kufu','A.add3d','B.u11','A.kuku1','A.kuku2','A.kuku3','A.num10000','C.u18','C.u19','B.u15','B.u21','D.u20'],
+   3:['A.kake','C.u2','A.div','A.add4','C.u6','D.u5','A.rem','A.big','A.mul1','B.u7','A.dec','C.u16','A.frac','C.u17','A.mul2','C.u倍','B.u13','D.u18'],
+   4:['A.big','D.u2','D.u7','A.div0','A.div','B.u4','A.dec','A.rem','C.u倍1','C.u倍2','A.round','A.rule','B.u9','A.frac','C.u19','B.u14','A.decmd','C.u倍3','B.u18','D.u20'],
+   5:['A.seisu','B.u16','C.u3','A.decmul','A.decdiv','C.u倍','B.u2','B.u9','A.multiple','A.fdec','A.frac','D.u4','C.u6','C.u10','B.u14','C.u13','C.u17','D.u18','B.u15','B.u19','D.u20'],
+   6:['B.u1','A.moji','A.fint','A.fracmul','A.fracdiv','A.mixcalc','C.u倍','A.hi','B.u12','D.u6','B.u9','B.u10','C.u13','D.u7','D.u14']};
   const BAI={3:{'倍':3.5},4:{'倍1':8.5,'倍2':9.5,'倍3':16.5},5:{'倍':8.5},6:{'倍':8.5}};
   for(const G of [2,3,4,5,6]){if(!ROAD[G])continue;const num=(row)=>{const [k,,a]=row;if(a==='keisan')return KN[G][k.replace('A.','')]??99;const u=k.split('.u')[1];return BAI[G]&&BAI[G][u]!=null?BAI[G][u]:+u;};
     const extra=[];for(const a of ['katachi','kurabe','shirabe'])for(const w of WORLDS[G][a]||[])extra.push([w.id.replace(`math.g${G}.`,''),w.name,a]);
-    for(const t of ['tosho','gakuto']){const base=ROAD[G][t].filter(r=>r[2]==='keisan');ROAD[G][t]=t==='gakuto'?[...base,...extra].sort((x,y)=>num(x)-num(y)):[...base,...extra];}}
+    const tn=r=>{const i=TOSHO[G].indexOf(r[0]);return i<0?999:i;};
+    for(const t of ['tosho','gakuto']){const base=ROAD[G][t].filter(r=>r[2]==='keisan');ROAD[G][t]=t==='gakuto'?[...base,...extra].sort((x,y)=>num(x)-num(y)):[...base,...extra].sort((x,y)=>tn(x)-tn(y));}}
 };
 
 (()=>{const O={3:{tosho:['kake','div','add4','rem','big','mul1','dec','frac','mul2'],gakuto:['kake','div','add4','rem','mul1','big','dec','mul2','frac']},4:{tosho:['big','div0','div','dec','rem','round','rule','frac','decmd'],gakuto:['big','div0','div','rem','round','rule','dec','decmd','frac']},6:{tosho:['moji','fint','fracmul','fracdiv','mixcalc','hi'],gakuto:['moji','fint','fracmul','fracdiv','mixcalc','hi']},5:{tosho:['seisu','decmul','decdiv','multiple','fdec','frac'],gakuto:['seisu','multiple','decmul','decdiv','frac','fdec']}};
