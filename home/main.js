@@ -1,14 +1,14 @@
 // ホームアイランド v0.2
 // 島を歩く・建物を調べる・掲示板・気球で島めぐり・島から戻ったときの「おかえり」
 
-import * as store from '../common/store.js?v=0.21.1';
-import * as books from '../common/books.js?v=0.21.1';
-import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.21.1';
-import * as classroom from '../common/classroom.js?v=0.21.1';
-import { showPicker } from '../common/book-picker.js?v=0.21.1';
-import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, RESERVED, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD, GACHA } from './data.js?v=0.21.1';
+import * as store from '../common/store.js?v=0.22.0';
+import * as books from '../common/books.js?v=0.22.0';
+import { createHero, HAIRS, HAIR_COLORS, OUTFITS, ACCESSORIES, DEFAULTS, resolveHero } from '../common/hero/hero.js?v=0.22.0';
+import * as classroom from '../common/classroom.js?v=0.22.0';
+import { showPicker } from '../common/book-picker.js?v=0.22.0';
+import { OBJECT_TYPES, DEFAULT_HOME, migrateHome, PATH_TILES, RESERVED, ISLANDS, SAMPLE_NOTICES, SUBJECT_LABELS, TEXTURES, ISLANDS_BG, MATERIALS, BUILDABLES, EXCHANGE_RATE, ROOM, ROOM_WALLS, FURNITURE, DEFAULT_ROOM, WARDROBE_KINDS, WARDROBE_COST, WARDROBE_PRICES, WARDROBE_FREE, WARDROBE_RELEASE, WARDROBE_SEASON, WARDROBE_REWARD, GACHA } from './data.js?v=0.22.0';
 
-export const HOME_VERSION = '0.21.1';
+export const HOME_VERSION = '0.22.0';
 const PREVIEW = !!window.GI_PREVIEW; // アーティファクトでの試作表示（島へは移動しない）
 
 // 主人公の画像（仕様書2-4の規格：1コマ 384×512、足元 x=192, y=488。縮小した画像でも同じ比率で扱う）
@@ -1446,7 +1446,7 @@ function drawMon(m, cx, cy) {
 const GATE = { type: 'gate', gate: true };
 function unclaimedEvent() { return doneEvents().find((e) => !claimedEvents.includes(e.id)); }
 const eventImgs = {};
-for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.21.1'], ['t0', 'assets/home/xmas_tree0.webp?v=0.21.1'], ['t1', 'assets/home/xmas_tree1.webp?v=0.21.1'], ['t2', 'assets/home/xmas_tree2.webp?v=0.21.1'], ['t3', 'assets/home/xmas_tree3.webp?v=0.21.1']]) {
+for (const [k, src] of [['gate', 'assets/home/event_gate.webp?v=0.22.0'], ['t0', 'assets/home/xmas_tree0.webp?v=0.22.0'], ['t1', 'assets/home/xmas_tree1.webp?v=0.22.0'], ['t2', 'assets/home/xmas_tree2.webp?v=0.22.0'], ['t3', 'assets/home/xmas_tree3.webp?v=0.22.0']]) {
   const im = new Image(); im.onload = () => { eventImgs[k] = im; }; im.src = new URL('../' + src, import.meta.url).href;
 }
 function drawGate(now) {
@@ -2662,13 +2662,19 @@ function openTeacherClasses() {
   openModal((m) => {
     m.append(h('h2', {}, '👩‍🏫 どの クラスの 島を 見ますか'),
       h('p', { class: 'body small' }, '島の 建物・広さ・へや・コインは どの クラスでも 同じです。かわるのは イベントひろば・宿題・おしらせ・時間割・学年です。'));
-    if (list.length < 2) m.append(h('p', { class: 'body' }, '先生用ページで クラスを ふやしてから、もういちど「先生として ホームへ」を おすと、ここで えらべるように なります。'));
+    if (list.length < 2) m.append(h('p', { class: 'body small' }, '先生用ページで クラスを ふやしてから、もういちど「先生として ホームへ」を おすと、ここで えらべるように なります。'));
     const row = h('div', { class: 'col' });
     for (const x of list) {
       const cur = x.code === cls.code;
       row.append(h('button', { class: 'btn' + (cur ? ' primary' : ''), 'data-tclass': x.code, ...(cur ? { 'data-default': '' } : {}), onclick: () => switchTeacherClass(x) }, (cur ? '✅ ' : '') + (kanjiClass(x.className) || x.code)));
     }
-    m.append(row, h('div', { class: 'row' }, h('button', { class: 'btn', onclick: closeModal }, 'とじる')));
+    // v0.22.0：いま えらんでいる クラスの 先生用ページを ひらく
+    const page = cls.teachPage ? `${cls.teachPage}${cls.teachPage.includes('?') ? '&' : '?'}c=${encodeURIComponent(cls.code)}` : '';
+    m.append(row, page
+      ? h('p', { class: 'body small' }, 'この クラスの 先生用ページ（宿題・イベント・グランプリ などの 設定）を べつの タブで ひらきます。')
+      : h('p', { class: 'body small' }, '先生用ページで「🏝 先生として ホームへ」を もういちど おすと、ここから 先生用ページを ひらけるように なります。'),
+    h('div', { class: 'row' }, h('button', { class: 'btn', onclick: closeModal }, 'とじる'),
+      ...(page ? [h('button', { class: 'btn sky', 'data-act': 'teachpage', onclick: () => { window.open(page, '_blank', 'noopener'); closeModal(); } }, '👩‍🏫 先生用ページを ひらく')] : [])));
   });
 }
 async function switchTeacherClass(x) {
@@ -2886,7 +2892,7 @@ function heroGender() { return profile?.hero?.gender === 'girl' ? 'girl' : 'boy'
 
 // ------------------------------------------------------------------ タイトル画面
 // ブラウザを開いて最初の1回だけ出す（島から戻ったときや、同じタブで開き直したときは出さない）
-const LOGO_SRC = 'assets/home/logo.webp?v=0.21.1';
+const LOGO_SRC = 'assets/home/logo.webp?v=0.22.0';
 function titleShownThisSession() { try { return sessionStorage.getItem('hatenaria-title') === '1'; } catch { return false; } }
 function markTitleShown() { try { sessionStorage.setItem('hatenaria-title', '1'); } catch { /* 使えなくても動く */ } }
 function showTitle(curBook) {

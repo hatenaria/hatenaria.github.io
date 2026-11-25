@@ -1,7 +1,7 @@
 // 先生とのつながり（共通仕様書 4章）
 // 児童の端末 → 先生のGAS：参加の登録、学習の要約（片道）。先生のGAS → 端末：クラス設定とお知らせだけ。
 // 児童の記録は先生から返ってこない。実名は送らない（出席番号とハンドルネームだけ）。
-import * as store from './store.js?v=0.21.1';
+import * as store from './store.js?v=0.22.0';
 
 const REFRESH_MS = 2 * 60 * 1000;   // クラス設定（おしらせ・宿題など）はホームを開くたびに読む。続けて開いたときだけ2分あける
 const SEND_MAX = 50;                     // 1回に送る要約の数
@@ -43,7 +43,7 @@ export function readTeacherLink(href = location.href) {
     const one = (x) => ({ code: String(x.c), token: String(x.t), grade: Number(x.g) || null, className: String(x.n || '') });
     // k：先生が もっている クラス ぜんぶ（v0.19.0。ホームの 画面から きりかえる）
     const classes = Array.isArray(d.k) ? d.k.filter((x) => x && x.c && x.t).map(one) : [];
-    return { url, ...one(d), classes };
+    return { url, ...one(d), classes, teachPage: /^https:\/\/script\.google\.com\//.test(String(d.p || '')) ? String(d.p) : '' };
   } catch { return null; }
 }
 export function clearTeacherLink() {
@@ -54,6 +54,7 @@ export function clearTeacherLink() {
 export async function setTeacher(bookId, t) {
   return await store.update(`${bookId}/class`, (c) => ({ ...(c && c.teacher && c.code === t.code ? c : {}), code: t.code, url: t.url, number: 0, handle: 'せんせい', token: t.token, teacher: true,
     teachClasses: (t.classes && t.classes.length ? t.classes : c?.teachClasses) || [],
+    teachPage: t.teachPage || c?.teachPage || '', // 先生用ページの URL（v0.22.0）
     className: t.className, settings: { ...((c && c.code === t.code && c.settings) || {}), teacher: true, grade: t.grade }, fetchedAt: 0, joinedAt: c?.joinedAt || new Date().toISOString() }), { fallback: null });
 }
 
